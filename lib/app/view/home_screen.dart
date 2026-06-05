@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../features/auth_profile/presentation/screens/auth_profile_screen.dart';
+import '../../features/auth_profile/presentation/screens/profile_screen.dart';
 import '../../features/driver_booking/presentation/screens/driver_home_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -17,7 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
     DriverHomeScreen(),
     Center(child: Text('Bookings Page')),
     Center(child: Text('Pay Page')),
-    AuthProfileScreen(),
+    ProfileScreen(),
   ];
 
   void _onItemTapped(int index) {
