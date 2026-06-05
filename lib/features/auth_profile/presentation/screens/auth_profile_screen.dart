@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../app/view/home_screen.dart';
 
 import '../../../../core/theme/app_colors.dart';
 
@@ -133,16 +134,19 @@ class _InputField extends StatelessWidget {
     required this.icon,
     this.trailingIcon,
     this.obscureText = false,
+    this.controller,
   });
 
   final String hintText;
   final IconData icon;
   final IconData? trailingIcon;
   final bool obscureText;
+  final TextEditingController? controller;
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
+      controller: controller,
       obscureText: obscureText,
       decoration: InputDecoration(
         hintText: hintText,
@@ -248,11 +252,41 @@ class _ToggleChoice extends StatelessWidget {
   }
 }
 
-class _LoginCard extends StatelessWidget {
+class _LoginCard extends StatefulWidget {
   final VoidCallback onNavigateToRegister;
   final VoidCallback onNavigateToForgot;
 
   const _LoginCard({super.key, required this.onNavigateToRegister, required this.onNavigateToForgot});
+
+  @override
+  State<_LoginCard> createState() => _LoginCardState();
+}
+
+class _LoginCardState extends State<_LoginCard> {
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _handleLogin() {
+    if (_usernameController.text.isNotEmpty) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter an account (e.g. admin)')),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -292,19 +326,24 @@ class _LoginCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 32),
-          const _InputField(hintText: 'Email or Phone', icon: Icons.alternate_email),
+          _InputField(
+            hintText: 'Email or Phone', 
+            icon: Icons.alternate_email,
+            controller: _usernameController,
+          ),
           const SizedBox(height: 16),
-          const _InputField(
+          _InputField(
             hintText: 'Password',
             icon: Icons.lock_outline,
             trailingIcon: Icons.visibility_outlined,
             obscureText: true,
+            controller: _passwordController,
           ),
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerRight,
             child: TextButton(
-              onPressed: onNavigateToForgot,
+              onPressed: widget.onNavigateToForgot,
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 minimumSize: Size.zero,
@@ -323,9 +362,7 @@ class _LoginCard extends StatelessWidget {
           const SizedBox(height: 24),
           _PrimaryButton(
             label: 'LOG IN',
-            onPressed: () {
-              // TODO: Handle Login
-            },
+            onPressed: _handleLogin,
           ),
           const SizedBox(height: 24),
         ],

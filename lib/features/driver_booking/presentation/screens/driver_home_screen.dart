@@ -1,31 +1,34 @@
 import 'package:flutter/material.dart';
+import '../../../../app/app.dart' as import_app;
 
 class DriverHomeScreen extends StatelessWidget {
   const DriverHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F8), // Đổi màu nền tối hơn một chút để làm nổi bật các thẻ trắng
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(),
+              _buildHeader(context, isDark),
               const SizedBox(height: 28),
-              _buildLiveAvailabilityCard(),
+              _buildLiveAvailabilityCard(isDark),
               const SizedBox(height: 32),
-              _buildSectionTitle('FACILITY INFORMATION'),
+              _buildSectionTitle('FACILITY INFORMATION', isDark),
               const SizedBox(height: 16),
-              _buildFacilityInformationCard(),
+              _buildFacilityInformationCard(isDark),
               const SizedBox(height: 32),
-              _buildSectionTitle('QUICK ACTIONS'),
+              _buildSectionTitle('QUICK ACTIONS', isDark),
               const SizedBox(height: 16),
-              _buildQuickActions(),
+              _buildQuickActions(isDark),
               const SizedBox(height: 32),
-              _buildStandardRatesCard(),
+              _buildStandardRatesCard(isDark),
               const SizedBox(height: 24),
             ],
           ),
@@ -34,30 +37,30 @@ class DriverHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, bool isDark) {
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.w800,
-        color: Color(0xFF475569), // Màu xám đậm sang trọng
+        color: isDark ? Colors.grey.shade400 : const Color(0xFF475569),
         letterSpacing: 1.5,
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context, bool isDark) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Hello, Driver!',
               style: TextStyle(
                 fontSize: 15,
-                color: Color(0xFF64748B),
+                color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -65,36 +68,45 @@ class DriverHomeScreen extends StatelessWidget {
             InkWell(
               onTap: () {},
               borderRadius: BorderRadius.circular(8),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.location_on, color: Color(0xFF0EA5E9), size: 22),
-                  SizedBox(width: 6),
+                  const Icon(Icons.location_on, color: Color(0xFF0EA5E9), size: 22),
+                  const SizedBox(width: 6),
                   Text(
                     'Ho Chi Minh City',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF0F172A),
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
                     ),
                   ),
-                  SizedBox(width: 4),
-                  Icon(Icons.keyboard_arrow_down, color: Color(0xFF0F172A), size: 22),
+                  const SizedBox(width: 4),
+                  Icon(Icons.keyboard_arrow_down, color: isDark ? Colors.white : const Color(0xFF0F172A), size: 22),
                 ],
               ),
             ),
           ],
         ),
-        InkWell(
-          onTap: () {},
-          borderRadius: BorderRadius.circular(30),
-          child: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white,
+        Row(
+          children: [
+            IconButton(
+              icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: isDark ? Colors.amber : const Color(0xFF0F172A)),
+              onPressed: () {
+                import_app.SmartParkingApp.of(context).toggleTheme(isDark);
+              },
+            ),
+            const SizedBox(width: 8),
+            InkWell(
+              onTap: () {},
+              borderRadius: BorderRadius.circular(30),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -102,7 +114,7 @@ class DriverHomeScreen extends StatelessWidget {
             ),
             child: Stack(
               children: [
-                const Icon(Icons.notifications_none_rounded, color: Color(0xFF0F172A), size: 26),
+                Icon(Icons.notifications_none_rounded, color: isDark ? Colors.white : const Color(0xFF0F172A), size: 26),
                 Positioned(
                   right: 2,
                   top: 2,
@@ -119,25 +131,29 @@ class DriverHomeScreen extends StatelessWidget {
             ),
           ),
         ),
+          ],
+        ),
       ],
     );
   }
 
-  Widget _buildLiveAvailabilityCard() {
+  Widget _buildLiveAvailabilityCard(bool isDark) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFE0F7FA), Color(0xFFFFFFFF)],
+        gradient: LinearGradient(
+          colors: isDark 
+            ? [const Color(0xFF0F4C5C), const Color(0xFF1B998B)]
+            : [const Color(0xFFE0F7FA), const Color(0xFFFFFFFF)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: const Color(0xFFB2EBF2), width: 1.5),
+        border: Border.all(color: isDark ? const Color(0xFF1B998B) : const Color(0xFFB2EBF2), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF00ACC1).withOpacity(0.15),
+            color: const Color(0xFF00ACC1).withOpacity(isDark ? 0.4 : 0.15),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -148,13 +164,13 @@ class DriverHomeScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFF00ACC1).withOpacity(0.1),
+              color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFF00ACC1).withOpacity(0.1),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Text(
+            child: Text(
               'LIVE AVAILABILITY',
               style: TextStyle(
-                color: Color(0xFF00838F),
+                color: isDark ? Colors.white : const Color(0xFF00838F),
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.2,
@@ -162,34 +178,35 @@ class DriverHomeScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             '342',
             style: TextStyle(
               fontSize: 64,
               fontWeight: FontWeight.w900,
-              color: Color(0xFF006064),
+              color: isDark ? Colors.white : const Color(0xFF006064),
               height: 1,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Slots Available Now',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF00838F),
+              color: isDark ? Colors.white.withOpacity(0.9) : const Color(0xFF00838F),
             ),
           ),
           const SizedBox(height: 24),
-          Divider(color: const Color(0xFF00ACC1).withOpacity(0.2), thickness: 1.5),
+          Divider(color: (isDark ? Colors.white : const Color(0xFF00ACC1)).withOpacity(0.2), thickness: 1.5),
           const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _buildVehicleAvailability(
+                isDark: isDark,
                 icon: Icons.directions_car,
-                iconColor: const Color(0xFF3B82F6),
-                iconBgColor: const Color(0xFFDBEAFE),
+                iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF3B82F6),
+                iconBgColor: isDark ? const Color(0xFF1E3A8A).withOpacity(0.5) : const Color(0xFFDBEAFE),
                 label: 'Cars',
                 count: '120',
                 status: 'vacant',
@@ -197,12 +214,13 @@ class DriverHomeScreen extends StatelessWidget {
               Container(
                 width: 1.5,
                 height: 48,
-                color: const Color(0xFF00ACC1).withOpacity(0.2),
+                color: (isDark ? Colors.white : const Color(0xFF00ACC1)).withOpacity(0.2),
               ),
               _buildVehicleAvailability(
+                isDark: isDark,
                 icon: Icons.two_wheeler_rounded,
-                iconColor: const Color(0xFFA855F7),
-                iconBgColor: const Color(0xFFF3E8FF),
+                iconColor: isDark ? const Color(0xFFC084FC) : const Color(0xFFA855F7),
+                iconBgColor: isDark ? const Color(0xFF581C87).withOpacity(0.5) : const Color(0xFFF3E8FF),
                 label: 'Motorbikes',
                 count: '222',
                 status: 'vacant',
@@ -215,6 +233,7 @@ class DriverHomeScreen extends StatelessWidget {
   }
 
   Widget _buildVehicleAvailability({
+    required bool isDark,
     required IconData icon,
     required Color iconColor,
     required Color iconBgColor,
@@ -238,7 +257,7 @@ class DriverHomeScreen extends StatelessWidget {
           children: [
             Text(
               label,
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade700, fontWeight: FontWeight.w700),
+              style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 2),
             Row(
@@ -250,7 +269,7 @@ class DriverHomeScreen extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   status,
-                  style: const TextStyle(fontSize: 15, color: Color(0xFF0F172A), fontWeight: FontWeight.w700),
+                  style: TextStyle(fontSize: 15, color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.w700),
                 ),
               ],
             ),
@@ -260,16 +279,16 @@ class DriverHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFacilityInformationCard() {
+  Widget _buildFacilityInformationCard(bool isDark) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -282,19 +301,19 @@ class DriverHomeScreen extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEFF6FF),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E3A8A).withOpacity(0.4) : const Color(0xFFEFF6FF),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.access_time_filled, color: Color(0xFF2563EB), size: 24),
+                child: Icon(Icons.access_time_filled, color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB), size: 24),
               ),
               const SizedBox(width: 16),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Operating Hours', style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                  Text('Operating Hours', style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
-                  const Text('24/7 Open', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                  Text('24/7 Open', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF0F172A))),
                 ],
               ),
             ],
@@ -304,25 +323,25 @@ class DriverHomeScreen extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFECFDF5),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF064E3B).withOpacity(0.4) : const Color(0xFFECFDF5),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.electric_bolt_rounded, color: Color(0xFF059669), size: 24),
+                child: Icon(Icons.electric_bolt_rounded, color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669), size: 24),
               ),
               const SizedBox(width: 16),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Allowed Vehicles', style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                  Text('Allowed Vehicles', style: TextStyle(fontSize: 13, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      _buildTag('Cars', const Color(0xFFEFF6FF), const Color(0xFF2563EB)),
+                      _buildTag('Cars', isDark ? const Color(0xFF1E3A8A).withOpacity(0.4) : const Color(0xFFEFF6FF), isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB)),
                       const SizedBox(width: 8),
-                      _buildTag('Motorbikes', const Color(0xFFFAF5FF), const Color(0xFF9333EA)),
+                      _buildTag('Motorbikes', isDark ? const Color(0xFF581C87).withOpacity(0.4) : const Color(0xFFFAF5FF), isDark ? const Color(0xFFC084FC) : const Color(0xFF9333EA)),
                       const SizedBox(width: 8),
-                      _buildTag('EVs', const Color(0xFFECFDF5), const Color(0xFF059669)),
+                      _buildTag('EVs', isDark ? const Color(0xFF064E3B).withOpacity(0.4) : const Color(0xFFECFDF5), isDark ? const Color(0xFF34D399) : const Color(0xFF059669)),
                     ],
                   ),
                 ],
@@ -330,7 +349,7 @@ class DriverHomeScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          Divider(color: Colors.grey.shade200, thickness: 1.5),
+          Divider(color: isDark ? Colors.grey.shade700 : Colors.grey.shade200, thickness: 1.5),
           const SizedBox(height: 12),
           InkWell(
             onTap: () {},
@@ -340,16 +359,16 @@ class DriverHomeScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
+                  Text(
                     'View Full Pricing & Tariff Rules',
                     style: TextStyle(
-                      color: Color(0xFF2563EB),
+                      color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
                       fontWeight: FontWeight.w800,
                       fontSize: 15,
                     ),
                   ),
                   const SizedBox(width: 6),
-                  const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF2563EB), size: 16),
+                  Icon(Icons.arrow_forward_ios_rounded, color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB), size: 16),
                 ],
               ),
             ),
@@ -377,16 +396,17 @@ class DriverHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickActions() {
+  Widget _buildQuickActions(bool isDark) {
     return Column(
       children: [
         Row(
           children: [
             Expanded(
               child: _buildActionCard(
+                isDark: isDark,
                 icon: Icons.qr_code_scanner_rounded,
-                iconColor: const Color(0xFF2563EB),
-                iconBgColor: const Color(0xFFEFF6FF),
+                iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+                iconBgColor: isDark ? const Color(0xFF1E3A8A).withOpacity(0.4) : const Color(0xFFEFF6FF),
                 title: 'Quick Check-In',
                 subtitle: 'View active ticket/QR code',
               ),
@@ -394,9 +414,10 @@ class DriverHomeScreen extends StatelessWidget {
             const SizedBox(width: 16),
             Expanded(
               child: _buildActionCard(
+                isDark: isDark,
                 icon: Icons.edit_calendar_rounded,
-                iconColor: const Color(0xFF059669),
-                iconBgColor: const Color(0xFFECFDF5),
+                iconColor: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                iconBgColor: isDark ? const Color(0xFF064E3B).withOpacity(0.4) : const Color(0xFFECFDF5),
                 title: 'Pre-book Slot',
                 subtitle: 'Reserve your spot in advance',
               ),
@@ -408,9 +429,10 @@ class DriverHomeScreen extends StatelessWidget {
           children: [
             Expanded(
               child: _buildActionCard(
+                isDark: isDark,
                 icon: Icons.timer_rounded,
-                iconColor: const Color(0xFFEA580C),
-                iconBgColor: const Color(0xFFFFF7ED),
+                iconColor: isDark ? const Color(0xFFFB923C) : const Color(0xFFEA580C),
+                iconBgColor: isDark ? const Color(0xFF7C2D12).withOpacity(0.4) : const Color(0xFFFFF7ED),
                 title: 'Track Session',
                 subtitle: 'Check live duration & fee',
               ),
@@ -418,9 +440,10 @@ class DriverHomeScreen extends StatelessWidget {
             const SizedBox(width: 16),
             Expanded(
               child: _buildActionCard(
+                isDark: isDark,
                 icon: Icons.support_agent_rounded,
-                iconColor: const Color(0xFF9333EA),
-                iconBgColor: const Color(0xFFFAF5FF),
+                iconColor: isDark ? const Color(0xFFC084FC) : const Color(0xFF9333EA),
+                iconBgColor: isDark ? const Color(0xFF581C87).withOpacity(0.4) : const Color(0xFFFAF5FF),
                 title: 'Support',
                 subtitle: 'Report lost card or issues',
               ),
@@ -432,6 +455,7 @@ class DriverHomeScreen extends StatelessWidget {
   }
 
   Widget _buildActionCard({
+    required bool isDark,
     required IconData icon,
     required Color iconColor,
     required Color iconBgColor,
@@ -440,11 +464,11 @@ class DriverHomeScreen extends StatelessWidget {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -471,18 +495,18 @@ class DriverHomeScreen extends StatelessWidget {
                 const SizedBox(height: 20),
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF0F172A),
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   subtitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF64748B),
+                    color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
                     fontWeight: FontWeight.w500,
                     height: 1.4,
                   ),
@@ -495,20 +519,22 @@ class DriverHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStandardRatesCard() {
+  Widget _buildStandardRatesCard(bool isDark) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF10B981), Color(0xFF059669)],
+        gradient: LinearGradient(
+          colors: isDark
+            ? [const Color(0xFF065F46), const Color(0xFF047857)]
+            : [const Color(0xFF10B981), const Color(0xFF059669)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF059669).withOpacity(0.3),
+            color: const Color(0xFF059669).withOpacity(isDark ? 0.6 : 0.3),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -542,7 +568,7 @@ class DriverHomeScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withOpacity(0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Row(

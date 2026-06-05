@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../app/app.dart' as import_app;
+import 'auth_profile_screen.dart';
 
 import 'change_password_screen.dart';
 
@@ -49,26 +51,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7F9),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF4F7F9),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(0xFF0B7A59)),
           onPressed: () {},
         ),
-        title: const Text(
+        title: Text(
           'Profile',
           style: TextStyle(
-            color: Colors.black87,
+            color: isDark ? Colors.white : Colors.black87,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: isDark ? Colors.amber : const Color(0xFF0F172A)),
+            onPressed: () {
+              import_app.SmartParkingApp.of(context).toggleTheme(isDark);
+            },
+          ),
           if (_isEditing)
             TextButton(
               onPressed: _toggleEditMode,
@@ -92,23 +102,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Column(
           children: [
-            _buildProfileHeader(),
+            _buildProfileHeader(isDark),
             const SizedBox(height: 32),
-            _buildSectionTitle('PERSONAL DETAILS'),
+            _buildSectionTitle('PERSONAL DETAILS', isDark),
             const SizedBox(height: 12),
-            _buildPersonalDetails(),
+            _buildPersonalDetails(isDark),
             const SizedBox(height: 24),
             _buildSectionTitle(
               'VEHICLE INFO',
+              isDark,
               trailing: InkWell(
                 onTap: _showAddVehicleDialog,
                 borderRadius: BorderRadius.circular(4),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                   child: Text(
                     '+ ADD',
                     style: TextStyle(
-                      color: Color(0xFF0B7A59),
+                      color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59),
                       fontWeight: FontWeight.w900,
                       fontSize: 12,
                     ),
@@ -117,17 +128,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            _buildVehicleInfo(),
+            _buildVehicleInfo(isDark),
             const SizedBox(height: 24),
-            _buildSectionTitle('ACCOUNT SETTINGS'),
+            _buildSectionTitle('ACCOUNT SETTINGS', isDark),
             const SizedBox(height: 12),
-            _buildAccountSettings(context),
+            _buildAccountSettings(context, isDark),
             const SizedBox(height: 32),
-            _buildLogoutButton(),
+            _buildLogoutButton(context, isDark),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'App Version 2.4.0 (1024)',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
+              style: TextStyle(color: isDark ? Colors.grey.shade500 : Colors.grey, fontSize: 12),
             ),
             const SizedBox(height: 32),
           ],
@@ -136,25 +147,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title, {Widget? trailing}) {
+  Widget _buildSectionTitle(String title, bool isDark, {Widget? trailing}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w800,
-            color: Color(0xFF64748B),
+            color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
             letterSpacing: 1.2,
           ),
         ),
-        if (trailing != null) trailing,
+        ?trailing,
       ],
     );
   }
 
-  Widget _buildProfileHeader() {
+  Widget _buildProfileHeader(bool isDark) {
     return Column(
       children: [
         Stack(
@@ -179,7 +190,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   decoration: BoxDecoration(
                     color: const Color(0xFF0B7A59),
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
+                    border: Border.all(color: isDark ? const Color(0xFF1E293B) : Colors.white, width: 2),
                   ),
                   child: const Icon(Icons.edit, color: Colors.white, size: 14),
                 ),
@@ -190,7 +201,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 decoration: BoxDecoration(
                   color: Colors.blue,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
+                  border: Border.all(color: isDark ? const Color(0xFF1E293B) : Colors.white, width: 2),
                 ),
                 child: const Icon(Icons.camera_alt, color: Colors.white, size: 14),
               ),
@@ -199,32 +210,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 16),
         Text(
           _isEditing ? 'Editing Profile' : _nameController.text,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
-            color: Color(0xFF0F172A),
+            color: isDark ? Colors.white : const Color(0xFF0F172A),
           ),
         ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'Professional Driver',
           style: TextStyle(
             fontSize: 14,
-            color: Color(0xFF64748B),
+            color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildPersonalDetails() {
+  Widget _buildPersonalDetails(bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -232,23 +243,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Column(
         children: [
-          _buildEditableRow(Icons.person_outline, 'Full Name', _nameController),
-          Divider(color: Colors.grey.shade100, height: 1),
-          _buildEditableRow(Icons.phone_outlined, 'Phone Number', _phoneController, keyboardType: TextInputType.phone),
-          Divider(color: Colors.grey.shade100, height: 1),
-          _buildEditableRow(Icons.mail_outline, 'Email Address', _emailController, keyboardType: TextInputType.emailAddress),
+          _buildEditableRow(Icons.person_outline, 'Full Name', _nameController, isDark: isDark),
+          Divider(color: isDark ? Colors.grey.shade700 : Colors.grey.shade100, height: 1),
+          _buildEditableRow(Icons.phone_outlined, 'Phone Number', _phoneController, keyboardType: TextInputType.phone, isDark: isDark),
+          Divider(color: isDark ? Colors.grey.shade700 : Colors.grey.shade100, height: 1),
+          _buildEditableRow(Icons.mail_outline, 'Email Address', _emailController, keyboardType: TextInputType.emailAddress, isDark: isDark),
         ],
       ),
     );
   }
 
-  Widget _buildEditableRow(IconData icon, String title, TextEditingController controller, {TextInputType? keyboardType}) {
+  Widget _buildEditableRow(IconData icon, String title, TextEditingController controller, {TextInputType? keyboardType, required bool isDark}) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(icon, color: const Color(0xFF0B7A59), size: 24),
+          Icon(icon, color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59), size: 24),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -256,31 +267,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Text(
                   title,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade500, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 if (_isEditing)
                   TextFormField(
                     controller: controller,
                     keyboardType: keyboardType,
-                    style: const TextStyle(fontSize: 15, color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 15, color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.w600),
                     decoration: InputDecoration(
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
+                        borderSide: BorderSide(color: isDark ? Colors.grey.shade600 : Colors.grey.shade300),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFF0B7A59), width: 1.5),
+                        borderSide: BorderSide(color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59), width: 1.5),
                       ),
                     ),
                   )
                 else
                   Text(
                     controller.text,
-                    style: const TextStyle(fontSize: 15, color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 15, color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.w600),
                   ),
               ],
             ),
@@ -290,13 +301,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildVehicleInfo() {
+  Widget _buildVehicleInfo(bool isDark) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8F5EE), // Light green tint
+        color: isDark ? const Color(0xFF064E3B).withOpacity(0.3) : const Color(0xFFE8F5EE),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFCEE8DE)),
+        border: Border.all(color: isDark ? const Color(0xFF064E3B) : const Color(0xFFCEE8DE)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -308,10 +319,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? const Color(0xFF064E3B) : Colors.white,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.directions_car_outlined, color: Color(0xFF0B7A59), size: 30),
+                child: Icon(Icons.directions_car_outlined, color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59), size: 30),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -320,43 +331,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     Row(
                       children: [
-                        const Text(
+                        Text(
                           'Default Vehicle',
-                          style: TextStyle(fontSize: 12, color: Color(0xFF0B7A59), fontWeight: FontWeight.w700),
+                          style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59), fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0B7A59),
+                            color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59),
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text(
+                          child: Text(
                             'ACTIVE',
-                            style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                            style: TextStyle(color: isDark ? Colors.black : Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    const Text(
+                    Text(
                       'Car',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF0F172A)),
                     ),
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Text('Plate: ', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text('Plate: ', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey)),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
                             borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: Colors.grey.shade300),
+                            border: Border.all(color: isDark ? Colors.grey.shade600 : Colors.grey.shade300),
                           ),
-                          child: const Text(
+                          child: Text(
                             '51A-123.45',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black),
                           ),
                         ),
                       ],
@@ -364,7 +375,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Colors.grey),
+              Icon(Icons.chevron_right, color: isDark ? Colors.grey.shade500 : Colors.grey),
             ],
           ),
         ),
@@ -372,14 +383,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildAccountSettings(BuildContext context) {
+  Widget _buildAccountSettings(BuildContext context, bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -387,22 +398,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Column(
         children: [
-          _buildActionRow(Icons.lock_outline, 'Change Password', onTap: () {
+          _buildActionRow(Icons.lock_outline, 'Change Password', isDark: isDark, onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
             );
           }),
-          Divider(color: Colors.grey.shade100, height: 1),
-          _buildActionRow(Icons.notifications_none, 'Notification Settings', onTap: () {}),
-          Divider(color: Colors.grey.shade100, height: 1),
-          _buildActionRow(Icons.help_outline, 'Help & Support', onTap: () {}),
+          Divider(color: isDark ? Colors.grey.shade700 : Colors.grey.shade100, height: 1),
+          _buildActionRow(Icons.notifications_none, 'Notification Settings', isDark: isDark, onTap: () {}),
+          Divider(color: isDark ? Colors.grey.shade700 : Colors.grey.shade100, height: 1),
+          _buildActionRow(Icons.help_outline, 'Help & Support', isDark: isDark, onTap: () {}),
         ],
       ),
     );
   }
 
-  Widget _buildActionRow(IconData icon, String title, {required VoidCallback onTap}) {
+  Widget _buildActionRow(IconData icon, String title, {required VoidCallback onTap, required bool isDark}) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
@@ -410,92 +421,100 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Row(
           children: [
-            Icon(icon, color: const Color(0xFF475569), size: 24),
+            Icon(icon, color: isDark ? Colors.grey.shade400 : const Color(0xFF475569), size: 24),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(fontSize: 15, color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: 15, color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.w600),
               ),
             ),
-            const Icon(Icons.chevron_right, color: Colors.grey),
+            Icon(Icons.chevron_right, color: isDark ? Colors.grey.shade500 : Colors.grey),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLogoutButton() {
+  Widget _buildLogoutButton(BuildContext context, bool isDark) {
     return OutlinedButton.icon(
-      onPressed: () {},
-      icon: const Icon(Icons.logout, color: Color(0xFF0B7A59)),
-      label: const Text(
+      onPressed: () {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const AuthProfileScreen()),
+          (route) => false,
+        );
+      },
+      icon: Icon(Icons.logout, color: isDark ? const Color(0xFFEF4444) : const Color(0xFF0B7A59)),
+      label: Text(
         'Log Out',
-        style: TextStyle(color: Color(0xFF0B7A59), fontWeight: FontWeight.bold, fontSize: 16),
+        style: TextStyle(color: isDark ? const Color(0xFFEF4444) : const Color(0xFF0B7A59), fontWeight: FontWeight.bold, fontSize: 16),
       ),
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(double.infinity, 56),
-        side: const BorderSide(color: Color(0xFF0B7A59), width: 1.5),
+        side: BorderSide(color: isDark ? const Color(0xFFEF4444) : const Color(0xFF0B7A59), width: 1.5),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
 
   void _showVehicleDetailsDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.directions_car, color: Color(0xFF0B7A59)),
-            SizedBox(width: 8),
-            Text('Vehicle Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            Icon(Icons.directions_car, color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59)),
+            const SizedBox(width: 8),
+            Text('Vehicle Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: isDark ? Colors.white : Colors.black)),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDialogRow('Type', 'Car'),
+            _buildDialogRow('Type', 'Car', isDark),
             const SizedBox(height: 12),
-            _buildDialogRow('Plate', '51A-123.45'),
+            _buildDialogRow('Plate', '51A-123.45', isDark),
             const SizedBox(height: 12),
-            _buildDialogRow('Status', 'Active (Default)'),
+            _buildDialogRow('Status', 'Active (Default)', isDark),
             const SizedBox(height: 12),
-            _buildDialogRow('Added on', '12 Oct 2023'),
+            _buildDialogRow('Added on', '12 Oct 2023', isDark),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close', style: TextStyle(color: Colors.grey)),
+            child: Text('Close', style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0B7A59),
+              backgroundColor: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('Edit', style: TextStyle(color: Colors.white)),
+            child: Text('Edit', style: TextStyle(color: isDark ? Colors.black : Colors.white)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDialogRow(String label, String value) {
+  Widget _buildDialogRow(String label, String value, bool isDark) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A))),
+        Text(label, style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600, fontSize: 14)),
+        Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : const Color(0xFF0F172A))),
       ],
     );
   }
 
   void _showAddVehicleDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -504,9 +523,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -514,29 +533,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Add New Vehicle',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
               ),
               const SizedBox(height: 24),
               TextFormField(
+                style: TextStyle(color: isDark ? Colors.white : Colors.black),
                 decoration: InputDecoration(
                   labelText: 'Vehicle Type (e.g. Car, Motorbike)',
+                  labelStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: isDark ? Colors.grey.shade600 : Colors.grey.shade300),
+                  ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF0B7A59), width: 1.5),
+                    borderSide: BorderSide(color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59), width: 1.5),
                   ),
                 ),
               ),
               const SizedBox(height: 16),
               TextFormField(
+                style: TextStyle(color: isDark ? Colors.white : Colors.black),
                 decoration: InputDecoration(
                   labelText: 'License Plate',
+                  labelStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: isDark ? Colors.grey.shade600 : Colors.grey.shade300),
+                  ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF0B7A59), width: 1.5),
+                    borderSide: BorderSide(color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59), width: 1.5),
                   ),
                 ),
               ),
@@ -547,11 +578,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: const Color(0xFF0B7A59),
+                    backgroundColor: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
-                  child: const Text('SAVE VEHICLE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                  child: Text('SAVE VEHICLE', style: TextStyle(color: isDark ? Colors.black : Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
                 ),
               ),
               const SizedBox(height: 16),
