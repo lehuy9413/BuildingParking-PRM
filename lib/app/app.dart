@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
 import 'view/home_screen.dart';
+export 'view/home_screen.dart' show HomeScreen;
 import '../features/auth_profile/presentation/screens/auth_profile_screen.dart';
 
 class SmartParkingApp extends StatefulWidget {

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/app.dart' as import_app;
+import '../controllers/booking_controller.dart';
+import 'booking_flow_screen.dart';
+import 'ai_suggestion_screen.dart';
 
 class DriverHomeScreen extends StatelessWidget {
   const DriverHomeScreen({super.key});
@@ -26,7 +30,7 @@ class DriverHomeScreen extends StatelessWidget {
               const SizedBox(height: 32),
               _buildSectionTitle('QUICK ACTIONS', isDark),
               const SizedBox(height: 16),
-              _buildQuickActions(isDark),
+              _buildQuickActions(context, isDark),
               const SizedBox(height: 32),
               _buildStandardRatesCard(isDark),
               const SizedBox(height: 24),
@@ -396,7 +400,7 @@ class DriverHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickActions(bool isDark) {
+  Widget _buildQuickActions(BuildContext context, bool isDark) {
     return Column(
       children: [
         Row(
@@ -409,6 +413,7 @@ class DriverHomeScreen extends StatelessWidget {
                 iconBgColor: isDark ? const Color(0xFF1E3A8A).withOpacity(0.4) : const Color(0xFFEFF6FF),
                 title: 'Quick Check-In',
                 subtitle: 'View active ticket/QR code',
+                onTap: () {},
               ),
             ),
             const SizedBox(width: 16),
@@ -420,6 +425,9 @@ class DriverHomeScreen extends StatelessWidget {
                 iconBgColor: isDark ? const Color(0xFF064E3B).withOpacity(0.4) : const Color(0xFFECFDF5),
                 title: 'Pre-book Slot',
                 subtitle: 'Reserve your spot in advance',
+                onTap: () {
+                  import_app.HomeScreen.switchTab(context, 1);
+                },
               ),
             ),
           ],
@@ -435,6 +443,7 @@ class DriverHomeScreen extends StatelessWidget {
                 iconBgColor: isDark ? const Color(0xFF7C2D12).withOpacity(0.4) : const Color(0xFFFFF7ED),
                 title: 'Track Session',
                 subtitle: 'Check live duration & fee',
+                onTap: () {},
               ),
             ),
             const SizedBox(width: 16),
@@ -446,6 +455,7 @@ class DriverHomeScreen extends StatelessWidget {
                 iconBgColor: isDark ? const Color(0xFF581C87).withOpacity(0.4) : const Color(0xFFFAF5FF),
                 title: 'Support',
                 subtitle: 'Report lost card or issues',
+                onTap: () {},
               ),
             ),
           ],
@@ -461,6 +471,7 @@ class DriverHomeScreen extends StatelessWidget {
     required Color iconBgColor,
     required String title,
     required String subtitle,
+    VoidCallback? onTap,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -477,7 +488,7 @@ class DriverHomeScreen extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {},
+          onTap: onTap,
           borderRadius: BorderRadius.circular(24),
           child: Padding(
             padding: const EdgeInsets.all(20),

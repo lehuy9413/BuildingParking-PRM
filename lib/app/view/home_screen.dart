@@ -2,9 +2,16 @@ import 'package:flutter/material.dart';
 
 import '../../features/auth_profile/presentation/screens/profile_screen.dart';
 import '../../features/driver_booking/presentation/screens/driver_home_screen.dart';
+import '../../features/driver_booking/presentation/screens/booking_flow_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  /// Switch to a specific tab from anywhere below this widget.
+  static void switchTab(BuildContext context, int index) {
+    final state = context.findAncestorStateOfType<_HomeScreenState>();
+    state?._onItemTapped(index);
+  }
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -15,7 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   static const List<Widget> _pages = <Widget>[
     DriverHomeScreen(),
-    Center(child: Text('Bookings Page')),
+    BookingFlowScreen(isEmbedded: true),
     Center(child: Text('Pay Page')),
     ProfileScreen(),
   ];

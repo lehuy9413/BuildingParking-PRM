@@ -1,0 +1,758 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../domain/entities/parking_slot.dart';
+import '../controllers/booking_controller.dart';
+import 'ai_suggestion_banner.dart';
+
+class BookingStepSlot extends ConsumerStatefulWidget {
+  const BookingStepSlot({super.key});
+
+  @override
+  ConsumerState<BookingStepSlot> createState() => _BookingStepSlotState();
+}
+
+class _BookingStepSlotState extends ConsumerState<BookingStepSlot> {
+  @override
+  void initState() {
+    super.initState();
+    // Auto-select Zone A on first load
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final state = ref.read(bookingControllerProvider);
+      if (state.selectedZone == null) {
+        ref.read(bookingControllerProvider.notifier).selectZone(ParkingZone.zoneA);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final state = ref.watch(bookingControllerProvider);
+    final controller = ref.read(bookingControllerProvider.notifier);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── AI Suggestion Banner ──
+          AiSuggestionBanner(isDark: isDark),
+          const SizedBox(height: 24),
+
+          // ── Zone Selector ──
+          _SectionHeader(
+            icon: Icons.layers_rounded,
+            title: 'Select Zone',
+            isDark: isDark,
+          ),
+          const SizedBox(height: 16),
+          _ZoneSelector(
+            selectedZone: state.selectedZone,
+            onZoneSelected: controller.selectZone,
+            isDark: isDark,
+          ),
+          const SizedBox(height: 24),
+
+          // ── Visual Parking Map ──
+          if (state.selectedZone != null) ...[
+            _SectionHeader(
+              icon: Icons.map_rounded,
+              title: 'Parking Map',
+              isDark: isDark,
+            ),
+            const SizedBox(height: 16),
+            if (state.isLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(40),
+                  child: CircularProgressIndicator(color: Color(0xFF0F4C5C)),
+                ),
+              )
+            else ...[
+              _ParkingVisualMap(
+                slots: state.availableSlots,
+                selectedSlot: state.selectedSlot,
+                onSlotSelected: controller.selectSlot,
+                isDark: isDark,
+              ),
+              const SizedBox(height: 12),
+              _SlotLegend(isDark: isDark),
+              const SizedBox(height: 28),
+
+              // ── Slot List (Manual Selection) ──
+              _SectionHeader(
+                icon: Icons.list_alt_rounded,
+                title: 'Or Select Manually',
+                isDark: isDark,
+              ),
+              const SizedBox(height: 16),
+              _SlotListView(
+                slots: state.availableSlots,
+                selectedSlot: state.selectedSlot,
+                onSlotSelected: controller.selectSlot,
+                isDark: isDark,
+              ),
+            ],
+          ],
+
+          // ── Selected Slot Summary ──
+          if (state.selectedSlot != null) ...[
+            const SizedBox(height: 24),
+            _SelectedSlotSummary(
+              slot: state.selectedSlot!,
+              estimatedPrice: state.estimatedPrice,
+              isDark: isDark,
+            ),
+          ],
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Section Header ──────────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({
+    required this.icon,
+    required this.title,
+    required this.isDark,
+  });
+
+  final IconData icon;
+  final String title;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isDark
+                ? const Color(0xFF0F4C5C).withOpacity(0.3)
+                : const Color(0xFF0F4C5C).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: const Color(0xFF0F4C5C), size: 20),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            color: isDark ? Colors.white : const Color(0xFF0F172A),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Zone Selector ───────────────────────────────────────────────────────────
+
+class _ZoneSelector extends StatelessWidget {
+  const _ZoneSelector({
+    required this.selectedZone,
+    required this.onZoneSelected,
+    required this.isDark,
+  });
+
+  final ParkingZone? selectedZone;
+  final ValueChanged<ParkingZone> onZoneSelected;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final zones = [
+      _ZoneData(ParkingZone.zoneA, 'Zone A', 'Ground', Icons.looks_one_rounded, const Color(0xFF3B82F6)),
+      _ZoneData(ParkingZone.zoneB, 'Zone B', 'Level 1', Icons.looks_two_rounded, const Color(0xFFA855F7)),
+      _ZoneData(ParkingZone.zoneC, 'Zone C', 'Level 2', Icons.looks_3_rounded, const Color(0xFFF59E0B)),
+      _ZoneData(ParkingZone.zoneD, 'Zone D', 'Rooftop', Icons.looks_4_rounded, const Color(0xFF059669)),
+    ];
+
+    return SizedBox(
+      height: 80,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: zones.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          final zone = zones[index];
+          final isSelected = selectedZone == zone.zone;
+
+          return GestureDetector(
+            onTap: () => onZoneSelected(zone.zone),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              width: 92,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? zone.color.withOpacity(isDark ? 0.25 : 0.1)
+                    : (isDark ? const Color(0xFF1E293B) : Colors.white),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isSelected ? zone.color : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                  width: isSelected ? 2 : 1,
+                ),
+                boxShadow: isSelected
+                    ? [BoxShadow(color: zone.color.withOpacity(0.2), blurRadius: 12, offset: const Offset(0, 4))]
+                    : [],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(zone.icon, color: zone.color, size: 22),
+                  const SizedBox(height: 4),
+                  Text(
+                    zone.label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: isSelected ? zone.color : (isDark ? Colors.grey.shade300 : const Color(0xFF475569)),
+                    ),
+                  ),
+                  Text(
+                    zone.floor,
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ZoneData {
+  final ParkingZone zone;
+  final String label;
+  final String floor;
+  final IconData icon;
+  final Color color;
+  const _ZoneData(this.zone, this.label, this.floor, this.icon, this.color);
+}
+
+// ─── Visual Parking Map ──────────────────────────────────────────────────────
+
+class _ParkingVisualMap extends StatelessWidget {
+  const _ParkingVisualMap({
+    required this.slots,
+    required this.selectedSlot,
+    required this.onSlotSelected,
+    required this.isDark,
+  });
+
+  final List<ParkingSlot> slots;
+  final ParkingSlot? selectedSlot;
+  final ValueChanged<ParkingSlot> onSlotSelected;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // ── Entrance indicator ──
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1B998B).withOpacity(0.15) : const Color(0xFFE0F7FA),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isDark ? const Color(0xFF1B998B).withOpacity(0.3) : const Color(0xFFB2DFDB),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.arrow_downward_rounded, color: const Color(0xFF1B998B), size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  'ENTRANCE',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF1B998B),
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Icon(Icons.arrow_downward_rounded, color: const Color(0xFF1B998B), size: 16),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // ── Road + Slots Layout ──
+          _buildParkingRows(),
+
+          const SizedBox(height: 16),
+          // ── Exit indicator ──
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFFEA580C).withOpacity(0.15) : const Color(0xFFFFF7ED),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isDark ? const Color(0xFFEA580C).withOpacity(0.3) : const Color(0xFFFED7AA),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.arrow_downward_rounded, color: const Color(0xFFEA580C), size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  'EXIT',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFFEA580C),
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Icon(Icons.arrow_downward_rounded, color: const Color(0xFFEA580C), size: 16),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildParkingRows() {
+    // Split slots into rows of pairs (left side + right side, separated by road)
+    final rowCount = (slots.length / 2).ceil();
+
+    return Column(
+      children: List.generate(rowCount, (rowIndex) {
+        final leftIndex = rowIndex * 2;
+        final rightIndex = rowIndex * 2 + 1;
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Row(
+            children: [
+              // Left slot
+              Expanded(
+                child: leftIndex < slots.length
+                    ? _buildSlotCell(slots[leftIndex], isLeft: true)
+                    : const SizedBox(),
+              ),
+              // Road
+              Container(
+                width: 40,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF374151).withOpacity(0.3) : const Color(0xFFF1F5F9),
+                  border: Border.symmetric(
+                    vertical: BorderSide(
+                      color: isDark ? const Color(0xFFFBBF24).withOpacity(0.3) : const Color(0xFFFDE68A),
+                      width: 1.5,
+                      style: BorderStyle.solid,
+                    ),
+                  ),
+                ),
+              ),
+              // Right slot
+              Expanded(
+                child: rightIndex < slots.length
+                    ? _buildSlotCell(slots[rightIndex], isLeft: false)
+                    : const SizedBox(),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildSlotCell(ParkingSlot slot, {required bool isLeft}) {
+    final isAvailable = slot.status == SlotStatus.available;
+    final isSelected = selectedSlot?.id == slot.id;
+
+    Color bgColor;
+    Color borderColor;
+    Color textColor;
+
+    if (isSelected) {
+      bgColor = const Color(0xFFF2C14E).withOpacity(0.25);
+      borderColor = const Color(0xFFF2C14E);
+      textColor = isDark ? const Color(0xFFF2C14E) : const Color(0xFFB45309);
+    } else if (isAvailable) {
+      bgColor = isDark ? const Color(0xFF1B998B).withOpacity(0.1) : const Color(0xFFECFDF5);
+      borderColor = isDark ? const Color(0xFF1B998B).withOpacity(0.3) : const Color(0xFFBBF7D0);
+      textColor = isDark ? const Color(0xFF34D399) : const Color(0xFF059669);
+    } else {
+      bgColor = isDark ? const Color(0xFFEF4444).withOpacity(0.08) : const Color(0xFFFEF2F2);
+      borderColor = isDark ? const Color(0xFFEF4444).withOpacity(0.2) : const Color(0xFFFECACA);
+      textColor = isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626);
+    }
+
+    return GestureDetector(
+      onTap: isAvailable ? () => onSlotSelected(slot) : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: 44,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.horizontal(
+            left: isLeft ? const Radius.circular(8) : Radius.zero,
+            right: isLeft ? Radius.zero : const Radius.circular(8),
+          ),
+          border: Border.all(color: borderColor, width: isSelected ? 2.5 : 1),
+        ),
+        child: Center(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isSelected)
+                Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: Icon(Icons.check_circle, color: textColor, size: 14),
+                ),
+              Icon(
+                isAvailable ? Icons.directions_car_outlined : Icons.block_rounded,
+                color: textColor,
+                size: 14,
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  slot.slotNumber,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
+                    color: textColor,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Slot Legend ─────────────────────────────────────────────────────────────
+
+class _SlotLegend extends StatelessWidget {
+  const _SlotLegend({required this.isDark});
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _legendItem('Available', isDark ? const Color(0xFF34D399) : const Color(0xFF059669)),
+        const SizedBox(width: 20),
+        _legendItem('Occupied', isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
+        const SizedBox(width: 20),
+        _legendItem('Selected', const Color(0xFFF2C14E)),
+      ],
+    );
+  }
+
+  Widget _legendItem(String label, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(3),
+            border: Border.all(color: color, width: 1.5),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Slot List View ──────────────────────────────────────────────────────────
+
+class _SlotListView extends StatelessWidget {
+  const _SlotListView({
+    required this.slots,
+    required this.selectedSlot,
+    required this.onSlotSelected,
+    required this.isDark,
+  });
+
+  final List<ParkingSlot> slots;
+  final ParkingSlot? selectedSlot;
+  final ValueChanged<ParkingSlot> onSlotSelected;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final availableSlots = slots.where((s) => s.status == SlotStatus.available).toList();
+    final occupiedCount = slots.where((s) => s.status == SlotStatus.occupied).length;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Summary bar
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Text(
+                '${availableSlots.length} available',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '•',
+                style: TextStyle(color: isDark ? Colors.grey.shade600 : Colors.grey.shade300),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '$occupiedCount occupied',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Available slots list
+        ...availableSlots.take(6).map((slot) {
+          final isSelected = selectedSlot?.id == slot.id;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: GestureDetector(
+              onTap: () => onSlotSelected(slot),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? (isDark ? const Color(0xFFF2C14E).withOpacity(0.1) : const Color(0xFFFFFBEB))
+                      : (isDark ? const Color(0xFF1E293B) : Colors.white),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isSelected
+                        ? const Color(0xFFF2C14E)
+                        : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                    width: isSelected ? 2 : 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xFFF2C14E).withOpacity(0.2)
+                            : (isDark ? const Color(0xFF1B998B).withOpacity(0.15) : const Color(0xFFECFDF5)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.local_parking_rounded,
+                          color: isSelected ? const Color(0xFFF2C14E) : const Color(0xFF1B998B),
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            slot.slotNumber,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            ),
+                          ),
+                          Text(
+                            slot.floor ?? '',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? Colors.grey.shade500 : Colors.grey.shade500,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      '\$${slot.pricePerHour.toStringAsFixed(2)}/hr',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? const Color(0xFF1B998B) : const Color(0xFF059669),
+                      ),
+                    ),
+                    if (isSelected) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF2C14E),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.check, color: Colors.white, size: 14),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+}
+
+// ─── Selected Slot Summary ───────────────────────────────────────────────────
+
+class _SelectedSlotSummary extends StatelessWidget {
+  const _SelectedSlotSummary({
+    required this.slot,
+    required this.estimatedPrice,
+    required this.isDark,
+  });
+
+  final ParkingSlot slot;
+  final double estimatedPrice;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [const Color(0xFF0F4C5C).withOpacity(0.4), const Color(0xFF1B998B).withOpacity(0.3)]
+              : [const Color(0xFFE0F7FA), const Color(0xFFE8F5E9)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? const Color(0xFF1B998B).withOpacity(0.4) : const Color(0xFFB2DFDB),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.check_circle, color: Color(0xFF1B998B), size: 22),
+              const SizedBox(width: 10),
+              Text(
+                'Selected Slot',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? const Color(0xFF1B998B) : const Color(0xFF0F4C5C),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _infoChip(Icons.local_parking_rounded, slot.slotNumber),
+              const SizedBox(width: 10),
+              _infoChip(Icons.layers_rounded, slot.floor ?? ''),
+              const SizedBox(width: 10),
+              _infoChip(Icons.payments_rounded, '\$${estimatedPrice.toStringAsFixed(2)}'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoChip(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withOpacity(0.1) : Colors.white.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: const Color(0xFF0F4C5C)),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F4C5C),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
