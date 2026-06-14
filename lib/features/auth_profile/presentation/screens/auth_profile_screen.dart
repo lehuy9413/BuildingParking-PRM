@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../app/view/home_screen.dart';
+import '../../../staff_core/presentation/screens/staff_core_screen.dart';
 
 import '../../../../core/theme/app_colors.dart';
 
@@ -274,16 +275,28 @@ class _LoginCardState extends State<_LoginCard> {
   }
 
   void _handleLogin() {
-    if (_usernameController.text.isNotEmpty) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
-    } else {
+    final email = _usernameController.text.trim().toLowerCase();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter an account (e.g. admin)')),
+        const SnackBar(
+          content: Text('Please enter email and password'),
+        ),
       );
+      return;
     }
+
+    final isStaff = email == 'staff@parking.com' || email == 'staff';
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => isStaff
+            ? const StaffCoreScreen()
+            : const HomeScreen(),
+      ),
+    );
   }
 
   @override
