@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../controllers/staff_core_controller.dart';
+import '../screens/simulated_camera_screen.dart';
 import '../../domain/models/parking_session.dart';
 
 /// Form check-in xe: nhập biển số, chọn gate, chọn loại xe.
@@ -44,10 +45,24 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
     };
   }
 
-  void _scanPlate() {
-    setState(() {
-      _plateController.text = widget.controller.getSamplePlate();
-    });
+  Future<void> _scanPlate() async {
+    // Hiện màn hình camera mô phỏng
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const SimulatedCameraScreen(
+          title: 'Quét Biển Số',
+          subtitle: 'Đang nhận diện biển số xe...',
+        ),
+      ),
+    );
+
+    // Nếu trả về true (quét thành công), điền dữ liệu
+    if (result == true && mounted) {
+      setState(() {
+        _plateController.text = widget.controller.getSamplePlate();
+      });
+    }
   }
 
   void _createSession() {

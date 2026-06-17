@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../controllers/staff_core_controller.dart';
 import '../../domain/models/parking_session.dart';
 import 'payment_confirmation_dialog.dart';
+import '../screens/simulated_camera_screen.dart';
 
 /// Màn hình / component Check-out + Invoice.
 class VehicleCheckOutInvoiceScreen extends StatefulWidget {
@@ -51,7 +52,7 @@ class _VehicleCheckOutInvoiceScreenState
     setState(() {});
   }
 
-  void _scanQRCard() {
+  Future<void> _scanQRCard() async {
     final session = ctrl.latestActiveSession;
     if (session == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -63,9 +64,24 @@ class _VehicleCheckOutInvoiceScreenState
       );
       return;
     }
-    _searchController.text = session.plateNumber;
-    ctrl.selectForCheckout(session);
-    setState(() {});
+
+    // Hiện màn hình camera mô phỏng
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const SimulatedCameraScreen(
+          title: 'Quét Mã Phiên Gửi',
+          subtitle: 'Đang nhận diện QR/Thẻ...',
+        ),
+      ),
+    );
+
+    // Nếu trả về true (quét thành công)
+    if (result == true && mounted) {
+      _searchController.text = session.plateNumber;
+      ctrl.selectForCheckout(session);
+      setState(() {});
+    }
   }
 
   Future<void> _confirmPayment() async {
