@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../features/auth_profile/presentation/screens/profile_screen.dart';
 import '../../features/driver_booking/presentation/screens/driver_home_screen.dart';
 import '../../features/driver_booking/presentation/screens/booking_flow_screen.dart';
+import '../../features/driver_tracking/presentation/screens/driver_tracking_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,7 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
   static const List<Widget> _pages = <Widget>[
     DriverHomeScreen(),
     BookingFlowScreen(isEmbedded: true),
-    Center(child: Text('Pay Page')),
+    DriverTrackingScreen(),
     ProfileScreen(),
   ];
 
@@ -62,9 +63,9 @@ class _HomeScreenState extends State<HomeScreen> {
               label: 'BOOKINGS',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.payment_outlined),
-              activeIcon: Icon(Icons.payment),
-              label: 'PAY',
+              icon: Icon(Icons.track_changes_outlined),
+              activeIcon: Icon(Icons.track_changes),
+              label: 'TRACKING',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
