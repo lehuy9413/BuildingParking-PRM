@@ -29,7 +29,7 @@ class _LiveSessionScreenState extends State<LiveSessionScreen>
   final String _zone = 'Zone C';
   final String _slotNumber = 'C-14';
   final String _entryGate = 'Gate A';
-  final double _ratePerHour = 15000; // VND
+  final double _ratePerHour = 3.0; // USD
 
   Duration _elapsed = Duration.zero;
   double _currentFee = 0;
@@ -76,9 +76,8 @@ class _LiveSessionScreenState extends State<LiveSessionScreen>
     return '$h:$m:$s';
   }
 
-  String _formatVnd(double amount) {
-    final formatter = NumberFormat('#,###', 'vi_VN');
-    return '${formatter.format(amount)}đ';
+  String _formatCurrency(double amount) {
+    return '\$${amount.toStringAsFixed(2)}';
   }
 
   @override
@@ -383,7 +382,7 @@ class _LiveSessionScreenState extends State<LiveSessionScreen>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  _formatVnd(_currentFee),
+                  _formatCurrency(_currentFee),
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w900,
@@ -392,7 +391,7 @@ class _LiveSessionScreenState extends State<LiveSessionScreen>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${_formatVnd(_ratePerHour)}/hour',
+                  '${_formatCurrency(_ratePerHour)}/hour',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,

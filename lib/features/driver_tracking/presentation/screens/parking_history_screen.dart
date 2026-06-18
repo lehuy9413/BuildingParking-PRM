@@ -36,7 +36,7 @@ class _ParkingHistoryScreenState extends State<ParkingHistoryScreen>
       zone: 'Zone C',
       checkIn: DateTime.now().subtract(const Duration(hours: 3, minutes: 15)),
       checkOut: DateTime.now().subtract(const Duration(minutes: 38)),
-      fee: 60000,
+      fee: 10.00,
       status: 'completed',
     ),
     _ParkingRecord(
@@ -48,7 +48,7 @@ class _ParkingHistoryScreenState extends State<ParkingHistoryScreen>
       zone: 'Zone A',
       checkIn: DateTime.now().subtract(const Duration(days: 1, hours: 5)),
       checkOut: DateTime.now().subtract(const Duration(days: 1, hours: 2)),
-      fee: 45000,
+      fee: 9.00,
       status: 'completed',
     ),
     _ParkingRecord(
@@ -60,7 +60,7 @@ class _ParkingHistoryScreenState extends State<ParkingHistoryScreen>
       zone: 'Zone B',
       checkIn: DateTime.now().subtract(const Duration(days: 2, hours: 8)),
       checkOut: DateTime.now().subtract(const Duration(days: 2, hours: 6)),
-      fee: 30000,
+      fee: 6.00,
       status: 'completed',
     ),
     _ParkingRecord(
@@ -72,7 +72,7 @@ class _ParkingHistoryScreenState extends State<ParkingHistoryScreen>
       zone: 'Zone C',
       checkIn: DateTime.now().subtract(const Duration(days: 4, hours: 10)),
       checkOut: DateTime.now().subtract(const Duration(days: 4, hours: 5)),
-      fee: 75000,
+      fee: 15.00,
       status: 'completed',
     ),
     _ParkingRecord(
@@ -84,7 +84,7 @@ class _ParkingHistoryScreenState extends State<ParkingHistoryScreen>
       zone: 'Zone D',
       checkIn: DateTime.now().subtract(const Duration(days: 7, hours: 3)),
       checkOut: DateTime.now().subtract(const Duration(days: 7, hours: 1)),
-      fee: 30000,
+      fee: 6.00,
       status: 'completed',
     ),
   ];
@@ -94,7 +94,7 @@ class _ParkingHistoryScreenState extends State<ParkingHistoryScreen>
       id: 'TXN-20241201',
       sessionId: 'PS-84721',
       method: 'MoMo',
-      amount: 60000,
+      amount: 10.00,
       date: DateTime.now().subtract(const Duration(minutes: 38)),
       status: 'success',
     ),
@@ -102,7 +102,7 @@ class _ParkingHistoryScreenState extends State<ParkingHistoryScreen>
       id: 'TXN-20241130',
       sessionId: 'PS-84690',
       method: 'ZaloPay',
-      amount: 45000,
+      amount: 9.00,
       date: DateTime.now().subtract(const Duration(days: 1, hours: 2)),
       status: 'success',
     ),
@@ -110,7 +110,7 @@ class _ParkingHistoryScreenState extends State<ParkingHistoryScreen>
       id: 'TXN-20241129',
       sessionId: 'PS-84655',
       method: 'Bank QR',
-      amount: 30000,
+      amount: 6.00,
       date: DateTime.now().subtract(const Duration(days: 2, hours: 6)),
       status: 'success',
     ),
@@ -118,7 +118,7 @@ class _ParkingHistoryScreenState extends State<ParkingHistoryScreen>
       id: 'TXN-20241125',
       sessionId: 'PS-84510',
       method: 'MoMo',
-      amount: 75000,
+      amount: 15.00,
       date: DateTime.now().subtract(const Duration(days: 4, hours: 5)),
       status: 'success',
     ),
@@ -126,15 +126,14 @@ class _ParkingHistoryScreenState extends State<ParkingHistoryScreen>
       id: 'TXN-20241118',
       sessionId: 'PS-84401',
       method: 'Cash',
-      amount: 30000,
+      amount: 6.00,
       date: DateTime.now().subtract(const Duration(days: 7, hours: 1)),
       status: 'success',
     ),
   ];
 
-  String _formatVnd(double amount) {
-    final formatter = NumberFormat('#,###', 'vi_VN');
-    return '${formatter.format(amount)}đ';
+  String _formatCurrency(double amount) {
+    return '\$${amount.toStringAsFixed(2)}';
   }
 
   @override
@@ -181,7 +180,7 @@ class _ParkingHistoryScreenState extends State<ParkingHistoryScreen>
                   icon: Icons.payments_rounded,
                   iconColor: const Color(0xFF059669),
                   label: 'Total Spent',
-                  value: _formatVnd(
+                  value: _formatCurrency(
                     _paymentHistory.fold(0.0, (sum, p) => sum + p.amount),
                   ),
                 ),
@@ -414,7 +413,7 @@ class _ParkingHistoryScreenState extends State<ParkingHistoryScreen>
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    _formatVnd(record.fee),
+                    _formatCurrency(record.fee),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
@@ -578,7 +577,7 @@ class _ParkingHistoryScreenState extends State<ParkingHistoryScreen>
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '-${_formatVnd(record.amount)}',
+                '-${_formatCurrency(record.amount)}',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w900,

@@ -79,9 +79,8 @@ class _PaymentScreenState extends State<PaymentScreen>
     super.dispose();
   }
 
-  String _formatVnd(double amount) {
-    final formatter = NumberFormat('#,###', 'vi_VN');
-    return '${formatter.format(amount)}đ';
+  String _formatCurrency(double amount) {
+    return '\$${amount.toStringAsFixed(2)}';
   }
 
   void _onPaymentMethodSelected(int index) {
@@ -345,7 +344,7 @@ class _PaymentScreenState extends State<PaymentScreen>
           ),
           const SizedBox(height: 12),
           Text(
-            _formatVnd(widget.amount),
+            _formatCurrency(widget.amount),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 40,
@@ -541,7 +540,7 @@ class _PaymentScreenState extends State<PaymentScreen>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _formatVnd(widget.amount),
+                  _formatCurrency(widget.amount),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 34,
@@ -745,7 +744,7 @@ class _PaymentScreenState extends State<PaymentScreen>
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _formatVnd(widget.amount),
+                      _formatCurrency(widget.amount),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 36,
@@ -811,7 +810,7 @@ class _PaymentScreenState extends State<PaymentScreen>
                   _buildReceiptRow(isDark, 'Method',
                       _methods[_selectedMethodIndex].name),
                   _buildReceiptRow(isDark, 'Amount',
-                      _formatVnd(widget.amount)),
+                      _formatCurrency(widget.amount)),
                   _buildReceiptRow(isDark, 'Date',
                       DateFormat('HH:mm – dd/MM/yyyy').format(DateTime.now())),
                   _buildReceiptRow(isDark, 'Status', 'Paid ✓'),
