@@ -150,10 +150,10 @@ class _ParkingMapScreenState extends State<ParkingMapScreen> {
 
   void _showStatusUpdatedSnack(String label, SlotStatus status) {
     final msg = switch (status) {
-      SlotStatus.available => '✅ Slot $label → Trống',
-      SlotStatus.maintenance => '🔧 Slot $label → Bảo trì',
-      SlotStatus.locked => '🔒 Slot $label → Khóa',
-      SlotStatus.occupied => '🚗 Slot $label → Có xe',
+      SlotStatus.available => '✅ Slot $label → Available',
+      SlotStatus.maintenance => '🔧 Slot $label → Maintenance',
+      SlotStatus.locked => '🔒 Slot $label → Locked',
+      SlotStatus.occupied => '🚗 Slot $label → Occupied',
     };
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
@@ -254,7 +254,7 @@ class _ParkingMapScreenState extends State<ParkingMapScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Sơ Đồ Bãi Xe',
+                'Parking Map',
                 style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w900,
@@ -347,16 +347,16 @@ class _ParkingMapScreenState extends State<ParkingMapScreen> {
         children: [
           Row(
             children: [
-              _mini('${total}', 'Tổng', const Color(0xFF475569),
+              _mini('${total}', 'Total', const Color(0xFF475569),
                   const Color(0xFFF1F5F9)),
               const SizedBox(width: 8),
-              _mini('${available}', 'Trống', const Color(0xFF16A34A),
+              _mini('${available}', 'Available', const Color(0xFF16A34A),
                   const Color(0xFFECFDF5)),
               const SizedBox(width: 8),
-              _mini('${occupied}', 'Có xe', const Color(0xFF2563EB),
+              _mini('${occupied}', 'Occupied', const Color(0xFF2563EB),
                   const Color(0xFFEFF6FF)),
               const SizedBox(width: 8),
-              _mini('${maintenance + locked}', 'Khóa/BT',
+              _mini('${maintenance + locked}', 'Locked/Maint',
                   const Color(0xFFF59E0B), const Color(0xFFFEF3C7)),
             ],
           ),
@@ -365,7 +365,7 @@ class _ParkingMapScreenState extends State<ParkingMapScreen> {
           Row(
             children: [
               Text(
-                'Tỷ lệ lấp đầy: $occupancyPct%',
+                'Occupancy rate: $occupancyPct%',
                 style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -429,13 +429,13 @@ class _ParkingMapScreenState extends State<ParkingMapScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _legendItem(SlotStatus.available, 'Trống'),
+          _legendItem(SlotStatus.available, 'Available'),
           const SizedBox(width: 14),
-          _legendItem(SlotStatus.occupied, 'Có xe'),
+          _legendItem(SlotStatus.occupied, 'Occupied'),
           const SizedBox(width: 14),
-          _legendItem(SlotStatus.maintenance, 'Bảo trì'),
+          _legendItem(SlotStatus.maintenance, 'Maintenance'),
           const SizedBox(width: 14),
-          _legendItem(SlotStatus.locked, 'Khóa'),
+          _legendItem(SlotStatus.locked, 'Locked'),
         ],
       ),
     );
@@ -603,7 +603,7 @@ class _SlotStatusUpdateSheetState extends State<SlotStatusUpdateSheet> {
 
           // Slot label
           const Text(
-            'CẬP NHẬT TRẠNG THÁI SLOT',
+            'UPDATE SLOT STATUS',
             style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
@@ -677,7 +677,7 @@ class _SlotStatusUpdateSheetState extends State<SlotStatusUpdateSheet> {
               icon: const Icon(Icons.save_rounded,
                   color: Colors.white, size: 18),
               label: const Text(
-                'XÁC NHẬN CẬP NHẬT',
+                'CONFIRM UPDATE',
                 style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
@@ -711,17 +711,17 @@ class _StatusOption extends StatelessWidget {
   final VoidCallback onTap;
 
   String get _label => switch (status) {
-        SlotStatus.available => 'Trống',
-        SlotStatus.occupied => 'Có xe',
-        SlotStatus.maintenance => 'Đang bảo trì',
-        SlotStatus.locked => 'Khóa',
+        SlotStatus.available => 'Available',
+        SlotStatus.occupied => 'Occupied',
+        SlotStatus.maintenance => 'Maintenance',
+        SlotStatus.locked => 'Locked',
       };
 
   String get _desc => switch (status) {
-        SlotStatus.available => 'Slot sẵn sàng tiếp nhận xe',
-        SlotStatus.occupied => 'Slot hiện đang có xe đỗ',
-        SlotStatus.maintenance => 'Slot đang được sửa chữa, không sử dụng',
-        SlotStatus.locked => 'Slot bị khóa, không cho phép đỗ xe',
+        SlotStatus.available => 'Slot is ready to receive vehicle',
+        SlotStatus.occupied => 'Slot is currently occupied',
+        SlotStatus.maintenance => 'Slot is under maintenance, not in use',
+        SlotStatus.locked => 'Slot is locked, parking not allowed',
       };
 
   IconData get _icon => switch (status) {

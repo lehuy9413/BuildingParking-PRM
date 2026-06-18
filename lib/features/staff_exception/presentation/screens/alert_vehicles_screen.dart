@@ -92,7 +92,7 @@ class _AlertVehiclesScreenState extends State<AlertVehiclesScreen>
   void _markResolved(String id) {
     setState(() => _resolvedIds.add(id));
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: const Text('✅ Đã đánh dấu xử lý xong'),
+      content: const Text('✅ Marked as resolved'),
       backgroundColor: const Color(0xFF16A34A),
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -148,7 +148,7 @@ class _AlertVehiclesScreenState extends State<AlertVehiclesScreen>
                     children: [
                       const Icon(Icons.timer_off_rounded, size: 16),
                       const SizedBox(width: 6),
-                      Text('QUÁ HẠN (${_overdueAlerts.length})'),
+                      Text('OVERDUE (${_overdueAlerts.length})'),
                     ],
                   ),
                 ),
@@ -158,7 +158,7 @@ class _AlertVehiclesScreenState extends State<AlertVehiclesScreen>
                     children: [
                       const Icon(Icons.wrong_location_rounded, size: 16),
                       const SizedBox(width: 6),
-                      Text('SAI KHU VỰC (${_wrongZoneAlerts.length})'),
+                      Text('WRONG ZONE (${_wrongZoneAlerts.length})'),
                     ],
                   ),
                 ),
@@ -200,7 +200,7 @@ class _AlertVehiclesScreenState extends State<AlertVehiclesScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Cảnh Báo Xe',
+                'Vehicle Alerts',
                 style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w900,
@@ -236,7 +236,7 @@ class _AlertVehiclesScreenState extends State<AlertVehiclesScreen>
                       color: Color(0xFFD97706), size: 15),
                   const SizedBox(width: 5),
                   Text(
-                    '$unresolvedCount chưa xử lý',
+                    '$unresolvedCount unresolved',
                     style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -269,7 +269,7 @@ class _AlertVehiclesScreenState extends State<AlertVehiclesScreen>
             iconColor: const Color(0xFFEF4444),
             bg: const Color(0xFFFFF1F2),
             value: overdueUnresolved.toString(),
-            label: 'Quá hạn',
+            label: 'Overdue',
           ),
           const SizedBox(width: 10),
           _SummaryChip(
@@ -277,7 +277,7 @@ class _AlertVehiclesScreenState extends State<AlertVehiclesScreen>
             iconColor: const Color(0xFFF59E0B),
             bg: const Color(0xFFFEF3C7),
             value: wrongZoneUnresolved.toString(),
-            label: 'Sai khu vực',
+            label: 'Wrong zone',
           ),
           const SizedBox(width: 10),
           _SummaryChip(
@@ -285,7 +285,7 @@ class _AlertVehiclesScreenState extends State<AlertVehiclesScreen>
             iconColor: const Color(0xFF16A34A),
             bg: const Color(0xFFECFDF5),
             value: resolved.toString(),
-            label: 'Đã xử lý',
+            label: 'Resolved',
           ),
         ],
       ),
@@ -301,13 +301,13 @@ class _AlertVehiclesScreenState extends State<AlertVehiclesScreen>
             Icon(Icons.check_circle_outline_rounded,
                 size: 56, color: Color(0xFF94A3B8)),
             SizedBox(height: 12),
-            Text('Không có cảnh báo nào',
+            Text('No alerts',
                 style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF475569))),
             SizedBox(height: 4),
-            Text('Tất cả xe đang đỗ đúng quy định.',
+            Text('All vehicles are parked correctly.',
                 style: TextStyle(color: Color(0xFF94A3B8))),
           ],
         ),
@@ -423,7 +423,7 @@ class _AlertCard extends StatelessWidget {
                         decoration: BoxDecoration(
                             color: const Color(0xFFECFDF5),
                             borderRadius: BorderRadius.circular(8)),
-                        child: const Text('ĐÃ XỬ LÝ',
+                        child: const Text('RESOLVED',
                             style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w800,
@@ -436,7 +436,7 @@ class _AlertCard extends StatelessWidget {
                         decoration: BoxDecoration(
                             color: alertBg,
                             borderRadius: BorderRadius.circular(8)),
-                        child: Text('CẦN XỬ LÝ',
+                        child: Text('ACTION REQUIRED',
                             style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w800,
@@ -506,14 +506,14 @@ class _AlertCard extends StatelessWidget {
                           if (alert.alertType == VehicleAlertType.overdue)
                             _detailChip(
                               Icons.access_time_filled_rounded,
-                              'Gửi: $durationStr (quá ${alert.overdueHours}h)',
+                              'Parked: $durationStr (overdue ${alert.overdueHours}h)',
                               const Color(0xFFEF4444),
                               const Color(0xFFFFF1F2),
                             )
                           else
                             _detailChip(
                               Icons.swap_horiz_rounded,
-                              'Nên ở: ${alert.expectedZone}',
+                              'Expected: ${alert.expectedZone}',
                               const Color(0xFFF59E0B),
                               const Color(0xFFFEF3C7),
                             ),
@@ -671,16 +671,16 @@ class _ActionSheet extends StatelessWidget {
             ),
             child: Column(
               children: [
-                _sheetRow('Loại cảnh báo', alert.alertLabel),
+                _sheetRow('Alert Type', alert.alertLabel),
                 const Divider(height: 16, thickness: 0.5),
-                _sheetRow('Thời gian gửi', '${dH}h ${dM}m'),
+                _sheetRow('Parked Duration', '${dH}h ${dM}m'),
                 if (isOverdue) ...[
                   const Divider(height: 16, thickness: 0.5),
-                  _sheetRow('Quá hạn', '${alert.overdueHours} giờ',
+                  _sheetRow('Overdue', '${alert.overdueHours} hours',
                       valueColor: const Color(0xFFEF4444)),
                 ] else ...[
                   const Divider(height: 16, thickness: 0.5),
-                  _sheetRow('Khu vực đúng', alert.expectedZone ?? '—',
+                  _sheetRow('Expected Zone', alert.expectedZone ?? '—',
                       valueColor: const Color(0xFF2563EB)),
                 ],
               ],
@@ -696,7 +696,7 @@ class _ActionSheet extends StatelessWidget {
                 onPressed: onResolve,
                 icon: const Icon(Icons.check_circle_rounded,
                     color: Colors.white, size: 20),
-                label: const Text('ĐÁNH DẤU ĐÃ XỬ LÝ',
+                label: const Text('MARK AS RESOLVED',
                     style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
@@ -717,7 +717,7 @@ class _ActionSheet extends StatelessWidget {
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.close_rounded,
                     size: 18, color: Color(0xFF64748B)),
-                label: const Text('Đóng',
+                label: const Text('Close',
                     style: TextStyle(
                         color: Color(0xFF64748B), fontWeight: FontWeight.w700)),
                 style: OutlinedButton.styleFrom(
@@ -740,7 +740,7 @@ class _ActionSheet extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14)),
                 ),
-                child: const Text('Đóng',
+                child: const Text('Close',
                     style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,

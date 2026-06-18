@@ -39,7 +39,7 @@ class _VehicleCheckOutInvoiceScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Không tìm thấy phiên gửi xe cho "${_searchController.text.trim()}"',
+            'No parking session found for "${_searchController.text.trim()}"',
           ),
           backgroundColor: const Color(0xFFEF4444),
           behavior: SnackBarBehavior.floating,
@@ -57,7 +57,7 @@ class _VehicleCheckOutInvoiceScreenState
     if (session == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Không tìm thấy phiên gửi xe đang hoạt động.'),
+          content: Text('No active parking session found.'),
           backgroundColor: Color(0xFFF59E0B),
           behavior: SnackBarBehavior.floating,
         ),
@@ -70,8 +70,8 @@ class _VehicleCheckOutInvoiceScreenState
       context,
       MaterialPageRoute(
         builder: (_) => const SimulatedCameraScreen(
-          title: 'Quét Mã Phiên Gửi',
-          subtitle: 'Đang nhận diện QR/Thẻ...',
+          title: 'Scan Session QR',
+          subtitle: 'Detecting QR/Card...',
         ),
       ),
     );
@@ -101,7 +101,7 @@ class _VehicleCheckOutInvoiceScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Thanh toán thành công! Session đã đóng.'),
+            content: Text('✅ Payment successful! Session closed.'),
             backgroundColor: Color(0xFF16A34A),
             behavior: SnackBarBehavior.floating,
           ),
@@ -148,7 +148,7 @@ class _VehicleCheckOutInvoiceScreenState
 
           // ─── Tìm kiếm session ─────────────────────────────────────────
           const Text(
-            'Tìm session (biển số / session ID)',
+            'Search session (License Plate / Session ID)',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
@@ -169,7 +169,7 @@ class _VehicleCheckOutInvoiceScreenState
                   ),
                   onSubmitted: (_) => _findSession(),
                   decoration: InputDecoration(
-                    hintText: 'VD: 51A-12345 hoặc PS-xxx',
+                    hintText: 'Ex: 51A-12345 or PS-xxx',
                     hintStyle: TextStyle(
                       fontSize: 14,
                       color: Colors.grey.shade400,
@@ -251,7 +251,7 @@ class _VehicleCheckOutInvoiceScreenState
           ),
           const SizedBox(height: 6),
           const Text(
-            '* Nhấn SCAN QR để nhận diện mã phiên gửi xe',
+            '* Tap SCAN QR to scan parking session code',
             style: TextStyle(
               fontSize: 11,
               color: Color(0xFF94A3B8),
@@ -279,7 +279,7 @@ class _VehicleCheckOutInvoiceScreenState
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Không có xe đang gửi trong bãi',
+                    'No currently parked vehicles',
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
@@ -288,7 +288,7 @@ class _VehicleCheckOutInvoiceScreenState
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Tất cả phiên gửi xe đã được xử lý',
+                    'All parking sessions have been processed',
                     style: TextStyle(
                       fontSize: 13,
                       color: Color(0xFF94A3B8),
@@ -366,7 +366,7 @@ class _InvoiceCard extends StatelessWidget {
                         size: 18, color: Color(0xFF475569)),
                     SizedBox(width: 8),
                     Text(
-                      'HÓA ĐƠN THANH TOÁN',
+                      'PAYMENT INVOICE',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
@@ -401,28 +401,28 @@ class _InvoiceCard extends StatelessWidget {
             child: Column(
               children: [
                 _InvoiceRow(
-                    label: 'Biển số xe', value: session.plateNumber),
+                    label: 'License Plate', value: session.plateNumber),
                 const SizedBox(height: 10),
                 _InvoiceRow(
-                    label: 'Loại xe', value: session.vehicleType),
+                    label: 'Vehicle Type', value: session.vehicleType),
                 const SizedBox(height: 10),
                 _InvoiceRow(
-                  label: 'Giờ vào',
+                  label: 'Time In',
                   value: DateFormat('HH:mm dd/MM/yy')
                       .format(session.checkInTime),
                 ),
                 const SizedBox(height: 10),
                 _InvoiceRow(
-                  label: 'Giờ ra',
+                  label: 'Time Out',
                   value: DateFormat('HH:mm dd/MM/yy').format(now),
                 ),
                 const SizedBox(height: 10),
                 _InvoiceRow(
-                  label: 'Thời gian',
-                  value: '$durationMin phút (~$hours giờ)',
+                  label: 'Duration',
+                  value: '$durationMin mins (~$hours hours)',
                 ),
                 const SizedBox(height: 10),
-                _InvoiceRow(label: 'Đơn giá', value: rate),
+                _InvoiceRow(label: 'Unit Price', value: rate),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12),
                   child: Divider(color: Color(0xFFE2E8F0)),
@@ -432,7 +432,7 @@ class _InvoiceCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'TỔNG TIỀN',
+                      'TOTAL AMOUNT',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w900,

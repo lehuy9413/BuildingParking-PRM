@@ -51,8 +51,8 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
       context,
       MaterialPageRoute(
         builder: (_) => const SimulatedCameraScreen(
-          title: 'Quét Biển Số',
-          subtitle: 'Đang nhận diện biển số xe...',
+          title: 'Scan License Plate',
+          subtitle: 'Detecting license plate...',
         ),
       ),
     );
@@ -70,7 +70,7 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
     if (plate.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Vui lòng nhập hoặc scan biển số xe!'),
+          content: Text('Please enter or scan the license plate!'),
           backgroundColor: Color(0xFFEF4444),
           behavior: SnackBarBehavior.floating,
         ),
@@ -130,7 +130,7 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
 
           // ─── Ô nhập biển số ───────────────────────────────────────────
           const Text(
-            'Biển số xe',
+            'License Plate',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
@@ -151,7 +151,7 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
                     color: Color(0xFF0F172A),
                   ),
                   decoration: InputDecoration(
-                    hintText: 'VD: 51A-12345',
+                    hintText: 'Ex: 51A-12345',
                     hintStyle: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
@@ -217,7 +217,7 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
           ),
           const SizedBox(height: 6),
           const Text(
-            '* Nhấn SCAN để quét biển số xe',
+            '* Tap SCAN to scan license plate',
             style: TextStyle(
               fontSize: 11,
               color: Color(0xFF94A3B8),
@@ -228,7 +228,7 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
 
           // ─── Dropdown Gate ────────────────────────────────────────────
           const Text(
-            'Cổng vào',
+            'Entry Gate',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
@@ -247,7 +247,7 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
 
           // ─── Loại xe ─────────────────────────────────────────────────
           const Text(
-            'Loại xe',
+            'Vehicle Type',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,

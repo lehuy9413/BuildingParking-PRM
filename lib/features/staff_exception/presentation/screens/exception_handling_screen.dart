@@ -30,7 +30,7 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
   // Wrong Info form state
   // ─────────────────────────────────────────────────────────────────────────
   final _wrongPlateCtrl = TextEditingController();
-  String _selectedWrongType = 'Sai biển số';
+  String _selectedWrongType = 'Wrong License Plate';
   final _correctInfoCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
 
@@ -118,13 +118,13 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
       _plateSearchCtrl.clear();
       _foundVehicle = null;
     });
-    _showSuccessSnack('Đã ghi nhận yêu cầu mất thẻ cho $plate');
+    _showSuccessSnack('Lost card request recorded for $plate');
   }
 
   void _submitWrongInfo() {
     final plate = _wrongPlateCtrl.text.trim().toUpperCase();
     if (plate.isEmpty || _correctInfoCtrl.text.trim().isEmpty) {
-      _showErrorSnack('Vui lòng điền đầy đủ biển số và thông tin đúng.');
+      _showErrorSnack('Please fill in license plate and correct info.');
       return;
     }
     final req = ExceptionRequest(
@@ -140,7 +140,7 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
       _correctInfoCtrl.clear();
       _notesCtrl.clear();
     });
-    _showSuccessSnack('Đã ghi nhận sai thông tin cho $plate');
+    _showSuccessSnack('Wrong info recorded for $plate');
   }
 
   void _showSuccessSnack(String msg) {
@@ -187,8 +187,8 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
               indicatorColor: const Color(0xFF2563EB),
               indicatorWeight: 3,
               tabs: const [
-                Tab(text: 'MẤT THẺ XE'),
-                Tab(text: 'SAI THÔNG TIN'),
+                Tab(text: 'LOST CARD'),
+                Tab(text: 'WRONG INFO'),
               ],
             ),
           ),
@@ -223,7 +223,7 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Xử Lý Ngoại Lệ',
+                'Exception Handling',
                 style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w900,
@@ -259,7 +259,7 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
                         color: Color(0xFFEA580C), size: 16),
                     const SizedBox(width: 4),
                     Text(
-                      '${_requests.length} ca này',
+                      '${_requests.length} this shift',
                       style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -290,12 +290,12 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
             icon: Icons.credit_card_off_rounded,
             iconColor: const Color(0xFFEA580C),
             iconBg: const Color(0xFFFFF7ED),
-            title: 'Tiếp Nhận Xe Mất Thẻ',
-            subtitle: 'Tìm xe theo biển số, xác nhận & cấp lại quyền ra cổng.',
+            title: 'Process Lost Card',
+            subtitle: 'Search vehicle by plate, confirm & grant exit.',
           ),
           const SizedBox(height: 20),
 
-          _sectionTitle('TÌM KIẾM THEO BIỂN SỐ'),
+          _sectionTitle('SEARCH BY LICENSE PLATE'),
           const SizedBox(height: 10),
 
           // Search bar
@@ -323,7 +323,7 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
                         letterSpacing: 1,
                         color: Color(0xFF0F172A)),
                     decoration: const InputDecoration(
-                      hintText: 'Nhập biển số xe... (VD: 51A-12345)',
+                      hintText: 'Enter license plate... (Ex: 51A-12345)',
                       hintStyle:
                           TextStyle(color: Color(0xFFCBD5E1), fontSize: 14),
                       prefixIcon: Icon(Icons.search_rounded,
@@ -353,7 +353,7 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
                             height: 18,
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: Colors.white))
-                        : const Text('TÌM',
+                        : const Text('SEARCH',
                             style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w800,
@@ -366,7 +366,7 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
 
           const SizedBox(height: 8),
           const Text(
-            'Thử: 51A-12345 · 59B-67890 · 30E-99999',
+            'Try: 51A-12345 · 59B-67890 · 30E-99999',
             style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
           ),
 
@@ -379,7 +379,7 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
           // Lịch sử yêu cầu ca này
           if (_requests.where((r) => r.type == ExceptionType.lostCard).isNotEmpty) ...[
             const SizedBox(height: 28),
-            _sectionTitle('ĐÃ XỬ LÝ TRONG CA'),
+            _sectionTitle('RESOLVED IN SHIFT'),
             const SizedBox(height: 12),
             ..._requests
                 .where((r) => r.type == ExceptionType.lostCard)
@@ -409,7 +409,7 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Không tìm thấy biển số',
+                    'License plate not found',
                     style: TextStyle(
                         fontWeight: FontWeight.w800,
                         color: Color(0xFFEF4444),
@@ -417,7 +417,7 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
                   ),
                   SizedBox(height: 2),
                   Text(
-                    'Biển số này không có trong danh sách xe đang gửi.',
+                    'This plate is not currently parked.',
                     style:
                         TextStyle(color: Color(0xFF64748B), fontSize: 13),
                   ),
@@ -457,7 +457,7 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
                     color: Colors.white, size: 20),
                 const SizedBox(width: 10),
                 const Text(
-                  'Xe tìm thấy trong hệ thống',
+                  'Vehicle found in system',
                   style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
@@ -471,7 +471,7 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text('ĐANG GỬI',
+                  child: const Text('PARKED',
                       style: TextStyle(
                           color: Colors.white,
                           fontSize: 10,
@@ -507,15 +507,15 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
                 const SizedBox(height: 16),
 
                 // Thông tin chi tiết
-                _infoRow(Icons.directions_car_rounded, 'Loại xe',
+                _infoRow(Icons.directions_car_rounded, 'Vehicle Type',
                     _foundVehicle!['type']!),
                 const Divider(height: 18, thickness: 0.5),
-                _infoRow(Icons.place_rounded, 'Khu vực', _foundVehicle!['zone']!),
+                _infoRow(Icons.place_rounded, 'Zone', _foundVehicle!['zone']!),
                 const Divider(height: 18, thickness: 0.5),
                 _infoRow(Icons.grid_view_rounded, 'Slot', _foundVehicle!['slot']!),
                 const Divider(height: 18, thickness: 0.5),
-                _infoRow(Icons.access_time_rounded, 'Giờ vào',
-                    'Hôm nay ${_foundVehicle!['since']!}'),
+                _infoRow(Icons.access_time_rounded, 'Time In',
+                    'Today ${_foundVehicle!['since']!}'),
                 const SizedBox(height: 20),
 
                 // Nút hành động
@@ -528,7 +528,7 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
                           _plateSearchCtrl.clear();
                         },
                         icon: const Icon(Icons.close_rounded, size: 18),
-                        label: const Text('Hủy'),
+                        label: const Text('Cancel'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF64748B),
                           side: const BorderSide(color: Color(0xFFE2E8F0)),
@@ -546,7 +546,7 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
                         icon: const Icon(Icons.check_circle_rounded,
                             size: 18, color: Colors.white),
                         label: const Text(
-                          'Cấp quyền ra cổng',
+                          'Grant Exit',
                           style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w800,
@@ -585,13 +585,13 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
             icon: Icons.edit_note_rounded,
             iconColor: const Color(0xFF7C3AED),
             iconBg: const Color(0xFFF5F3FF),
-            title: 'Hiệu Chỉnh Thông Tin Xe',
+            title: 'Correct Vehicle Info',
             subtitle:
-                'Điều chỉnh khi thông tin xe được ghi nhận không đúng với thực tế.',
+                'Adjust when vehicle info is recorded incorrectly.',
           ),
           const SizedBox(height: 20),
 
-          _sectionTitle('THÔNG TIN NGOẠI LỆ'),
+          _sectionTitle('EXCEPTION INFO'),
           const SizedBox(height: 12),
 
           // Form card
@@ -612,39 +612,39 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Biển số
-                _fieldLabel('Biển số xe *'),
+                _fieldLabel('License Plate *'),
                 const SizedBox(height: 8),
                 _styledTextField(
                   controller: _wrongPlateCtrl,
-                  hint: 'VD: 51A-12345',
+                  hint: 'Ex: 51A-12345',
                   icon: Icons.confirmation_number_rounded,
                   textCap: TextCapitalization.characters,
                 ),
                 const SizedBox(height: 16),
 
                 // Loại lỗi
-                _fieldLabel('Loại sai thông tin *'),
+                _fieldLabel('Error Type *'),
                 const SizedBox(height: 8),
                 _buildDropdown(),
                 const SizedBox(height: 16),
 
                 // Thông tin đúng
-                _fieldLabel('Thông tin đúng *'),
+                _fieldLabel('Correct Info *'),
                 const SizedBox(height: 8),
                 _styledTextField(
                   controller: _correctInfoCtrl,
-                  hint: 'Nhập thông tin chính xác...',
+                  hint: 'Enter correct information...',
                   icon: Icons.check_circle_outline_rounded,
                   maxLines: 2,
                 ),
                 const SizedBox(height: 16),
 
                 // Ghi chú
-                _fieldLabel('Ghi chú thêm (tùy chọn)'),
+                _fieldLabel('Additional Notes (optional)'),
                 const SizedBox(height: 8),
                 _styledTextField(
                   controller: _notesCtrl,
-                  hint: 'Mô tả chi tiết tình huống...',
+                  hint: 'Describe the situation...',
                   icon: Icons.notes_rounded,
                   maxLines: 3,
                 ),
@@ -658,7 +658,7 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
                     icon: const Icon(Icons.send_rounded,
                         color: Colors.white, size: 18),
                     label: const Text(
-                      'GHI NHẬN & GỬI PHIẾU',
+                      'SUBMIT REPORT',
                       style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w800,
@@ -683,7 +683,7 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
               .where((r) => r.type == ExceptionType.wrongVehicleInfo)
               .isNotEmpty) ...[
             const SizedBox(height: 28),
-            _sectionTitle('ĐÃ XỬ LÝ TRONG CA'),
+            _sectionTitle('RESOLVED IN SHIFT'),
             const SizedBox(height: 12),
             ..._requests
                 .where((r) => r.type == ExceptionType.wrongVehicleInfo)

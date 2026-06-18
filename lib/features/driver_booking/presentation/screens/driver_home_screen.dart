@@ -7,6 +7,7 @@ import 'ai_suggestion_screen.dart';
 import '../../../driver_tracking/presentation/screens/live_session_screen.dart';
 import '../../../driver_tracking/presentation/screens/feedback_screen.dart';
 import 'digital_ticket_screen.dart';
+import 'quick_check_in_screen.dart';
 
 class DriverHomeScreen extends StatelessWidget {
   const DriverHomeScreen({super.key});
@@ -423,14 +424,7 @@ class DriverHomeScreen extends StatelessWidget {
                       if (confirmedBooking != null) {
                         Navigator.push(context, MaterialPageRoute(builder: (_) => DigitalTicketScreen(booking: confirmedBooking)));
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('No active ticket found. Please book a slot first.'),
-                            backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFF0F172A),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                        );
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const QuickCheckInScreen()));
                       }
                     },
                   );
@@ -600,6 +594,10 @@ class DriverHomeScreen extends StatelessWidget {
           Divider(color: Colors.white.withOpacity(0.25), thickness: 1.5),
           const SizedBox(height: 16),
           _buildRateRow(Icons.directions_car_rounded, 'Cars', '\$3.00', '/hour'),
+          const SizedBox(height: 16),
+          Divider(color: Colors.white.withOpacity(0.25), thickness: 1.5),
+          const SizedBox(height: 16),
+          _buildRateRow(Icons.electric_car_rounded, 'Electric Vehicles', '\$4.00', '/hour'),
           const SizedBox(height: 28),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

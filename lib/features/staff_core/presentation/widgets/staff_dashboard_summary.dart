@@ -97,7 +97,7 @@ class StaffDashboardSummary extends StatelessWidget {
           children: [
             Expanded(
               child: _StatCard(
-                label: 'Xe vào',
+                label: 'Vehicles In',
                 value: controller.vehiclesIn.toString(),
                 icon: Icons.login_rounded,
                 iconColor: const Color(0xFF2563EB),
@@ -107,7 +107,7 @@ class StaffDashboardSummary extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _StatCard(
-                label: 'Xe ra',
+                label: 'Vehicles Out',
                 value: controller.vehiclesOut.toString(),
                 icon: Icons.logout_rounded,
                 iconColor: const Color(0xFF059669),
@@ -117,7 +117,7 @@ class StaffDashboardSummary extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _StatCard(
-                label: 'Đang gửi',
+                label: 'Currently Parked',
                 value: controller.activeVehicleCount.toString(),
                 icon: Icons.local_parking_rounded,
                 iconColor: const Color(0xFFEA580C),
@@ -134,13 +134,13 @@ class StaffDashboardSummary extends StatelessWidget {
     final now = DateTime.now();
     final h = now.hour.toString().padLeft(2, '0');
     final m = now.minute.toString().padLeft(2, '0');
-    return 'Bắt đầu lúc $h:$m · ${_weekdayVN(now.weekday)}, ${now.day}/${now.month}/${now.year}';
+    return 'Started at $h:$m · ${_weekdayEN(now.weekday)}, ${now.year}/${now.month}/${now.day}';
   }
 
-  String _weekdayVN(int wd) {
+  String _weekdayEN(int wd) {
     const names = [
-      '', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư',
-      'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'
+      '', 'Monday', 'Tuesday', 'Wednesday',
+      'Thursday', 'Friday', 'Saturday', 'Sunday'
     ];
     return names[wd];
   }

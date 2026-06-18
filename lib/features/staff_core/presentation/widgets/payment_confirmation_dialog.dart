@@ -70,7 +70,7 @@ class _PaymentConfirmationDialogState
                     color: Colors.white, size: 36),
                 const SizedBox(height: 10),
                 const Text(
-                  'XÁC NHẬN THANH TOÁN',
+                  'CONFIRM PAYMENT',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -109,7 +109,7 @@ class _PaymentConfirmationDialogState
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        'Tổng thanh toán',
+                        'Total Amount',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
@@ -129,7 +129,7 @@ class _PaymentConfirmationDialogState
                 ),
                 const SizedBox(height: 20),
                 const Text(
-                  'Chọn phương thức thanh toán',
+                  'Select Payment Method',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -200,7 +200,7 @@ class _PaymentConfirmationDialogState
                         ),
                         const SizedBox(height: 12),
                         const Text(
-                          'Quét mã QR để thanh toán',
+                          'Scan QR code to pay',
                           style: TextStyle(
                             fontSize: 13,
                             color: Color(0xFF64748B),
@@ -209,7 +209,7 @@ class _PaymentConfirmationDialogState
                         ),
                         const SizedBox(height: 4),
                         const Text(
-                          'Hướng dẫn khách hàng quét mã để thanh toán',
+                          'Instruct customer to scan the code for payment',
                           style: TextStyle(
                             fontSize: 11,
                             color: Color(0xFF94A3B8),
@@ -249,8 +249,8 @@ class _PaymentConfirmationDialogState
                           )
                         : Text(
                             _method.isEmpty
-                                ? 'CHỌN PHƯƠNG THỨC THANH TOÁN'
-                                : 'XÁC NHẬN THANH TOÁN',
+                                ? 'SELECT PAYMENT METHOD'
+                                : 'CONFIRM PAYMENT',
                             style: TextStyle(
                               color: _method.isEmpty
                                   ? Colors.grey.shade500
@@ -266,7 +266,7 @@ class _PaymentConfirmationDialogState
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
                   child: const Text(
-                    'Huỷ',
+                    'Cancel',
                     style: TextStyle(
                       color: Color(0xFF64748B),
                       fontWeight: FontWeight.w600,

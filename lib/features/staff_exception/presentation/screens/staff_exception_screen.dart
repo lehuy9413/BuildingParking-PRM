@@ -25,7 +25,7 @@ class StaffExceptionScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             // ─── Section title ───────────────────────────────────────────────
-            _sectionTitle('CHỨC NĂNG QUẢN LÝ'),
+            _sectionTitle('MANAGEMENT FUNCTIONS'),
             const SizedBox(height: 14),
 
             // ─── Feature cards – 2 columns ───────────────────────────────────
@@ -36,8 +36,8 @@ class StaffExceptionScreen extends StatelessWidget {
                     icon: Icons.report_problem_rounded,
                     iconColor: const Color(0xFFEA580C),
                     iconBg: const Color(0xFFFFF7ED),
-                    title: 'Xử Lý\nNgoại Lệ',
-                    subtitle: 'Mất thẻ & sai thông tin xe',
+                    title: 'Exception\nHandling',
+                    subtitle: 'Lost card & wrong vehicle info',
                     badge: null,
                     onTap: () => Navigator.push(
                       context,
@@ -52,8 +52,8 @@ class StaffExceptionScreen extends StatelessWidget {
                     icon: Icons.warning_amber_rounded,
                     iconColor: const Color(0xFFF59E0B),
                     iconBg: const Color(0xFFFEF3C7),
-                    title: 'Cảnh Báo\nXe',
-                    subtitle: 'Quá hạn & sai khu vực',
+                    title: 'Vehicle\nAlerts',
+                    subtitle: 'Overdue & wrong area',
                     badge: '5',
                     badgeColor: const Color(0xFFEF4444),
                     onTap: () => Navigator.push(
@@ -73,8 +73,8 @@ class StaffExceptionScreen extends StatelessWidget {
                     icon: Icons.map_rounded,
                     iconColor: const Color(0xFF2563EB),
                     iconBg: const Color(0xFFEFF6FF),
-                    title: 'Sơ Đồ\nBãi Xe',
-                    subtitle: 'Xem & quản lý slot trực quan',
+                    title: 'Parking\nMap',
+                    subtitle: 'Visual slot management',
                     badge: null,
                     onTap: () => Navigator.push(
                       context,
@@ -89,8 +89,8 @@ class StaffExceptionScreen extends StatelessWidget {
                     icon: Icons.tune_rounded,
                     iconColor: const Color(0xFF7C3AED),
                     iconBg: const Color(0xFFF5F3FF),
-                    title: 'Cập Nhật\nTrạng Thái',
-                    subtitle: 'Trống, bảo trì, khóa slot',
+                    title: 'Status\nUpdate',
+                    subtitle: 'Available, maintenance, locked',
                     badge: null,
                     onTap: () => _showQuickSlotUpdate(context),
                   ),
@@ -101,14 +101,14 @@ class StaffExceptionScreen extends StatelessWidget {
             const SizedBox(height: 28),
 
             // ─── Quick Stats ─────────────────────────────────────────────────
-            _sectionTitle('THỐNG KÊ NHANH'),
+            _sectionTitle('QUICK STATS'),
             const SizedBox(height: 14),
             _buildQuickStats(),
 
             const SizedBox(height: 28),
 
             // ─── Recent activity ─────────────────────────────────────────────
-            _sectionTitle('HOẠT ĐỘNG GẦN ĐÂY'),
+            _sectionTitle('RECENT ACTIVITY'),
             const SizedBox(height: 14),
             _buildRecentActivity(),
           ],
@@ -160,7 +160,7 @@ class StaffExceptionScreen extends StatelessWidget {
             context,
             MaterialPageRoute(builder: (_) => const AuthProfileScreen()),
           ),
-          tooltip: 'Đăng xuất',
+          tooltip: 'Logout',
         ),
         const SizedBox(width: 8),
       ],
@@ -221,7 +221,7 @@ class StaffExceptionScreen extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           const Text(
-            'Quản Lý Ngoại Lệ\nBãi Đỗ Xe',
+            'Parking Exception\nManagement',
             style: TextStyle(
                 color: Colors.white,
                 fontSize: 22,
@@ -230,7 +230,7 @@ class StaffExceptionScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Ca trực đang hoạt động · $h:$m',
+            'Active Shift · $h:$m',
             style: TextStyle(
                 color: Colors.white.withOpacity(0.75),
                 fontSize: 13,
@@ -246,7 +246,7 @@ class StaffExceptionScreen extends StatelessWidget {
       children: [
         _QuickStatCard(
           value: '88',
-          label: 'Tổng slot',
+          label: 'Total slots',
           icon: Icons.grid_view_rounded,
           color: const Color(0xFF2563EB),
           bg: const Color(0xFFEFF6FF),
@@ -254,7 +254,7 @@ class StaffExceptionScreen extends StatelessWidget {
         const SizedBox(width: 10),
         _QuickStatCard(
           value: '61',
-          label: 'Có xe',
+          label: 'Occupied',
           icon: Icons.directions_car_rounded,
           color: const Color(0xFF16A34A),
           bg: const Color(0xFFECFDF5),
@@ -262,7 +262,7 @@ class StaffExceptionScreen extends StatelessWidget {
         const SizedBox(width: 10),
         _QuickStatCard(
           value: '5',
-          label: 'Cảnh báo',
+          label: 'Alerts',
           icon: Icons.warning_amber_rounded,
           color: const Color(0xFFEF4444),
           bg: const Color(0xFFFFF1F2),
@@ -277,23 +277,23 @@ class StaffExceptionScreen extends StatelessWidget {
           icon: Icons.credit_card_off_rounded,
           color: const Color(0xFFEA580C),
           bg: const Color(0xFFFFF7ED),
-          title: 'Mất thẻ: 51A-12345',
-          subtitle: 'Đã cấp quyền ra cổng',
-          time: '10 phút trước'),
+          title: 'Lost card: 51A-12345',
+          subtitle: 'Granted exit permission',
+          time: '10 mins ago'),
       _ActivityItem(
           icon: Icons.timer_off_rounded,
           color: const Color(0xFFEF4444),
           bg: const Color(0xFFFFF1F2),
-          title: 'Quá hạn: 30G-55678',
-          subtitle: '72 giờ gửi – chờ xử lý',
-          time: '25 phút trước'),
+          title: 'Overdue: 30G-55678',
+          subtitle: '72 hours parked – pending',
+          time: '25 mins ago'),
       _ActivityItem(
           icon: Icons.build_rounded,
           color: const Color(0xFFF59E0B),
           bg: const Color(0xFFFEF3C7),
-          title: 'Bảo trì: Slot M15',
-          subtitle: 'Đã cập nhật trạng thái',
-          time: '1 giờ trước'),
+          title: 'Maintenance: Slot M15',
+          subtitle: 'Status updated',
+          time: '1 hour ago'),
     ];
 
     return Column(
@@ -376,7 +376,7 @@ class StaffExceptionScreen extends StatelessWidget {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(
-                '✅ Slot A01 đã cập nhật: ${_statusLabel(status)}'),
+                '✅ Slot A01 updated: ${_statusLabel(status)}'),
             backgroundColor: const Color(0xFF2563EB),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -388,10 +388,10 @@ class StaffExceptionScreen extends StatelessWidget {
   }
 
   String _statusLabel(SlotStatus s) => switch (s) {
-        SlotStatus.available => 'Trống',
-        SlotStatus.occupied => 'Có xe',
-        SlotStatus.maintenance => 'Bảo trì',
-        SlotStatus.locked => 'Khóa',
+        SlotStatus.available => 'Available',
+        SlotStatus.occupied => 'Occupied',
+        SlotStatus.maintenance => 'Maintenance',
+        SlotStatus.locked => 'Locked',
       };
 }
 
