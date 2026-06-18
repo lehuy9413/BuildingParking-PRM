@@ -16,8 +16,10 @@ class _AuthProfileScreenState extends State<AuthProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? Theme.of(context).scaffoldBackgroundColor : Colors.white,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -96,6 +98,8 @@ class _TabButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -108,7 +112,7 @@ class _TabButton extends StatelessWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                color: isSelected ? AppColors.primary : Colors.grey.shade500,
+                color: isSelected ? AppColors.primary : (isDark ? Colors.grey.shade600 : Colors.grey.shade500),
               ),
             ),
             const SizedBox(height: 6),
@@ -146,23 +150,28 @@ class _InputField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
+      style: TextStyle(
+        color: isDark ? Colors.white : const Color(0xFF0F172A),
+      ),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 15),
-        prefixIcon: Icon(icon, color: Colors.grey.shade500),
-        suffixIcon: trailingIcon != null ? Icon(trailingIcon, color: Colors.grey.shade500) : null,
+        hintStyle: TextStyle(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, fontSize: 15),
+        prefixIcon: Icon(icon, color: isDark ? Colors.grey.shade500 : Colors.grey.shade500),
+        suffixIcon: trailingIcon != null ? Icon(trailingIcon, color: isDark ? Colors.grey.shade500 : Colors.grey.shade500) : null,
         filled: true,
-        fillColor: const Color(0xFFF7F9FB),
+        fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF7F9FB),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.grey.shade200),
+          borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.grey.shade200),
+          borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -216,6 +225,8 @@ class _ToggleChoice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
@@ -226,7 +237,7 @@ class _ToggleChoice extends StatelessWidget {
             color: isSelected ? AppColors.primary.withOpacity(0.08) : Colors.transparent,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isSelected ? AppColors.primary : Colors.grey.shade300,
+              color: isSelected ? AppColors.primary : (isDark ? const Color(0xFF334155) : Colors.grey.shade300),
               width: 1.5,
             ),
           ),
@@ -234,7 +245,7 @@ class _ToggleChoice extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 20, color: isSelected ? AppColors.primary : Colors.grey.shade600),
+                Icon(icon, size: 20, color: isSelected ? AppColors.primary : (isDark ? Colors.grey.shade400 : Colors.grey.shade600)),
                 const SizedBox(width: 8),
               ],
               Text(
@@ -242,7 +253,7 @@ class _ToggleChoice extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: isSelected ? AppColors.primary : Colors.grey.shade600,
+                  color: isSelected ? AppColors.primary : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                 ),
               ),
             ],
@@ -301,16 +312,18 @@ class _LoginCardState extends State<_LoginCard> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 10),
-          const CircleAvatar(
+          CircleAvatar(
             radius: 42,
-            backgroundColor: Color(0xFFDFF3EA),
-            child: Text(
+            backgroundColor: isDark ? const Color(0xFF0F4C5C).withOpacity(0.3) : const Color(0xFFDFF3EA),
+            child: const Text(
               'P',
               style: TextStyle(
                 color: AppColors.primary,
@@ -320,22 +333,22 @@ class _LoginCardState extends State<_LoginCard> {
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'Welcome Back',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF0F172A),
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Smart Parking, Seamless Living',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 15,
-              color: Color(0xFF64748B),
+              color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
             ),
           ),
           const SizedBox(height: 32),
@@ -398,26 +411,28 @@ class _RegisterCardState extends State<_RegisterCard> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
+          Text(
             'Create Account',
             style: TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF0F172A),
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Join our eco-friendly community and find parking effortlessly.',
             style: TextStyle(
               fontSize: 15,
               height: 1.4,
-              color: Color(0xFF64748B),
+              color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
             ),
           ),
           const SizedBox(height: 24),
@@ -467,35 +482,37 @@ class _ForgotPasswordCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 40),
-          const CircleAvatar(
+          CircleAvatar(
             radius: 46,
-            backgroundColor: Color(0xFFDFF3EA),
-            child: Icon(Icons.lock_reset_rounded, size: 46, color: AppColors.primary),
+            backgroundColor: isDark ? const Color(0xFF0F4C5C).withOpacity(0.3) : const Color(0xFFDFF3EA),
+            child: const Icon(Icons.lock_reset_rounded, size: 46, color: AppColors.primary),
           ),
           const SizedBox(height: 24),
-          const Text(
+          Text(
             'Forgot Password',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF0F172A),
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Enter your email or phone number to receive a verification code.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 15,
               height: 1.4,
-              color: Color(0xFF64748B),
+              color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
             ),
           ),
           const SizedBox(height: 32),
@@ -524,4 +541,4 @@ class _ForgotPasswordCard extends StatelessWidget {
       ),
     );
   }
-}
+}
