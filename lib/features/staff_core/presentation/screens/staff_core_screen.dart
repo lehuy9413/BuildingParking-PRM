@@ -6,6 +6,7 @@ import '../widgets/vehicle_check_in_form.dart';
 import '../widgets/parking_session_ticket_component.dart';
 import '../widgets/vehicle_check_out_invoice_screen.dart';
 import '../../../auth_profile/presentation/screens/auth_profile_screen.dart';
+import '../../../staff_exception/presentation/screens/staff_exception_screen.dart';
 
 /// Màn hình chính của Staff Core – quản lý luồng xe vào/ra tiêu chuẩn.
 class StaffCoreScreen extends StatefulWidget {
@@ -152,6 +153,16 @@ class _StaffCoreScreenState extends State<StaffCoreScreen>
           icon: const Icon(Icons.history_rounded, color: Color(0xFF64748B)),
           onPressed: () => _showSessionHistory(context),
           tooltip: 'Lịch sử session',
+        ),
+        IconButton(
+          icon: const Icon(Icons.warning_amber_rounded,
+              color: Color(0xFFF59E0B)),
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const StaffExceptionScreen()),
+          ),
+          tooltip: 'Quản lý ngoại lệ',
         ),
         IconButton(
           icon: const Icon(Icons.logout_rounded, color: Color(0xFFEF4444)),
