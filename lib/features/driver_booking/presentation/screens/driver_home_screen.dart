@@ -4,6 +4,9 @@ import '../../../../app/app.dart' as import_app;
 import '../controllers/booking_controller.dart';
 import 'booking_flow_screen.dart';
 import 'ai_suggestion_screen.dart';
+import '../../../driver_tracking/presentation/screens/live_session_screen.dart';
+import '../../../driver_tracking/presentation/screens/feedback_screen.dart';
+import 'digital_ticket_screen.dart';
 
 class DriverHomeScreen extends StatelessWidget {
   const DriverHomeScreen({super.key});
@@ -406,14 +409,32 @@ class DriverHomeScreen extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: _buildActionCard(
-                isDark: isDark,
-                icon: Icons.qr_code_scanner_rounded,
-                iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
-                iconBgColor: isDark ? const Color(0xFF1E3A8A).withOpacity(0.4) : const Color(0xFFEFF6FF),
-                title: 'Quick Check-In',
-                subtitle: 'View active ticket/QR code',
-                onTap: () {},
+              child: Consumer(
+                builder: (context, ref, child) {
+                  return _buildActionCard(
+                    isDark: isDark,
+                    icon: Icons.qr_code_scanner_rounded,
+                    iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+                    iconBgColor: isDark ? const Color(0xFF1E3A8A).withOpacity(0.4) : const Color(0xFFEFF6FF),
+                    title: 'Quick Check-In',
+                    subtitle: 'View active ticket/QR code',
+                    onTap: () {
+                      final confirmedBooking = ref.read(bookingControllerProvider).confirmedBooking;
+                      if (confirmedBooking != null) {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => DigitalTicketScreen(booking: confirmedBooking)));
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('No active ticket found. Please book a slot first.'),
+                            backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFF0F172A),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        );
+                      }
+                    },
+                  );
+                },
               ),
             ),
             const SizedBox(width: 16),
@@ -443,7 +464,9 @@ class DriverHomeScreen extends StatelessWidget {
                 iconBgColor: isDark ? const Color(0xFF7C2D12).withOpacity(0.4) : const Color(0xFFFFF7ED),
                 title: 'Track Session',
                 subtitle: 'Check live duration & fee',
-                onTap: () {},
+                onTap: () {
+                  import_app.HomeScreen.switchTab(context, 2);
+                },
               ),
             ),
             const SizedBox(width: 16),
@@ -455,7 +478,9 @@ class DriverHomeScreen extends StatelessWidget {
                 iconBgColor: isDark ? const Color(0xFF581C87).withOpacity(0.4) : const Color(0xFFFAF5FF),
                 title: 'Support',
                 subtitle: 'Report lost card or issues',
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedbackScreen()));
+                },
               ),
             ),
           ],
