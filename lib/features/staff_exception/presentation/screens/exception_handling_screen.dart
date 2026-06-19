@@ -30,7 +30,7 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
   // Wrong Info form state
   // ─────────────────────────────────────────────────────────────────────────
   final _wrongPlateCtrl = TextEditingController();
-  String _selectedWrongType = 'Wrong License Plate';
+  String _selectedWrongType = 'Sai biển số';
   final _correctInfoCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
 
