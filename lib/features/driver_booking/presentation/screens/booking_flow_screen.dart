@@ -215,7 +215,7 @@ class _StepIndicator extends StatelessWidget {
               boxShadow: isCurrent
                   ? [
                       BoxShadow(
-                        color: const Color(0xFF0F4C5C).withOpacity(0.35),
+                        color: const Color(0xFF0F4C5C).withValues(alpha: 0.35),
                         blurRadius: 12,
                         spreadRadius: 1,
                         offset: const Offset(0, 3),
@@ -224,7 +224,7 @@ class _StepIndicator extends StatelessWidget {
                   : isCompleted
                       ? [
                           BoxShadow(
-                            color: const Color(0xFF1B998B).withOpacity(0.25),
+                            color: const Color(0xFF1B998B).withValues(alpha: 0.25),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -343,7 +343,7 @@ class _BottomButtons extends StatelessWidget {
         color: isDark ? const Color(0xFF1A202C) : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.06),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
             blurRadius: 20,
             offset: const Offset(0, -8),
           ),
@@ -391,7 +391,7 @@ class _BottomButtons extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   elevation: canProceed ? 4 : 0,
-                  shadowColor: const Color(0xFF0F4C5C).withOpacity(0.4),
+                  shadowColor: const Color(0xFF0F4C5C).withValues(alpha: 0.4),
                 ),
                 child: isConfirming
                     ? const SizedBox(

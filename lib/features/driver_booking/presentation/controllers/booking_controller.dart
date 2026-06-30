@@ -5,7 +5,10 @@ import 'package:equatable/equatable.dart';
 import '../../domain/entities/parking_slot.dart';
 import '../../domain/entities/booking.dart';
 import '../../domain/entities/ai_suggestion.dart';
-import '../../data/datasources/mock_booking_datasource.dart';
+import '../../domain/entities/parking_lot.dart';
+import '../../domain/entities/vehicle.dart';
+import '../../domain/repositories/booking_repository.dart';
+import '../../data/datasources/api_booking_datasource.dart';
 import '../../data/repositories/booking_repository_impl.dart';
 
 // ─── State ───────────────────────────────────────────────────────────────────
@@ -15,9 +18,14 @@ class BookingState extends Equatable {
   final DateTime? selectedDate;
   final TimeOfDay? checkInTime;
   final TimeOfDay? checkOutTime;
-  final VehicleType? vehicleType;
+  
+  final List<ParkingLot> parkingLots;
+  final ParkingLot? selectedParkingLot;
+  
+  final List<Vehicle> myVehicles;
+  final Vehicle? selectedVehicle;
+
   final String licensePlate;
-  final ParkingZone? selectedZone;
   final ParkingSlot? selectedSlot;
   final List<ParkingSlot> availableSlots;
   final List<AiSuggestion> aiSuggestions;
@@ -31,9 +39,11 @@ class BookingState extends Equatable {
     this.selectedDate,
     this.checkInTime,
     this.checkOutTime,
-    this.vehicleType,
+    this.parkingLots = const [],
+    this.selectedParkingLot,
+    this.myVehicles = const [],
+    this.selectedVehicle,
     this.licensePlate = '',
-    this.selectedZone,
     this.selectedSlot,
     this.availableSlots = const [],
     this.aiSuggestions = const [],
@@ -48,9 +58,11 @@ class BookingState extends Equatable {
     DateTime? selectedDate,
     TimeOfDay? checkInTime,
     TimeOfDay? checkOutTime,
-    VehicleType? vehicleType,
+    List<ParkingLot>? parkingLots,
+    ParkingLot? selectedParkingLot,
+    List<Vehicle>? myVehicles,
+    Vehicle? selectedVehicle,
     String? licensePlate,
-    ParkingZone? selectedZone,
     ParkingSlot? selectedSlot,
     List<ParkingSlot>? availableSlots,
     List<AiSuggestion>? aiSuggestions,
@@ -67,9 +79,11 @@ class BookingState extends Equatable {
       selectedDate: selectedDate ?? this.selectedDate,
       checkInTime: checkInTime ?? this.checkInTime,
       checkOutTime: checkOutTime ?? this.checkOutTime,
-      vehicleType: vehicleType ?? this.vehicleType,
+      parkingLots: parkingLots ?? this.parkingLots,
+      selectedParkingLot: selectedParkingLot ?? this.selectedParkingLot,
+      myVehicles: myVehicles ?? this.myVehicles,
+      selectedVehicle: selectedVehicle ?? this.selectedVehicle,
       licensePlate: licensePlate ?? this.licensePlate,
-      selectedZone: selectedZone ?? this.selectedZone,
       selectedSlot: clearSlot ? null : (selectedSlot ?? this.selectedSlot),
       availableSlots: availableSlots ?? this.availableSlots,
       aiSuggestions: aiSuggestions ?? this.aiSuggestions,
@@ -81,19 +95,20 @@ class BookingState extends Equatable {
   }
 
   bool get canProceedStep1 =>
-      selectedDate != null && checkInTime != null && checkOutTime != null;
+      selectedDate != null && checkInTime != null && checkOutTime != null && selectedParkingLot != null;
 
-  bool get canProceedStep2 => vehicleType != null;
+  bool get canProceedStep2 => selectedVehicle != null;
 
   bool get canProceedStep3 => selectedSlot != null;
 
   double get estimatedPrice {
-    if (vehicleType == null || checkInTime == null || checkOutTime == null) {
+    if (selectedVehicle == null || checkInTime == null || checkOutTime == null) {
       return 0.0;
     }
-    final pricePerHour = vehicleType == VehicleType.car
+    final type = selectedVehicle!.vehicleTypeName.toLowerCase();
+    final pricePerHour = type.contains('car')
         ? 3.0
-        : vehicleType == VehicleType.ev
+        : type.contains('ev')
             ? 4.0
             : 1.0;
     final checkIn = DateTime(2024, 1, 1, checkInTime!.hour, checkInTime!.minute);
@@ -119,8 +134,8 @@ class BookingState extends Equatable {
   @override
   List<Object?> get props => [
         currentStep, selectedDate, checkInTime, checkOutTime,
-        vehicleType, licensePlate, selectedZone, selectedSlot,
-        availableSlots, aiSuggestions, confirmedBooking,
+        parkingLots, selectedParkingLot, myVehicles, selectedVehicle,
+        licensePlate, selectedSlot, availableSlots, aiSuggestions, confirmedBooking,
         isLoading, isBookingConfirming, errorMessage,
       ];
 }
@@ -128,12 +143,32 @@ class BookingState extends Equatable {
 // ─── Controller ──────────────────────────────────────────────────────────────
 
 class BookingController extends Notifier<BookingState> {
-  late final BookingRepositoryImpl _repository;
+  late final BookingRepository _repository;
 
   @override
   BookingState build() {
     _repository = ref.watch(bookingRepositoryProvider);
+    _initializeData();
     return const BookingState();
+  }
+
+  Future<void> _initializeData() async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final lots = await _repository.getParkingLots();
+      final vehicles = await _repository.getMyVehicles();
+      state = state.copyWith(
+        parkingLots: lots,
+        selectedParkingLot: lots.isNotEmpty ? lots.first : null,
+        myVehicles: vehicles,
+        isLoading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to load initial data: $e',
+      );
+    }
   }
 
   // ── Step Navigation ──
@@ -158,6 +193,10 @@ class BookingController extends Notifier<BookingState> {
 
   // ── Step 1: Time Selection ──
 
+  void selectParkingLot(ParkingLot lot) {
+    state = state.copyWith(selectedParkingLot: lot, clearError: true);
+  }
+
   void selectDate(DateTime date) {
     state = state.copyWith(selectedDate: date, clearError: true);
   }
@@ -179,34 +218,28 @@ class BookingController extends Notifier<BookingState> {
 
   // ── Step 2: Vehicle Selection ──
 
-  void selectVehicleType(VehicleType type) {
-    state = state.copyWith(vehicleType: type, clearError: true);
+  void selectVehicle(Vehicle vehicle) {
+    state = state.copyWith(
+      selectedVehicle: vehicle, 
+      licensePlate: vehicle.licensePlate,
+      clearError: true
+    );
   }
 
   void setLicensePlate(String plate) {
     state = state.copyWith(licensePlate: plate);
   }
 
-  // ── Step 3: Zone & Slot Selection ──
+  // ── Step 3: Slot Selection ──
 
-  void selectZone(ParkingZone zone) {
-    state = state.copyWith(
-      selectedZone: zone,
-      clearSlot: true,
-      clearError: true,
-    );
-    _loadAvailableSlots(zone);
-  }
-
-  Future<void> _loadAvailableSlots(ParkingZone zone) async {
-    if (state.vehicleType == null || state.selectedDate == null) return;
+  Future<void> loadAvailableSlots() async {
+    if (state.selectedVehicle == null || state.selectedParkingLot == null) return;
 
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final slots = await _repository.getAvailableSlots(
-        vehicleType: state.vehicleType!,
-        zone: zone,
-        dateTime: state.selectedDate!,
+        parkingLotId: state.selectedParkingLot!.id,
+        vehicleTypeId: state.selectedVehicle!.vehicleTypeId,
       );
       state = state.copyWith(availableSlots: slots, isLoading: false);
     } catch (e) {
@@ -217,22 +250,50 @@ class BookingController extends Notifier<BookingState> {
     }
   }
 
-  void selectSlot(ParkingSlot slot) {
-    if (slot.status == SlotStatus.available) {
-      state = state.copyWith(selectedSlot: slot, clearError: true);
+  Future<void> lockAndSelectSlot(ParkingSlot slot) async {
+    if (slot.status != SlotStatus.available) return;
+    
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final success = await _repository.lockSlot(slot.id);
+      if (success) {
+        state = state.copyWith(
+          selectedSlot: slot, 
+          isLoading: false
+        );
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'Slot already locked by someone else.'
+        );
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Error locking slot: $e'
+      );
+    }
+  }
+
+  Future<void> unlockSlot() async {
+    if (state.selectedSlot != null) {
+      try {
+        await _repository.unlockSlot(state.selectedSlot!.id);
+        state = state.copyWith(clearSlot: true);
+      } catch (_) {}
     }
   }
 
   // ── AI Suggestions ──
 
   Future<void> loadAiSuggestions() async {
-    if (state.vehicleType == null || state.selectedDate == null) return;
+    if (state.selectedVehicle == null || state.selectedParkingLot == null) return;
 
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final suggestions = await _repository.getAiSuggestions(
-        vehicleType: state.vehicleType!,
-        dateTime: state.selectedDate!,
+        parkingLotId: state.selectedParkingLot!.id,
+        vehicleTypeId: state.selectedVehicle!.vehicleTypeId,
       );
       state = state.copyWith(aiSuggestions: suggestions, isLoading: false);
     } catch (e) {
@@ -244,18 +305,14 @@ class BookingController extends Notifier<BookingState> {
   }
 
   void selectAiSuggestion(AiSuggestion suggestion) {
-    state = state.copyWith(
-      selectedZone: suggestion.recommendedSlot.zone,
-      selectedSlot: suggestion.recommendedSlot,
-      clearError: true,
-    );
+    lockAndSelectSlot(suggestion.recommendedSlot);
   }
 
   // ── Booking Confirmation ──
 
   Future<void> confirmBooking() async {
     if (state.selectedSlot == null ||
-        state.vehicleType == null ||
+        state.selectedVehicle == null ||
         state.selectedDate == null ||
         state.checkInTime == null ||
         state.checkOutTime == null) {
@@ -273,20 +330,16 @@ class BookingController extends Notifier<BookingState> {
         state.checkInTime!.hour,
         state.checkInTime!.minute,
       );
-      final checkOut = DateTime(
-        state.selectedDate!.year,
-        state.selectedDate!.month,
-        state.selectedDate!.day,
-        state.checkOutTime!.hour,
-        state.checkOutTime!.minute,
-      );
 
       final booking = await _repository.createBooking(
-        slotId: state.selectedSlot!.id,
-        vehicleType: state.vehicleType!,
-        licensePlate: state.licensePlate.isEmpty ? null : state.licensePlate,
-        checkInTime: checkIn,
-        checkOutTime: checkOut,
+        parkingLotId: state.selectedParkingLot!.id,
+        vehicleTypeId: state.selectedVehicle!.vehicleTypeId,
+        scheduledDate: checkIn, // Sending the date
+        startTime: '${state.checkInTime!.hour.toString().padLeft(2, '0')}:${state.checkInTime!.minute.toString().padLeft(2, '0')}',
+        endTime: '${state.checkOutTime!.hour.toString().padLeft(2, '0')}:${state.checkOutTime!.minute.toString().padLeft(2, '0')}',
+        vehicleId: state.selectedVehicle!.id,
+        floorId: state.selectedSlot?.floorId,
+        zoneId: state.selectedSlot?.zoneId,
       );
 
       state = state.copyWith(
@@ -310,8 +363,8 @@ class BookingController extends Notifier<BookingState> {
 
 // ─── Providers ───────────────────────────────────────────────────────────────
 
-final bookingRepositoryProvider = Provider<BookingRepositoryImpl>((ref) {
-  return BookingRepositoryImpl(dataSource: MockBookingDataSource());
+final bookingRepositoryProvider = Provider<BookingRepository>((ref) {
+  return BookingRepositoryImpl(dataSource: ApiBookingDataSource());
 });
 
 final bookingControllerProvider =

@@ -16,12 +16,8 @@ class _BookingStepSlotState extends ConsumerState<BookingStepSlot> {
   @override
   void initState() {
     super.initState();
-    // Auto-select Zone A on first load
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final state = ref.read(bookingControllerProvider);
-      if (state.selectedZone == null) {
-        ref.read(bookingControllerProvider.notifier).selectZone(ParkingZone.zoneA);
-      }
+      ref.read(bookingControllerProvider.notifier).loadAvailableSlots();
     });
   }
 
@@ -40,60 +36,44 @@ class _BookingStepSlotState extends ConsumerState<BookingStepSlot> {
           AiSuggestionBanner(isDark: isDark),
           const SizedBox(height: 24),
 
-          // ── Zone Selector ──
+          // ── Visual Parking Map ──
           _SectionHeader(
-            icon: Icons.layers_rounded,
-            title: 'Select Zone',
+            icon: Icons.map_rounded,
+            title: 'Parking Map',
             isDark: isDark,
           ),
           const SizedBox(height: 16),
-          _ZoneSelector(
-            selectedZone: state.selectedZone,
-            onZoneSelected: controller.selectZone,
-            isDark: isDark,
-          ),
-          const SizedBox(height: 24),
+          if (state.isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(40),
+                child: CircularProgressIndicator(color: Color(0xFF0F4C5C)),
+              ),
+            )
+          else ...[
+            _ParkingVisualMap(
+              slots: state.availableSlots,
+              selectedSlot: state.selectedSlot,
+              onSlotSelected: controller.lockAndSelectSlot,
+              isDark: isDark,
+            ),
+            const SizedBox(height: 12),
+            _SlotLegend(isDark: isDark),
+            const SizedBox(height: 28),
 
-          // ── Visual Parking Map ──
-          if (state.selectedZone != null) ...[
+            // ── Slot List (Manual Selection) ──
             _SectionHeader(
-              icon: Icons.map_rounded,
-              title: 'Parking Map',
+              icon: Icons.list_alt_rounded,
+              title: 'Or Select Manually',
               isDark: isDark,
             ),
             const SizedBox(height: 16),
-            if (state.isLoading)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(40),
-                  child: CircularProgressIndicator(color: Color(0xFF0F4C5C)),
-                ),
-              )
-            else ...[
-              _ParkingVisualMap(
-                slots: state.availableSlots,
-                selectedSlot: state.selectedSlot,
-                onSlotSelected: controller.selectSlot,
-                isDark: isDark,
-              ),
-              const SizedBox(height: 12),
-              _SlotLegend(isDark: isDark),
-              const SizedBox(height: 28),
-
-              // ── Slot List (Manual Selection) ──
-              _SectionHeader(
-                icon: Icons.list_alt_rounded,
-                title: 'Or Select Manually',
-                isDark: isDark,
-              ),
-              const SizedBox(height: 16),
-              _SlotListView(
-                slots: state.availableSlots,
-                selectedSlot: state.selectedSlot,
-                onSlotSelected: controller.selectSlot,
-                isDark: isDark,
-              ),
-            ],
+            _SlotListView(
+              slots: state.availableSlots,
+              selectedSlot: state.selectedSlot,
+              onSlotSelected: controller.lockAndSelectSlot,
+              isDark: isDark,
+            ),
           ],
 
           // ── Selected Slot Summary ──
@@ -133,8 +113,8 @@ class _SectionHeader extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: isDark
-                ? const Color(0xFF0F4C5C).withOpacity(0.3)
-                : const Color(0xFF0F4C5C).withOpacity(0.1),
+                ? const Color(0xFF0F4C5C).withValues(alpha: 0.3)
+                : const Color(0xFF0F4C5C).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, color: const Color(0xFF0F4C5C), size: 20),
@@ -153,96 +133,6 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-// ─── Zone Selector ───────────────────────────────────────────────────────────
-
-class _ZoneSelector extends StatelessWidget {
-  const _ZoneSelector({
-    required this.selectedZone,
-    required this.onZoneSelected,
-    required this.isDark,
-  });
-
-  final ParkingZone? selectedZone;
-  final ValueChanged<ParkingZone> onZoneSelected;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    final zones = [
-      _ZoneData(ParkingZone.zoneA, 'Zone A', 'Ground', Icons.looks_one_rounded, const Color(0xFF3B82F6)),
-      _ZoneData(ParkingZone.zoneB, 'Zone B', 'Level 1', Icons.looks_two_rounded, const Color(0xFFA855F7)),
-      _ZoneData(ParkingZone.zoneC, 'Zone C', 'Level 2', Icons.looks_3_rounded, const Color(0xFFF59E0B)),
-      _ZoneData(ParkingZone.zoneD, 'Zone D', 'Rooftop', Icons.looks_4_rounded, const Color(0xFF059669)),
-    ];
-
-    return SizedBox(
-      height: 80,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: zones.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
-        itemBuilder: (context, index) {
-          final zone = zones[index];
-          final isSelected = selectedZone == zone.zone;
-
-          return GestureDetector(
-            onTap: () => onZoneSelected(zone.zone),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              width: 92,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? zone.color.withOpacity(isDark ? 0.25 : 0.1)
-                    : (isDark ? const Color(0xFF1E293B) : Colors.white),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isSelected ? zone.color : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                  width: isSelected ? 2 : 1,
-                ),
-                boxShadow: isSelected
-                    ? [BoxShadow(color: zone.color.withOpacity(0.2), blurRadius: 12, offset: const Offset(0, 4))]
-                    : [],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(zone.icon, color: zone.color, size: 22),
-                  const SizedBox(height: 4),
-                  Text(
-                    zone.label,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: isSelected ? zone.color : (isDark ? Colors.grey.shade300 : const Color(0xFF475569)),
-                    ),
-                  ),
-                  Text(
-                    zone.floor,
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w500,
-                      color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _ZoneData {
-  final ParkingZone zone;
-  final String label;
-  final String floor;
-  final IconData icon;
-  final Color color;
-  const _ZoneData(this.zone, this.label, this.floor, this.icon, this.color);
-}
 
 // ─── Visual Parking Map ──────────────────────────────────────────────────────
 
@@ -272,7 +162,7 @@ class _ParkingVisualMap extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -285,10 +175,10 @@ class _ParkingVisualMap extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1B998B).withOpacity(0.15) : const Color(0xFFE0F7FA),
+              color: isDark ? const Color(0xFF1B998B).withValues(alpha: 0.15) : const Color(0xFFE0F7FA),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isDark ? const Color(0xFF1B998B).withOpacity(0.3) : const Color(0xFFB2DFDB),
+                color: isDark ? const Color(0xFF1B998B).withValues(alpha: 0.3) : const Color(0xFFB2DFDB),
               ),
             ),
             child: Row(
@@ -321,10 +211,10 @@ class _ParkingVisualMap extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFFEA580C).withOpacity(0.15) : const Color(0xFFFFF7ED),
+              color: isDark ? const Color(0xFFEA580C).withValues(alpha: 0.15) : const Color(0xFFFFF7ED),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isDark ? const Color(0xFFEA580C).withOpacity(0.3) : const Color(0xFFFED7AA),
+                color: isDark ? const Color(0xFFEA580C).withValues(alpha: 0.3) : const Color(0xFFFED7AA),
               ),
             ),
             child: Row(
@@ -375,10 +265,10 @@ class _ParkingVisualMap extends StatelessWidget {
                 width: 40,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF374151).withOpacity(0.3) : const Color(0xFFF1F5F9),
+                  color: isDark ? const Color(0xFF374151).withValues(alpha: 0.3) : const Color(0xFFF1F5F9),
                   border: Border.symmetric(
                     vertical: BorderSide(
-                      color: isDark ? const Color(0xFFFBBF24).withOpacity(0.3) : const Color(0xFFFDE68A),
+                      color: isDark ? const Color(0xFFFBBF24).withValues(alpha: 0.3) : const Color(0xFFFDE68A),
                       width: 1.5,
                       style: BorderStyle.solid,
                     ),
@@ -407,16 +297,16 @@ class _ParkingVisualMap extends StatelessWidget {
     Color textColor;
 
     if (isSelected) {
-      bgColor = const Color(0xFFF2C14E).withOpacity(0.25);
+      bgColor = const Color(0xFFF2C14E).withValues(alpha: 0.25);
       borderColor = const Color(0xFFF2C14E);
       textColor = isDark ? const Color(0xFFF2C14E) : const Color(0xFFB45309);
     } else if (isAvailable) {
-      bgColor = isDark ? const Color(0xFF1B998B).withOpacity(0.1) : const Color(0xFFECFDF5);
-      borderColor = isDark ? const Color(0xFF1B998B).withOpacity(0.3) : const Color(0xFFBBF7D0);
+      bgColor = isDark ? const Color(0xFF1B998B).withValues(alpha: 0.1) : const Color(0xFFECFDF5);
+      borderColor = isDark ? const Color(0xFF1B998B).withValues(alpha: 0.3) : const Color(0xFFBBF7D0);
       textColor = isDark ? const Color(0xFF34D399) : const Color(0xFF059669);
     } else {
-      bgColor = isDark ? const Color(0xFFEF4444).withOpacity(0.08) : const Color(0xFFFEF2F2);
-      borderColor = isDark ? const Color(0xFFEF4444).withOpacity(0.2) : const Color(0xFFFECACA);
+      bgColor = isDark ? const Color(0xFFEF4444).withValues(alpha: 0.08) : const Color(0xFFFEF2F2);
+      borderColor = isDark ? const Color(0xFFEF4444).withValues(alpha: 0.2) : const Color(0xFFFECACA);
       textColor = isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626);
     }
 
@@ -451,7 +341,7 @@ class _ParkingVisualMap extends StatelessWidget {
               const SizedBox(width: 4),
               Flexible(
                 child: Text(
-                  slot.slotNumber,
+                  slot.slotCode,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
@@ -495,7 +385,7 @@ class _SlotLegend extends StatelessWidget {
           width: 12,
           height: 12,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.3),
+            color: color.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(3),
             border: Border.all(color: color, width: 1.5),
           ),
@@ -585,7 +475,7 @@ class _SlotListView extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? (isDark ? const Color(0xFFF2C14E).withOpacity(0.1) : const Color(0xFFFFFBEB))
+                      ? (isDark ? const Color(0xFFF2C14E).withValues(alpha: 0.1) : const Color(0xFFFFFBEB))
                       : (isDark ? const Color(0xFF1E293B) : Colors.white),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
@@ -602,8 +492,8 @@ class _SlotListView extends StatelessWidget {
                       height: 44,
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? const Color(0xFFF2C14E).withOpacity(0.2)
-                            : (isDark ? const Color(0xFF1B998B).withOpacity(0.15) : const Color(0xFFECFDF5)),
+                            ? const Color(0xFFF2C14E).withValues(alpha: 0.2)
+                            : (isDark ? const Color(0xFF1B998B).withValues(alpha: 0.15) : const Color(0xFFECFDF5)),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Center(
@@ -620,7 +510,7 @@ class _SlotListView extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            slot.slotNumber,
+                            slot.slotCode,
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
@@ -628,7 +518,7 @@ class _SlotListView extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            slot.floor ?? '',
+                            slot.floorName ?? '',
                             style: TextStyle(
                               fontSize: 12,
                               color: isDark ? Colors.grey.shade500 : Colors.grey.shade500,
@@ -639,7 +529,7 @@ class _SlotListView extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '\$${slot.pricePerHour.toStringAsFixed(2)}/hr',
+                      '\$3.00/hr',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -689,14 +579,14 @@ class _SelectedSlotSummary extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF0F4C5C).withOpacity(0.4), const Color(0xFF1B998B).withOpacity(0.3)]
+              ? [const Color(0xFF0F4C5C).withValues(alpha: 0.4), const Color(0xFF1B998B).withValues(alpha: 0.3)]
               : [const Color(0xFFE0F7FA), const Color(0xFFE8F5E9)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? const Color(0xFF1B998B).withOpacity(0.4) : const Color(0xFFB2DFDB),
+          color: isDark ? const Color(0xFF1B998B).withValues(alpha: 0.4) : const Color(0xFFB2DFDB),
         ),
       ),
       child: Column(
@@ -719,9 +609,9 @@ class _SelectedSlotSummary extends StatelessWidget {
           const SizedBox(height: 16),
           Row(
             children: [
-              _infoChip(Icons.local_parking_rounded, slot.slotNumber),
+              _infoChip(Icons.local_parking_rounded, slot.slotCode),
               const SizedBox(width: 10),
-              _infoChip(Icons.layers_rounded, slot.floor ?? ''),
+              _infoChip(Icons.layers_rounded, slot.floorName ?? ''),
               const SizedBox(width: 10),
               _infoChip(Icons.payments_rounded, '\$${estimatedPrice.toStringAsFixed(2)}'),
             ],
@@ -735,7 +625,7 @@ class _SelectedSlotSummary extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.1) : Colors.white.withOpacity(0.7),
+        color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(

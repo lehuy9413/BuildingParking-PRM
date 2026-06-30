@@ -117,7 +117,7 @@ class _DigitalTicketScreenState extends State<DigitalTicketScreen>
                           borderRadius: BorderRadius.circular(16),
                         ),
                         elevation: 4,
-                        shadowColor: const Color(0xFF0F4C5C).withOpacity(0.4),
+                        shadowColor: const Color(0xFF0F4C5C).withValues(alpha: 0.4),
                         textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
                       ),
                     ),
@@ -178,7 +178,7 @@ class _SuccessHeader extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF059669).withOpacity(isDark ? 0.5 : 0.3),
+            color: const Color(0xFF059669).withValues(alpha: isDark ? 0.5 : 0.3),
             blurRadius: 24,
             offset: const Offset(0, 10),
           ),
@@ -229,7 +229,7 @@ class _TicketCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.4 : 0.08),
+            color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.08),
             blurRadius: 32,
             offset: const Offset(0, 12),
           ),
@@ -249,14 +249,14 @@ class _TicketCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 16,
                         offset: const Offset(0, 4),
                       ),
                     ],
                   ),
                   child: QrImageView(
-                    data: booking.qrCode,
+                    data: booking.qrCode ?? booking.id,
                     version: QrVersions.auto,
                     size: 180,
                     backgroundColor: Colors.white,
@@ -305,7 +305,7 @@ class _TicketCard extends StatelessWidget {
                   icon: Icons.location_on_rounded,
                   iconColor: const Color(0xFF3B82F6),
                   label: 'Zone',
-                  value: booking.zoneName,
+                  value: booking.zoneName ?? 'N/A',
                   isDark: isDark,
                 ),
                 const SizedBox(height: 16),
@@ -313,7 +313,7 @@ class _TicketCard extends StatelessWidget {
                   icon: Icons.local_parking_rounded,
                   iconColor: const Color(0xFF0F4C5C),
                   label: 'Slot',
-                  value: booking.slotNumber,
+                  value: booking.slotCode ?? 'N/A',
                   isDark: isDark,
                 ),
                 const SizedBox(height: 16),
@@ -324,13 +324,13 @@ class _TicketCard extends StatelessWidget {
                   value: booking.vehicleTypeName,
                   isDark: isDark,
                 ),
-                if (booking.licensePlate != null && booking.licensePlate!.isNotEmpty) ...[
+                if (booking.licensePlate.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   _DetailRow(
                     icon: Icons.badge_rounded,
                     iconColor: const Color(0xFFEA580C),
                     label: 'Plate',
-                    value: booking.licensePlate!,
+                    value: booking.licensePlate,
                     isDark: isDark,
                   ),
                 ],
@@ -344,7 +344,7 @@ class _TicketCard extends StatelessWidget {
                   icon: Icons.login_rounded,
                   iconColor: const Color(0xFF1B998B),
                   label: 'Check-in',
-                  value: DateFormat('HH:mm — dd MMM yyyy').format(booking.checkInTime),
+                  value: '${booking.startTime} — ${DateFormat('dd MMM yyyy').format(booking.scheduledDate)}',
                   isDark: isDark,
                 ),
                 const SizedBox(height: 16),
@@ -352,7 +352,7 @@ class _TicketCard extends StatelessWidget {
                   icon: Icons.logout_rounded,
                   iconColor: const Color(0xFFDC2626),
                   label: 'Check-out',
-                  value: DateFormat('HH:mm — dd MMM yyyy').format(booking.checkOutTime),
+                  value: '${booking.endTime} — ${DateFormat('dd MMM yyyy').format(booking.scheduledDate)}',
                   isDark: isDark,
                 ),
                 const SizedBox(height: 16),
@@ -360,7 +360,7 @@ class _TicketCard extends StatelessWidget {
                   icon: Icons.timer_rounded,
                   iconColor: const Color(0xFFF59E0B),
                   label: 'Duration',
-                  value: _formatDuration(booking.duration),
+                  value: _formatDuration(booking.startTime, booking.endTime),
                   isDark: isDark,
                 ),
                 const SizedBox(height: 20),
@@ -382,7 +382,7 @@ class _TicketCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '\$${booking.totalPrice.toStringAsFixed(2)}',
+                      '\$${booking.estimatedFee.toStringAsFixed(2)}',
                       style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w900,
@@ -398,7 +398,7 @@ class _TicketCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
                     color: isDark
-                        ? const Color(0xFF1B998B).withOpacity(0.15)
+                        ? const Color(0xFF1B998B).withValues(alpha: 0.15)
                         : const Color(0xFFECFDF5),
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -434,12 +434,22 @@ class _TicketCard extends StatelessWidget {
     );
   }
 
-  String _formatDuration(Duration duration) {
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes % 60;
-    if (hours == 0) return '${minutes} minutes';
-    if (minutes == 0) return '$hours hours';
-    return '$hours hours $minutes min';
+  String _formatDuration(String start, String end) {
+    try {
+      final sParts = start.split(':');
+      final eParts = end.split(':');
+      final startMin = int.parse(sParts[0]) * 60 + int.parse(sParts[1]);
+      final endMin = int.parse(eParts[0]) * 60 + int.parse(eParts[1]);
+      var diff = endMin - startMin;
+      if (diff < 0) diff += 24 * 60;
+      final hours = diff ~/ 60;
+      final minutes = diff % 60;
+      if (hours == 0) return '$minutes minutes';
+      if (minutes == 0) return '$hours hours';
+      return '$hours hours $minutes min';
+    } catch (_) {
+      return 'N/A';
+    }
   }
 }
 
@@ -467,7 +477,7 @@ class _DetailRow extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: iconColor.withOpacity(isDark ? 0.15 : 0.1),
+            color: iconColor.withValues(alpha: isDark ? 0.15 : 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, color: iconColor, size: 18),

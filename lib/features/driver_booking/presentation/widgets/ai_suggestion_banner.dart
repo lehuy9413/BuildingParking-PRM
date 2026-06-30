@@ -14,7 +14,7 @@ class AiSuggestionBanner extends ConsumerWidget {
     return GestureDetector(
       onTap: () {
         final state = ref.read(bookingControllerProvider);
-        if (state.vehicleType != null && state.selectedDate != null) {
+        if (state.selectedVehicle != null && state.selectedDate != null && state.selectedParkingLot != null) {
           ref.read(bookingControllerProvider.notifier).loadAiSuggestions();
           Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const AiSuggestionScreen()),
@@ -34,12 +34,12 @@ class AiSuggestionBanner extends ConsumerWidget {
           ),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isDark ? const Color(0xFF6366F1).withOpacity(0.4) : const Color(0xFFC7D2FE),
+            color: isDark ? const Color(0xFF6366F1).withValues(alpha: 0.4) : const Color(0xFFC7D2FE),
             width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF6366F1).withOpacity(isDark ? 0.3 : 0.12),
+              color: const Color(0xFF6366F1).withValues(alpha: isDark ? 0.3 : 0.12),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -51,8 +51,8 @@ class AiSuggestionBanner extends ConsumerWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: isDark
-                    ? const Color(0xFF6366F1).withOpacity(0.25)
-                    : const Color(0xFF6366F1).withOpacity(0.12),
+                    ? const Color(0xFF6366F1).withValues(alpha: 0.25)
+                    : const Color(0xFF6366F1).withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: const Icon(

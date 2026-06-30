@@ -6,12 +6,16 @@ class GetAvailableSlots {
   GetAvailableSlots(this.repository);
 
   Future<List<ParkingSlot>> call({
-    required VehicleType vehicleType,
-    required ParkingZone zone,
-    required DateTime dateTime,
+    required String parkingLotId,
+    required String vehicleTypeId,
+    String? floorId,
+    String? zoneId,
   }) {
     return repository.getAvailableSlots(
-      vehicleType: vehicleType, zone: zone, dateTime: dateTime,
+      parkingLotId: parkingLotId,
+      vehicleTypeId: vehicleTypeId,
+      floorId: floorId,
+      zoneId: zoneId,
     );
   }
 }

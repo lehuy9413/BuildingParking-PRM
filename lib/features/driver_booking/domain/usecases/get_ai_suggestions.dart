@@ -1,5 +1,4 @@
 import '../entities/ai_suggestion.dart';
-import '../entities/parking_slot.dart';
 import '../repositories/booking_repository.dart';
 
 class GetAiSuggestions {
@@ -7,11 +6,12 @@ class GetAiSuggestions {
   GetAiSuggestions(this.repository);
 
   Future<List<AiSuggestion>> call({
-    required VehicleType vehicleType,
-    required DateTime dateTime,
+    required String parkingLotId,
+    required String vehicleTypeId,
   }) {
     return repository.getAiSuggestions(
-      vehicleType: vehicleType, dateTime: dateTime,
+      parkingLotId: parkingLotId,
+      vehicleTypeId: vehicleTypeId,
     );
   }
 }

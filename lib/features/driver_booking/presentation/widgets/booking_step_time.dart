@@ -21,6 +21,55 @@ class BookingStepTime extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Parking Lot Section ──
+          if (state.parkingLots.isNotEmpty) ...[
+            _SectionHeader(
+              icon: Icons.local_parking_rounded,
+              title: 'Select Parking Lot',
+              subtitle: 'Choose where you want to park',
+              isDark: isDark,
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                ),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: state.selectedParkingLot?.id,
+                  isExpanded: true,
+                  dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  icon: Icon(Icons.arrow_drop_down_rounded, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                  items: state.parkingLots.map((lot) {
+                    return DropdownMenuItem<String>(
+                      value: lot.id,
+                      child: Text(
+                        lot.name,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      final lot = state.parkingLots.firstWhere((l) => l.id == val);
+                      controller.selectParkingLot(lot);
+                    }
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 28),
+          ],
+
           // ── Date Section ──
           _SectionHeader(
             icon: Icons.calendar_month_rounded,
@@ -111,8 +160,8 @@ class _SectionHeader extends StatelessWidget {
               padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
                 color: isDark
-                    ? const Color(0xFF0F4C5C).withOpacity(0.25)
-                    : const Color(0xFF0F4C5C).withOpacity(0.08),
+                    ? const Color(0xFF0F4C5C).withValues(alpha: 0.25)
+                    : const Color(0xFF0F4C5C).withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(9),
               ),
               child: Icon(icon, color: const Color(0xFF0F4C5C), size: 18),
@@ -171,7 +220,7 @@ class _CompactDateStrip extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: dates.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final date = dates[index];
           final isSelected = selectedDate != null &&
@@ -196,21 +245,21 @@ class _CompactDateStrip extends StatelessWidget {
                 color: isSelected
                     ? null
                     : isToday
-                        ? (isDark ? const Color(0xFF1B998B).withOpacity(0.1) : const Color(0xFFE0F7FA))
+                        ? (isDark ? const Color(0xFF1B998B).withValues(alpha: 0.1) : const Color(0xFFE0F7FA))
                         : (isDark ? const Color(0xFF1E293B) : Colors.white),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: isSelected
                       ? Colors.transparent
                       : isToday
-                          ? const Color(0xFF1B998B).withOpacity(0.4)
+                          ? const Color(0xFF1B998B).withValues(alpha: 0.4)
                           : (isDark ? const Color(0xFF2A3A4A) : const Color(0xFFEDF0F4)),
                   width: isToday && !isSelected ? 1.5 : 1,
                 ),
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF0F4C5C).withOpacity(0.3),
+                          color: const Color(0xFF0F4C5C).withValues(alpha: 0.3),
                           blurRadius: 10,
                           offset: const Offset(0, 3),
                         ),
@@ -226,7 +275,7 @@ class _CompactDateStrip extends StatelessWidget {
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       color: isSelected
-                          ? Colors.white.withOpacity(0.7)
+                          ? Colors.white.withValues(alpha: 0.7)
                           : (isDark ? Colors.grey.shade500 : Colors.grey.shade500),
                       letterSpacing: 0.3,
                     ),
@@ -379,13 +428,13 @@ class _SmartTimeGrid extends StatelessWidget {
         } else {
           switch (type) {
             case _TimeSlotType.peak:
-              chipBg = isDark ? const Color(0xFFF59E0B).withOpacity(0.08) : const Color(0xFFFFFBEB);
-              chipBorder = isDark ? const Color(0xFFF59E0B).withOpacity(0.25) : const Color(0xFFFDE68A);
+              chipBg = isDark ? const Color(0xFFF59E0B).withValues(alpha: 0.08) : const Color(0xFFFFFBEB);
+              chipBorder = isDark ? const Color(0xFFF59E0B).withValues(alpha: 0.25) : const Color(0xFFFDE68A);
               chipText = isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706);
               break;
             case _TimeSlotType.promo:
-              chipBg = isDark ? const Color(0xFF38BDF8).withOpacity(0.08) : const Color(0xFFF0F9FF);
-              chipBorder = isDark ? const Color(0xFF38BDF8).withOpacity(0.25) : const Color(0xFFBAE6FD);
+              chipBg = isDark ? const Color(0xFF38BDF8).withValues(alpha: 0.08) : const Color(0xFFF0F9FF);
+              chipBorder = isDark ? const Color(0xFF38BDF8).withValues(alpha: 0.25) : const Color(0xFFBAE6FD);
               chipText = isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7);
               break;
             default:
@@ -410,7 +459,7 @@ class _SmartTimeGrid extends StatelessWidget {
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: const Color(0xFF0F4C5C).withOpacity(0.2),
+                        color: const Color(0xFF0F4C5C).withValues(alpha: 0.2),
                         blurRadius: 6,
                         offset: const Offset(0, 2),
                       ),
@@ -460,14 +509,14 @@ class _DurationSummary extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF1B998B).withOpacity(0.15), const Color(0xFF0F4C5C).withOpacity(0.15)]
+              ? [const Color(0xFF1B998B).withValues(alpha: 0.15), const Color(0xFF0F4C5C).withValues(alpha: 0.15)]
               : [const Color(0xFFE0F7FA), const Color(0xFFE8F5E9)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isDark ? const Color(0xFF1B998B).withOpacity(0.25) : const Color(0xFFB2DFDB),
+          color: isDark ? const Color(0xFF1B998B).withValues(alpha: 0.25) : const Color(0xFFB2DFDB),
         ),
       ),
       child: Row(
@@ -475,7 +524,7 @@ class _DurationSummary extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFF1B998B).withOpacity(isDark ? 0.2 : 0.12),
+              color: const Color(0xFF1B998B).withValues(alpha: isDark ? 0.2 : 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(Icons.timer_outlined, color: Color(0xFF1B998B), size: 20),
