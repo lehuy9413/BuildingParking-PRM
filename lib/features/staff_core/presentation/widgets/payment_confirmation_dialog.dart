@@ -92,10 +92,12 @@ class _PaymentConfirmationDialogState
             ),
           ),
 
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                 // ─── Tổng tiền ──────────────────────────────────────────
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -275,6 +277,7 @@ class _PaymentConfirmationDialogState
                 ),
               ],
             ),
+          ),
           ),
         ],
       ),
