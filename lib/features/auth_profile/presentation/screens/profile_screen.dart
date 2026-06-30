@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../app/app.dart' as import_app;
 import 'auth_profile_screen.dart';
-
 import 'change_password_screen.dart';
+import '../../../driver_tracking/presentation/screens/feedback_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -407,7 +407,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Divider(color: isDark ? Colors.grey.shade700 : Colors.grey.shade100, height: 1),
           _buildActionRow(Icons.notifications_none, 'Notification Settings', isDark: isDark, onTap: () {}),
           Divider(color: isDark ? Colors.grey.shade700 : Colors.grey.shade100, height: 1),
-          _buildActionRow(Icons.help_outline, 'Help & Support', isDark: isDark, onTap: () {}),
+          _buildActionRow(Icons.feedback_outlined, 'Feedback & Report', isDark: isDark, onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FeedbackScreen()),
+            );
+          }),
         ],
       ),
     );

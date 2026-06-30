@@ -6,6 +6,7 @@ import '../widgets/vehicle_check_in_form.dart';
 import '../widgets/parking_session_ticket_component.dart';
 import '../widgets/vehicle_check_out_invoice_screen.dart';
 import '../../../auth_profile/presentation/screens/auth_profile_screen.dart';
+import '../../../staff_exception/presentation/screens/staff_exception_screen.dart';
 
 import '../../../staff_exception/presentation/screens/staff_exception_screen.dart';
 import '../../../../app/app.dart' as import_app;
@@ -50,7 +51,7 @@ class _StaffCoreScreenState extends State<StaffCoreScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-            '✅ Session tạo thành công! ${session.plateNumber} – ${session.suggestedArea}'),
+            '✅ Session created successfully! ${session.plateNumber} – ${session.suggestedArea}'),
         backgroundColor: const Color(0xFF16A34A),
         behavior: SnackBarBehavior.floating,
       ),
@@ -164,7 +165,17 @@ class _StaffCoreScreenState extends State<StaffCoreScreen>
         IconButton(
           icon: const Icon(Icons.history_rounded, color: Color(0xFF64748B)),
           onPressed: () => _showSessionHistory(context),
-          tooltip: 'Lịch sử session',
+          tooltip: 'Session history',
+        ),
+        IconButton(
+          icon: const Icon(Icons.warning_amber_rounded,
+              color: Color(0xFFF59E0B)),
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const StaffExceptionScreen()),
+          ),
+          tooltip: 'Exception management',
         ),
         IconButton(
           icon: const Icon(Icons.logout_rounded, color: Color(0xFFEF4444)),
@@ -174,7 +185,7 @@ class _StaffCoreScreenState extends State<StaffCoreScreen>
               MaterialPageRoute(builder: (_) => const AuthProfileScreen()),
             );
           },
-          tooltip: 'Đăng xuất',
+          tooltip: 'Logout',
         ),
         const SizedBox(width: 8),
       ],
@@ -194,7 +205,7 @@ class _StaffCoreScreenState extends State<StaffCoreScreen>
           const SizedBox(height: 24),
 
           // Section title
-          _sectionTitle('CHECK-IN XE'),
+          _sectionTitle('VEHICLE CHECK-IN'),
           const SizedBox(height: 12),
 
           // Form check-in
@@ -228,7 +239,7 @@ class _StaffCoreScreenState extends State<StaffCoreScreen>
           const SizedBox(height: 24),
 
           // Section title
-          _sectionTitle('CHECK-OUT & THANH TOÁN'),
+          _sectionTitle('CHECK-OUT & PAYMENT'),
           const SizedBox(height: 12),
 
           VehicleCheckOutInvoiceScreen(
@@ -292,7 +303,7 @@ class _SessionHistorySheet extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const Text(
-            'LỊCH SỬ SESSION',
+            'SESSION HISTORY',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w900,
@@ -306,7 +317,7 @@ class _SessionHistorySheet extends StatelessWidget {
             child: sessions.isEmpty
                 ? const Center(
                     child: Text(
-                      'Chưa có session nào trong ca.',
+                      'No sessions in this shift yet.',
                       style: TextStyle(color: Color(0xFF94A3B8)),
                     ),
                   )

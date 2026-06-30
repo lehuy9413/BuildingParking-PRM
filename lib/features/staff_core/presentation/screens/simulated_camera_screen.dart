@@ -118,7 +118,7 @@ class _SimulatedCameraScreenState extends State<SimulatedCameraScreen>
             left: 0,
             right: 0,
             child: Text(
-              _isScanning ? widget.subtitle : 'Hoàn tất!',
+              _isScanning ? widget.subtitle : 'Completed!',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,

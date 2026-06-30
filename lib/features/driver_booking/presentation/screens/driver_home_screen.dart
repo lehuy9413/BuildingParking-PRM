@@ -4,6 +4,10 @@ import '../../../../app/app.dart' as import_app;
 import '../controllers/booking_controller.dart';
 import 'booking_flow_screen.dart';
 import 'ai_suggestion_screen.dart';
+import '../../../driver_tracking/presentation/screens/live_session_screen.dart';
+import '../../../driver_tracking/presentation/screens/feedback_screen.dart';
+import 'digital_ticket_screen.dart';
+import 'quick_check_in_screen.dart';
 
 class DriverHomeScreen extends StatelessWidget {
   const DriverHomeScreen({super.key});
@@ -406,14 +410,25 @@ class DriverHomeScreen extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: _buildActionCard(
-                isDark: isDark,
-                icon: Icons.qr_code_scanner_rounded,
-                iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
-                iconBgColor: isDark ? const Color(0xFF1E3A8A).withOpacity(0.4) : const Color(0xFFEFF6FF),
-                title: 'Quick Check-In',
-                subtitle: 'View active ticket/QR code',
-                onTap: () {},
+              child: Consumer(
+                builder: (context, ref, child) {
+                  return _buildActionCard(
+                    isDark: isDark,
+                    icon: Icons.qr_code_scanner_rounded,
+                    iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+                    iconBgColor: isDark ? const Color(0xFF1E3A8A).withOpacity(0.4) : const Color(0xFFEFF6FF),
+                    title: 'Quick Check-In',
+                    subtitle: 'View active ticket/QR code',
+                    onTap: () {
+                      final confirmedBooking = ref.read(bookingControllerProvider).confirmedBooking;
+                      if (confirmedBooking != null) {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => DigitalTicketScreen(booking: confirmedBooking)));
+                      } else {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const QuickCheckInScreen()));
+                      }
+                    },
+                  );
+                },
               ),
             ),
             const SizedBox(width: 16),
@@ -443,7 +458,9 @@ class DriverHomeScreen extends StatelessWidget {
                 iconBgColor: isDark ? const Color(0xFF7C2D12).withOpacity(0.4) : const Color(0xFFFFF7ED),
                 title: 'Track Session',
                 subtitle: 'Check live duration & fee',
-                onTap: () {},
+                onTap: () {
+                  import_app.HomeScreen.switchTab(context, 2);
+                },
               ),
             ),
             const SizedBox(width: 16),
@@ -455,7 +472,9 @@ class DriverHomeScreen extends StatelessWidget {
                 iconBgColor: isDark ? const Color(0xFF581C87).withOpacity(0.4) : const Color(0xFFFAF5FF),
                 title: 'Support',
                 subtitle: 'Report lost card or issues',
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedbackScreen()));
+                },
               ),
             ),
           ],
@@ -575,6 +594,10 @@ class DriverHomeScreen extends StatelessWidget {
           Divider(color: Colors.white.withOpacity(0.25), thickness: 1.5),
           const SizedBox(height: 16),
           _buildRateRow(Icons.directions_car_rounded, 'Cars', '\$3.00', '/hour'),
+          const SizedBox(height: 16),
+          Divider(color: Colors.white.withOpacity(0.25), thickness: 1.5),
+          const SizedBox(height: 16),
+          _buildRateRow(Icons.electric_car_rounded, 'Electric Vehicles', '\$4.00', '/hour'),
           const SizedBox(height: 28),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

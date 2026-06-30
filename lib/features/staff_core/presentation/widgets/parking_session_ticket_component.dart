@@ -64,7 +64,7 @@ class ParkingSessionTicketComponent extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'CHECK-IN THÀNH CÔNG',
+                        'CHECK-IN SUCCESSFUL',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 13,
@@ -160,20 +160,20 @@ class ParkingSessionTicketComponent extends StatelessWidget {
                 const SizedBox(height: 16),
                 // Thông tin chi tiết
                 _InfoRow(
-                  label: 'Cổng vào',
+                  label: 'Entry Gate',
                   value: session.entryGate,
                   icon: Icons.door_front_door_rounded,
                 ),
                 const Divider(height: 20, color: Color(0xFFF1F5F9)),
                 _InfoRow(
-                  label: 'Giờ vào',
+                  label: 'Time In',
                   value: DateFormat('HH:mm – dd/MM/yyyy')
                       .format(session.checkInTime),
                   icon: Icons.access_time_rounded,
                 ),
                 const Divider(height: 20, color: Color(0xFFF1F5F9)),
                 _InfoRow(
-                  label: 'Khu vực gợi ý',
+                  label: 'Suggested Area',
                   value: session.suggestedArea,
                   icon: Icons.place_rounded,
                   valueColor: const Color(0xFF2563EB),
@@ -191,7 +191,7 @@ class ParkingSessionTicketComponent extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: onDismiss,
                   icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Check-in xe tiếp theo'),
+                  label: const Text('Check-in next vehicle'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF2563EB),
                     side: const BorderSide(color: Color(0xFF2563EB)),

@@ -288,22 +288,26 @@ class _StepIndicator extends StatelessWidget {
                 borderRadius: BorderRadius.circular(1),
               ),
             ),
-            AnimatedAlign(
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.easeOutCubic,
-              alignment: Alignment.centerLeft,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.easeOutCubic,
-                height: 2,
-                width: isActive ? double.infinity : 0,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1B998B), Color(0xFF0F4C5C)],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return AnimatedAlign(
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeOutCubic,
+                  alignment: Alignment.centerLeft,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeOutCubic,
+                    height: 2,
+                    width: isActive ? constraints.maxWidth : 0,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF1B998B), Color(0xFF0F4C5C)],
+                      ),
+                      borderRadius: BorderRadius.circular(1),
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(1),
-                ),
-              ),
+                );
+              },
             ),
           ],
         ),
