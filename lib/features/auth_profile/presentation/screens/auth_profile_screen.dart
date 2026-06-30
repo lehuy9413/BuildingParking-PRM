@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../app/view/home_screen.dart';
 import '../../../staff_core/presentation/screens/staff_core_screen.dart';
-
+import '../../domain/repositories/auth_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class AuthProfileScreen extends StatefulWidget {
@@ -277,6 +277,8 @@ class _LoginCard extends StatefulWidget {
 class _LoginCardState extends State<_LoginCard> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _authRepo = AuthRepository();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -285,7 +287,7 @@ class _LoginCardState extends State<_LoginCard> {
     super.dispose();
   }
 
-  void _handleLogin() {
+  Future<void> _handleLogin() async {
     final email = _usernameController.text.trim().toLowerCase();
     final password = _passwordController.text.trim();
 
@@ -298,16 +300,34 @@ class _LoginCardState extends State<_LoginCard> {
       return;
     }
 
-    final isStaff = email == 'staff@parking.com' || email == 'staff';
+    setState(() => _isLoading = true);
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => isStaff
-            ? const StaffCoreScreen()
-            : const HomeScreen(),
-      ),
-    );
+    try {
+      final user = await _authRepo.login(email, password);
+      
+      if (!mounted) return;
+      
+      final isStaff = user.role == 'staff' || email == 'staff@parking.com' || email == 'staff';
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => isStaff
+              ? const StaffCoreScreen()
+              : const HomeScreen(),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -387,8 +407,8 @@ class _LoginCardState extends State<_LoginCard> {
           ),
           const SizedBox(height: 24),
           _PrimaryButton(
-            label: 'LOG IN',
-            onPressed: _handleLogin,
+            label: _isLoading ? 'LOGGING IN...' : 'LOG IN',
+            onPressed: _isLoading ? () {} : _handleLogin,
           ),
           const SizedBox(height: 24),
         ],
@@ -408,6 +428,70 @@ class _RegisterCard extends StatefulWidget {
 
 class _RegisterCardState extends State<_RegisterCard> {
   bool isCarSelected = true;
+  final _fullNameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
+  
+  final _authRepo = AuthRepository();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _fullNameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleRegister() async {
+    final fullName = _fullNameController.text.trim();
+    final email = _emailController.text.trim().toLowerCase();
+    final phone = _phoneController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (fullName.isEmpty || email.isEmpty || phone.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill all fields'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      await _authRepo.register(
+        fullName: fullName,
+        email: email,
+        phone: phone,
+        password: password,
+      );
+      
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Registration successful! Please login.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      
+      widget.onNavigateToLogin();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -454,19 +538,17 @@ class _RegisterCardState extends State<_RegisterCard> {
             ],
           ),
           const SizedBox(height: 24),
-          const _InputField(hintText: 'Full Name', icon: Icons.person_outline),
+          _InputField(hintText: 'Full Name', icon: Icons.person_outline, controller: _fullNameController),
           const SizedBox(height: 16),
-          const _InputField(hintText: 'Email Address', icon: Icons.mail_outline),
+          _InputField(hintText: 'Email Address', icon: Icons.mail_outline, controller: _emailController),
           const SizedBox(height: 16),
-          const _InputField(hintText: 'Phone Number', icon: Icons.phone_outlined),
+          _InputField(hintText: 'Phone Number', icon: Icons.phone_outlined, controller: _phoneController),
           const SizedBox(height: 16),
-          const _InputField(hintText: 'Password', icon: Icons.lock_outline, obscureText: true),
+          _InputField(hintText: 'Password', icon: Icons.lock_outline, obscureText: true, controller: _passwordController),
           const SizedBox(height: 32),
           _PrimaryButton(
-            label: 'SIGN UP',
-            onPressed: () {
-              // TODO: Handle Register
-            },
+            label: _isLoading ? 'SIGNING UP...' : 'SIGN UP',
+            onPressed: _isLoading ? () {} : _handleRegister,
           ),
           const SizedBox(height: 24),
         ],
