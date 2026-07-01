@@ -3,6 +3,8 @@ import '../../../../app/app.dart' as import_app;
 import 'auth_profile_screen.dart';
 import 'change_password_screen.dart';
 import '../../../driver_tracking/presentation/screens/feedback_screen.dart';
+import '../../domain/models/user_model.dart';
+import '../../domain/repositories/auth_repository.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -14,6 +16,10 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _isEditing = false;
 
+  final _authRepo = AuthRepository();
+  UserModel? _user;
+  bool _isLoading = true;
+
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
   late TextEditingController _emailController;
@@ -21,9 +27,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: 'Alex Nguyen');
-    _phoneController = TextEditingController(text: '+1 (555) 123-4567');
-    _emailController = TextEditingController(text: 'alex.nguyen@smartpark.io');
+    _nameController = TextEditingController();
+    _phoneController = TextEditingController();
+    _emailController = TextEditingController();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final user = await _authRepo.getMe();
+      if (mounted) {
+        setState(() {
+          _user = user;
+          _nameController.text = user.fullName;
+          _phoneController.text = user.phone;
+          _emailController.text = user.email;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -98,7 +130,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
         ],
       ),
-      body: SingleChildScrollView(
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator(color: Color(0xFF0B7A59)))
+        : SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Column(
           children: [
@@ -218,7 +252,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Professional Driver',
+          _getDisplayRole(_user?.role),
           style: TextStyle(
             fontSize: 14,
             color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
@@ -226,6 +260,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ],
     );
+  }
+
+  String _getDisplayRole(String? role) {
+    if (role == 'staff') return 'Staff Member';
+    if (role == 'admin') return 'Administrator';
+    return 'Professional Driver';
   }
 
   Widget _buildPersonalDetails(bool isDark) {
@@ -443,12 +483,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildLogoutButton(BuildContext context, bool isDark) {
     return OutlinedButton.icon(
-      onPressed: () {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const AuthProfileScreen()),
-          (route) => false,
-        );
+      onPressed: () async {
+        try {
+          await _authRepo.logout();
+        } catch (_) {}
+        
+        if (context.mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const AuthProfileScreen()),
+            (route) => false,
+          );
+        }
       },
       icon: Icon(Icons.logout, color: isDark ? const Color(0xFFEF4444) : const Color(0xFF0B7A59)),
       label: Text(
