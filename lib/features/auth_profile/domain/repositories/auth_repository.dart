@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../models/user_model.dart';
@@ -23,13 +24,20 @@ class AuthRepository {
       );
 
       if (response.statusCode == 200) {
-        final data = response.data;
+        final body = response.data;
+        final data = body['data'] ?? body;
+        
         // Save tokens
+        final prefs = await SharedPreferences.getInstance();
         if (data['accessToken'] != null) {
-          await _storage.write(key: _tokenKey, value: data['accessToken']);
+          final accessToken = data['accessToken'].toString();
+          await _storage.write(key: _tokenKey, value: accessToken);
+          await prefs.setString(_tokenKey, accessToken);
         }
         if (data['refreshToken'] != null) {
-          await _storage.write(key: _refreshTokenKey, value: data['refreshToken']);
+          final refreshToken = data['refreshToken'].toString();
+          await _storage.write(key: _refreshTokenKey, value: refreshToken);
+          await prefs.setString(_refreshTokenKey, refreshToken);
         }
         
         // Sometimes backend returns user in 'user' key
@@ -62,7 +70,8 @@ class AuthRepository {
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        final data = response.data;
+        final body = response.data;
+        final data = body['data'] ?? body;
         final userData = data['user'] ?? data;
         return UserModel.fromJson(userData);
       } else {
@@ -76,7 +85,14 @@ class AuthRepository {
   // Get Me
   Future<UserModel> getMe() async {
     try {
-      final token = await _storage.read(key: _tokenKey);
+      final prefs = await SharedPreferences.getInstance();
+      String? token = await _storage.read(key: _tokenKey);
+      token ??= prefs.getString(_tokenKey);
+
+      if (token == null || token.isEmpty) {
+        throw Exception('DEBUG: Token is null or empty locally. Please log out and log in again.');
+      }
+
       final response = await _dio.get(
         ApiEndpoints.me,
         options: Options(
@@ -87,7 +103,8 @@ class AuthRepository {
       );
 
       if (response.statusCode == 200) {
-        final data = response.data;
+        final body = response.data;
+        final data = body['data'] ?? body;
         final userData = data['user'] ?? data;
         return UserModel.fromJson(userData);
       } else {
@@ -102,5 +119,8 @@ class AuthRepository {
   Future<void> logout() async {
     await _storage.delete(key: _tokenKey);
     await _storage.delete(key: _refreshTokenKey);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_tokenKey);
+    await prefs.remove(_refreshTokenKey);
   }
 }
