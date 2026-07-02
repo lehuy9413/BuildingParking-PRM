@@ -256,7 +256,7 @@ class _TicketCard extends StatelessWidget {
                     ],
                   ),
                   child: QrImageView(
-                    data: booking.qrCode ?? booking.id,
+                    data: booking.bookingCode,
                     version: QrVersions.auto,
                     size: 180,
                     backgroundColor: Colors.white,
@@ -382,7 +382,7 @@ class _TicketCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '\$${booking.estimatedFee.toStringAsFixed(2)}',
+                      '${booking.estimatedFee.toInt()} VND',
                       style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w900,

@@ -7,6 +7,7 @@ import '../../domain/entities/booking.dart';
 import '../../domain/entities/ai_suggestion.dart';
 import '../../domain/entities/parking_lot.dart';
 import '../../domain/entities/vehicle.dart';
+import '../../domain/entities/vehicle_type.dart';
 import '../../domain/repositories/booking_repository.dart';
 import '../../data/datasources/api_booking_datasource.dart';
 import '../../data/repositories/booking_repository_impl.dart';
@@ -24,6 +25,9 @@ class BookingState extends Equatable {
   
   final List<Vehicle> myVehicles;
   final Vehicle? selectedVehicle;
+
+  final List<VehicleType> vehicleTypes;
+  final VehicleType? selectedVehicleType;
 
   final String licensePlate;
   final ParkingSlot? selectedSlot;
@@ -43,6 +47,8 @@ class BookingState extends Equatable {
     this.selectedParkingLot,
     this.myVehicles = const [],
     this.selectedVehicle,
+    this.vehicleTypes = const [],
+    this.selectedVehicleType,
     this.licensePlate = '',
     this.selectedSlot,
     this.availableSlots = const [],
@@ -62,6 +68,8 @@ class BookingState extends Equatable {
     ParkingLot? selectedParkingLot,
     List<Vehicle>? myVehicles,
     Vehicle? selectedVehicle,
+    List<VehicleType>? vehicleTypes,
+    VehicleType? selectedVehicleType,
     String? licensePlate,
     ParkingSlot? selectedSlot,
     List<ParkingSlot>? availableSlots,
@@ -83,6 +91,8 @@ class BookingState extends Equatable {
       selectedParkingLot: selectedParkingLot ?? this.selectedParkingLot,
       myVehicles: myVehicles ?? this.myVehicles,
       selectedVehicle: selectedVehicle ?? this.selectedVehicle,
+      vehicleTypes: vehicleTypes ?? this.vehicleTypes,
+      selectedVehicleType: selectedVehicleType ?? this.selectedVehicleType,
       licensePlate: licensePlate ?? this.licensePlate,
       selectedSlot: clearSlot ? null : (selectedSlot ?? this.selectedSlot),
       availableSlots: availableSlots ?? this.availableSlots,
@@ -97,33 +107,61 @@ class BookingState extends Equatable {
   bool get canProceedStep1 =>
       selectedDate != null && checkInTime != null && checkOutTime != null && selectedParkingLot != null;
 
-  bool get canProceedStep2 => selectedVehicle != null;
+  bool get canProceedStep2 {
+    if (selectedVehicle != null) return true;
+    if (licensePlate.trim().isNotEmpty && selectedVehicleType != null) return true;
+    return false;
+  }
 
   bool get canProceedStep3 => selectedSlot != null;
 
   double get estimatedPrice {
-    if (selectedVehicle == null || checkInTime == null || checkOutTime == null) {
+    final hasValidVehicle = selectedVehicle != null || selectedVehicleType != null;
+    if (!hasValidVehicle || checkInTime == null || checkOutTime == null) {
       return 0.0;
     }
-    final type = selectedVehicle!.vehicleTypeName.toLowerCase();
-    final pricePerHour = type.contains('car')
-        ? 3.0
-        : type.contains('ev')
-            ? 4.0
-            : 1.0;
-    final checkIn = DateTime(2024, 1, 1, checkInTime!.hour, checkInTime!.minute);
-    final checkOut = DateTime(2024, 1, 1, checkOutTime!.hour, checkOutTime!.minute);
-    final dur = checkOut.difference(checkIn);
-    if (dur.isNegative) return 0.0;
-    return pricePerHour * (dur.inMinutes / 60.0);
+
+    // Use pricing from backend (vehicle or vehicleType)
+    final dRate = selectedVehicle?.dayBlockRate ?? selectedVehicleType?.dayBlockRate ?? 0.0;
+    final hRate = selectedVehicle?.hourlyRate ?? selectedVehicleType?.hourlyRate ?? 0.0;
+    final nRate = selectedVehicle?.nightBlockRate ?? selectedVehicleType?.nightBlockRate ?? 0.0;
+
+    final dayRate = dRate > 0 ? dRate : (hRate > 0 ? hRate * 4 : 20000.0);
+    final nightRate = nRate > 0 ? nRate : dayRate * 1.5;
+
+    // Calculate duration in blocks of 4 hours (matching Web logic)
+    final baseDate = selectedDate ?? DateTime.now();
+    var tempStart = DateTime(baseDate.year, baseDate.month, baseDate.day,
+        checkInTime!.hour, checkInTime!.minute);
+    final exitDateTime = DateTime(baseDate.year, baseDate.month, baseDate.day,
+        checkOutTime!.hour, checkOutTime!.minute);
+    // Handle overnight
+    final tempExit = exitDateTime.isBefore(tempStart) 
+        ? exitDateTime.add(const Duration(days: 1)) 
+        : exitDateTime;
+
+    double totalCost = 0;
+    while (tempStart.isBefore(tempExit)) {
+      final startHour = tempStart.hour;
+      final isNightBlock = startHour >= 18 || startHour < 6;
+      totalCost += isNightBlock ? nightRate : dayRate;
+      tempStart = tempStart.add(const Duration(hours: 4));
+    }
+
+    return totalCost;
   }
 
   String get durationText {
     if (checkInTime == null || checkOutTime == null) return '—';
     final checkIn = DateTime(2024, 1, 1, checkInTime!.hour, checkInTime!.minute);
-    final checkOut = DateTime(2024, 1, 1, checkOutTime!.hour, checkOutTime!.minute);
+    var checkOut = DateTime(2024, 1, 1, checkOutTime!.hour, checkOutTime!.minute);
+    
+    // Handle overnight
+    if (checkOut.isBefore(checkIn)) {
+      checkOut = checkOut.add(const Duration(days: 1));
+    }
+    
     final dur = checkOut.difference(checkIn);
-    if (dur.isNegative) return 'Invalid';
     final hours = dur.inHours;
     final minutes = dur.inMinutes % 60;
     if (hours == 0) return '${minutes}m';
@@ -135,6 +173,7 @@ class BookingState extends Equatable {
   List<Object?> get props => [
         currentStep, selectedDate, checkInTime, checkOutTime,
         parkingLots, selectedParkingLot, myVehicles, selectedVehicle,
+        vehicleTypes, selectedVehicleType,
         licensePlate, selectedSlot, availableSlots, aiSuggestions, confirmedBooking,
         isLoading, isBookingConfirming, errorMessage,
       ];
@@ -148,19 +187,21 @@ class BookingController extends Notifier<BookingState> {
   @override
   BookingState build() {
     _repository = ref.watch(bookingRepositoryProvider);
-    _initializeData();
-    return const BookingState();
+    Future.microtask(_initializeData);
+    return const BookingState(isLoading: true);
   }
 
   Future<void> _initializeData() async {
-    state = state.copyWith(isLoading: true);
     try {
       final lots = await _repository.getParkingLots();
       final vehicles = await _repository.getMyVehicles();
+      final vTypes = await _repository.getVehicleTypes();
       state = state.copyWith(
         parkingLots: lots,
         selectedParkingLot: lots.isNotEmpty ? lots.first : null,
         myVehicles: vehicles,
+        vehicleTypes: vTypes,
+        selectedVehicleType: vTypes.isNotEmpty ? vTypes.first : null,
         isLoading: false,
       );
     } catch (e) {
@@ -202,14 +243,15 @@ class BookingController extends Notifier<BookingState> {
   }
 
   void selectCheckInTime(TimeOfDay time) {
-    state = state.copyWith(checkInTime: time, clearError: true);
     final suggestedCheckout = TimeOfDay(
-      hour: (time.hour + 2) % 24,
+      hour: (time.hour + 4) % 24,
       minute: time.minute,
     );
-    if (state.checkOutTime == null) {
-      state = state.copyWith(checkOutTime: suggestedCheckout);
-    }
+    state = state.copyWith(
+      checkInTime: time, 
+      checkOutTime: suggestedCheckout,
+      clearError: true
+    );
   }
 
   void selectCheckOutTime(TimeOfDay time) {
@@ -221,30 +263,53 @@ class BookingController extends Notifier<BookingState> {
   void selectVehicle(Vehicle vehicle) {
     state = state.copyWith(
       selectedVehicle: vehicle, 
-      licensePlate: vehicle.licensePlate,
+      licensePlate: vehicle.licensePlate, // Auto-fill license plate
       clearError: true
     );
   }
 
-  void setLicensePlate(String plate) {
-    state = state.copyWith(licensePlate: plate);
+  void selectVehicleType(VehicleType type) {
+    state = state.copyWith(selectedVehicleType: type, clearError: true);
+  }
+
+  void setLicensePlate(String licensePlate) {
+    state = state.copyWith(licensePlate: licensePlate, clearError: true);
   }
 
   // ── Step 3: Slot Selection ──
 
   Future<void> loadAvailableSlots() async {
-    if (state.selectedVehicle == null || state.selectedParkingLot == null) return;
+    final vId = state.selectedVehicle?.vehicleTypeId ?? state.selectedVehicleType?.id;
+    if (vId == null || state.selectedParkingLot == null) return;
 
     state = state.copyWith(isLoading: true, clearError: true);
     try {
+      // ignore: avoid_print
+      print('[BookingController] Loading slots for lot=${state.selectedParkingLot!.id}, vehicleType=$vId');
+      // Format times
+      final startTimeStr = state.checkInTime != null 
+          ? '${state.checkInTime!.hour.toString().padLeft(2, '0')}:${state.checkInTime!.minute.toString().padLeft(2, '0')}'
+          : null;
+      final endTimeStr = state.checkOutTime != null
+          ? '${state.checkOutTime!.hour.toString().padLeft(2, '0')}:${state.checkOutTime!.minute.toString().padLeft(2, '0')}'
+          : null;
+
       final slots = await _repository.getAvailableSlots(
         parkingLotId: state.selectedParkingLot!.id,
-        vehicleTypeId: state.selectedVehicle!.vehicleTypeId,
+        vehicleTypeId: vId,
+        scheduledDate: state.selectedDate,
+        startTime: startTimeStr,
+        endTime: endTimeStr,
       );
+      // ignore: avoid_print
+      print('[BookingController] Loaded ${slots.length} slots');
       state = state.copyWith(availableSlots: slots, isLoading: false);
     } catch (e) {
+      // ignore: avoid_print
+      print('[BookingController] Error loading slots: $e');
       state = state.copyWith(
         isLoading: false,
+        availableSlots: [],
         errorMessage: 'Failed to load slots: $e',
       );
     }
@@ -287,13 +352,14 @@ class BookingController extends Notifier<BookingState> {
   // ── AI Suggestions ──
 
   Future<void> loadAiSuggestions() async {
-    if (state.selectedVehicle == null || state.selectedParkingLot == null) return;
+    final vId = state.selectedVehicle?.vehicleTypeId ?? state.selectedVehicleType?.id;
+    if (vId == null || state.selectedParkingLot == null) return;
 
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final suggestions = await _repository.getAiSuggestions(
         parkingLotId: state.selectedParkingLot!.id,
-        vehicleTypeId: state.selectedVehicle!.vehicleTypeId,
+        vehicleTypeId: vId,
       );
       state = state.copyWith(aiSuggestions: suggestions, isLoading: false);
     } catch (e) {
@@ -311,8 +377,11 @@ class BookingController extends Notifier<BookingState> {
   // ── Booking Confirmation ──
 
   Future<void> confirmBooking() async {
+    final hasValidVehicle = state.selectedVehicle != null || 
+        (state.licensePlate.trim().isNotEmpty && state.selectedVehicleType != null);
+
     if (state.selectedSlot == null ||
-        state.selectedVehicle == null ||
+        !hasValidVehicle ||
         state.selectedDate == null ||
         state.checkInTime == null ||
         state.checkOutTime == null) {
@@ -331,15 +400,27 @@ class BookingController extends Notifier<BookingState> {
         state.checkInTime!.minute,
       );
 
+      final checkOutDt = DateTime(
+        state.selectedDate!.year,
+        state.selectedDate!.month,
+        state.selectedDate!.day,
+        state.checkOutTime!.hour,
+        state.checkOutTime!.minute,
+      );
+      final adjustedCheckOut = checkOutDt.isBefore(checkIn) 
+          ? checkOutDt.add(const Duration(days: 1)) 
+          : checkOutDt;
+
       final booking = await _repository.createBooking(
         parkingLotId: state.selectedParkingLot!.id,
-        vehicleTypeId: state.selectedVehicle!.vehicleTypeId,
+        vehicleTypeId: state.selectedVehicle?.vehicleTypeId ?? state.selectedVehicleType!.id,
         scheduledDate: checkIn, // Sending the date
         startTime: '${state.checkInTime!.hour.toString().padLeft(2, '0')}:${state.checkInTime!.minute.toString().padLeft(2, '0')}',
         endTime: '${state.checkOutTime!.hour.toString().padLeft(2, '0')}:${state.checkOutTime!.minute.toString().padLeft(2, '0')}',
-        vehicleId: state.selectedVehicle!.id,
+        licensePlate: state.licensePlate, // Use the state licensePlate which includes manual input
         floorId: state.selectedSlot?.floorId,
         zoneId: state.selectedSlot?.zoneId,
+        assignedSlot: state.selectedSlot?.id,
       );
 
       state = state.copyWith(

@@ -23,4 +23,5 @@ class ApiEndpoints {
   // Vehicles
   static const String vehicles = '/vehicles';
   static const String defaultVehicle = '/vehicles/default';
+  static const String vehicleTypes = '/vehicle-types';
 }

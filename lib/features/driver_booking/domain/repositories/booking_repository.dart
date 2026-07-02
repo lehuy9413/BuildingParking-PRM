@@ -3,6 +3,7 @@ import '../entities/parking_slot.dart';
 import '../entities/ai_suggestion.dart';
 import '../entities/parking_lot.dart';
 import '../entities/vehicle.dart';
+import '../entities/vehicle_type.dart';
 
 abstract class BookingRepository {
   Future<List<ParkingLot>> getParkingLots();
@@ -14,6 +15,9 @@ abstract class BookingRepository {
     required String vehicleTypeId,
     String? floorId,
     String? zoneId,
+    DateTime? scheduledDate,
+    String? startTime,
+    String? endTime,
   });
 
   Future<List<AiSuggestion>> getAiSuggestions({
@@ -32,8 +36,12 @@ abstract class BookingRepository {
     required String startTime,
     required String endTime,
     String? vehicleId,
+    String? licensePlate,
     String? floorId,
     String? zoneId,
+    String? assignedSlot,
+    double? estimatedFee,
+    int? estimatedDuration,
   });
 
   Future<Booking> getBookingById(String bookingId);
@@ -41,4 +49,6 @@ abstract class BookingRepository {
   Future<List<Booking>> getUserBookings();
   
   Future<void> cancelBooking(String bookingId, String reason);
+  
+  Future<List<VehicleType>> getVehicleTypes();
 }

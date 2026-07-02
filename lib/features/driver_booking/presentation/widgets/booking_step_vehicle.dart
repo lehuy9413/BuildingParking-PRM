@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-
+import '../../domain/entities/vehicle.dart';
+import '../../domain/entities/vehicle_type.dart';
 import '../controllers/booking_controller.dart';
 
 class BookingStepVehicle extends ConsumerWidget {
@@ -25,11 +25,11 @@ class BookingStepVehicle extends ConsumerWidget {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? const Color(0xFF0F4C5C).withValues(alpha: 0.3)
-                      : const Color(0xFF0F4C5C).withValues(alpha: 0.1),
+                      ? const Color(0xFF2563eb).withValues(alpha: 0.2)
+                      : const Color(0xFF2563eb).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.directions_car_rounded, color: Color(0xFF0F4C5C), size: 20),
+                child: const Icon(Icons.directions_car_rounded, color: Color(0xFF2563eb), size: 20),
               ),
               const SizedBox(width: 12),
               Text(
@@ -64,7 +64,7 @@ class BookingStepVehicle extends ConsumerWidget {
               final isSelected = state.selectedVehicle?.id == vehicle.id;
               final typeLower = vehicle.vehicleTypeName.toLowerCase();
               IconData icon = Icons.directions_car_rounded;
-              Color color = const Color(0xFF3B82F6);
+              Color color = const Color(0xFF2563eb);
               if (typeLower.contains('motor')) {
                 icon = Icons.two_wheeler_rounded;
                 color = const Color(0xFFA855F7);
@@ -92,7 +92,130 @@ class BookingStepVehicle extends ConsumerWidget {
             }),
           const SizedBox(height: 32),
 
-          // (Removed Manual License Plate Input as it's selected from list)
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Text(
+                'Or Enter Manually',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'Optional',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            initialValue: state.licensePlate,
+            onChanged: controller.setLicensePlate,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
+              letterSpacing: 2,
+            ),
+            textCapitalization: TextCapitalization.characters,
+            decoration: InputDecoration(
+              hintText: 'e.g. 59A-123.45',
+              hintStyle: TextStyle(
+                color: isDark ? Colors.grey.shade600 : Colors.grey.shade400,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 1,
+              ),
+              prefixIcon: Icon(
+                Icons.badge_outlined,
+                color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
+              ),
+              filled: true,
+              fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                  color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                  color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: Color(0xFF0F4C5C), width: 2),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          if (state.vehicleTypes.isNotEmpty)
+            DropdownButtonFormField<String>(
+              value: state.selectedVehicleType?.id,
+              decoration: InputDecoration(
+                hintText: 'Select Vehicle Type',
+                hintStyle: TextStyle(
+                  color: isDark ? Colors.grey.shade600 : Colors.grey.shade400,
+                  fontWeight: FontWeight.w500,
+                ),
+                prefixIcon: Icon(
+                  Icons.commute_outlined,
+                  color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
+                ),
+                filled: true,
+                fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              ),
+              dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              items: state.vehicleTypes.map((type) {
+                return DropdownMenuItem<String>(
+                  value: type.id,
+                  child: Text(
+                    type.name,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                );
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) {
+                  final vt = state.vehicleTypes.firstWhere((t) => t.id == val);
+                  controller.selectVehicleType(vt);
+                }
+              },
+            ),
+          
           const SizedBox(height: 32),
 
           // ── Estimated Price ──
@@ -250,15 +373,15 @@ class _EstimatedPriceCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF065F46), const Color(0xFF047857)]
-              : [const Color(0xFF10B981), const Color(0xFF059669)],
+              ? [const Color(0xFF1e293b), const Color(0xFF0f172a)]
+              : [const Color(0xFF2563eb), const Color(0xFF1d4ed8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF059669).withValues(alpha: 0.3),
+            color: (isDark ? Colors.black : const Color(0xFF2563eb)).withValues(alpha: 0.3),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -288,7 +411,7 @@ class _EstimatedPriceCard extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                '\$${price.toStringAsFixed(2)}',
+                '${price.toInt()} VND',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 28,

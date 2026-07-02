@@ -14,7 +14,10 @@ class AiSuggestionBanner extends ConsumerWidget {
     return GestureDetector(
       onTap: () {
         final state = ref.read(bookingControllerProvider);
-        if (state.selectedVehicle != null && state.selectedDate != null && state.selectedParkingLot != null) {
+        final hasValidVehicle = state.selectedVehicle != null || 
+            (state.licensePlate.trim().isNotEmpty && state.selectedVehicleType != null);
+            
+        if (hasValidVehicle && state.selectedDate != null && state.selectedParkingLot != null) {
           ref.read(bookingControllerProvider.notifier).loadAiSuggestions();
           Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const AiSuggestionScreen()),

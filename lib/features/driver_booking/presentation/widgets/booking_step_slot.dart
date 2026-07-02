@@ -47,7 +47,7 @@ class _BookingStepSlotState extends ConsumerState<BookingStepSlot> {
             const Center(
               child: Padding(
                 padding: EdgeInsets.all(40),
-                child: CircularProgressIndicator(color: Color(0xFF0F4C5C)),
+                child: CircularProgressIndicator(color: Color(0xFF2563eb)),
               ),
             )
           else ...[
@@ -113,11 +113,11 @@ class _SectionHeader extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: isDark
-                ? const Color(0xFF0F4C5C).withValues(alpha: 0.3)
-                : const Color(0xFF0F4C5C).withValues(alpha: 0.1),
+                ? const Color(0xFF2563eb).withValues(alpha: 0.3)
+                : const Color(0xFF2563eb).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, color: const Color(0xFF0F4C5C), size: 20),
+          child: Icon(icon, color: const Color(0xFF2563eb), size: 20),
         ),
         const SizedBox(width: 12),
         Text(
@@ -175,28 +175,28 @@ class _ParkingVisualMap extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1B998B).withValues(alpha: 0.15) : const Color(0xFFE0F7FA),
+              color: isDark ? const Color(0xFF3b82f6).withValues(alpha: 0.15) : const Color(0xFFE0F7FA),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isDark ? const Color(0xFF1B998B).withValues(alpha: 0.3) : const Color(0xFFB2DFDB),
+                color: isDark ? const Color(0xFF3b82f6).withValues(alpha: 0.3) : const Color(0xFFB2DFDB),
               ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.arrow_downward_rounded, color: const Color(0xFF1B998B), size: 16),
+                Icon(Icons.arrow_downward_rounded, color: const Color(0xFF3b82f6), size: 16),
                 const SizedBox(width: 6),
                 Text(
                   'ENTRANCE',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF1B998B),
+                    color: const Color(0xFF3b82f6),
                     letterSpacing: 1.5,
                   ),
                 ),
                 const SizedBox(width: 6),
-                Icon(Icons.arrow_downward_rounded, color: const Color(0xFF1B998B), size: 16),
+                Icon(Icons.arrow_downward_rounded, color: const Color(0xFF3b82f6), size: 16),
               ],
             ),
           ),
@@ -301,8 +301,8 @@ class _ParkingVisualMap extends StatelessWidget {
       borderColor = const Color(0xFFF2C14E);
       textColor = isDark ? const Color(0xFFF2C14E) : const Color(0xFFB45309);
     } else if (isAvailable) {
-      bgColor = isDark ? const Color(0xFF1B998B).withValues(alpha: 0.1) : const Color(0xFFECFDF5);
-      borderColor = isDark ? const Color(0xFF1B998B).withValues(alpha: 0.3) : const Color(0xFFBBF7D0);
+      bgColor = isDark ? const Color(0xFF3b82f6).withValues(alpha: 0.1) : const Color(0xFFECFDF5);
+      borderColor = isDark ? const Color(0xFF3b82f6).withValues(alpha: 0.3) : const Color(0xFFBBF7D0);
       textColor = isDark ? const Color(0xFF34D399) : const Color(0xFF059669);
     } else {
       bgColor = isDark ? const Color(0xFFEF4444).withValues(alpha: 0.08) : const Color(0xFFFEF2F2);
@@ -493,13 +493,13 @@ class _SlotListView extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: isSelected
                             ? const Color(0xFFF2C14E).withValues(alpha: 0.2)
-                            : (isDark ? const Color(0xFF1B998B).withValues(alpha: 0.15) : const Color(0xFFECFDF5)),
+                            : (isDark ? const Color(0xFF3b82f6).withValues(alpha: 0.15) : const Color(0xFFECFDF5)),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Center(
                         child: Icon(
                           Icons.local_parking_rounded,
-                          color: isSelected ? const Color(0xFFF2C14E) : const Color(0xFF1B998B),
+                          color: isSelected ? const Color(0xFFF2C14E) : const Color(0xFF3b82f6),
                           size: 22,
                         ),
                       ),
@@ -528,14 +528,7 @@ class _SlotListView extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Text(
-                      '\$3.00/hr',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: isDark ? const Color(0xFF1B998B) : const Color(0xFF059669),
-                      ),
-                    ),
+
                     if (isSelected) ...[
                       const SizedBox(width: 8),
                       Container(
@@ -579,14 +572,14 @@ class _SelectedSlotSummary extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF0F4C5C).withValues(alpha: 0.4), const Color(0xFF1B998B).withValues(alpha: 0.3)]
+              ? [const Color(0xFF2563eb).withValues(alpha: 0.4), const Color(0xFF3b82f6).withValues(alpha: 0.3)]
               : [const Color(0xFFE0F7FA), const Color(0xFFE8F5E9)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? const Color(0xFF1B998B).withValues(alpha: 0.4) : const Color(0xFFB2DFDB),
+          color: isDark ? const Color(0xFF3b82f6).withValues(alpha: 0.4) : const Color(0xFFB2DFDB),
         ),
       ),
       child: Column(
@@ -594,14 +587,14 @@ class _SelectedSlotSummary extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.check_circle, color: Color(0xFF1B998B), size: 22),
+              const Icon(Icons.check_circle, color: Color(0xFF3b82f6), size: 22),
               const SizedBox(width: 10),
               Text(
                 'Selected Slot',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
-                  color: isDark ? const Color(0xFF1B998B) : const Color(0xFF0F4C5C),
+                  color: isDark ? const Color(0xFF3b82f6) : const Color(0xFF2563eb),
                 ),
               ),
             ],
@@ -613,7 +606,7 @@ class _SelectedSlotSummary extends StatelessWidget {
               const SizedBox(width: 10),
               _infoChip(Icons.layers_rounded, slot.floorName ?? ''),
               const SizedBox(width: 10),
-              _infoChip(Icons.payments_rounded, '\$${estimatedPrice.toStringAsFixed(2)}'),
+              _infoChip(Icons.payments_rounded, '${estimatedPrice.toInt()} VND'),
             ],
           ),
         ],
@@ -631,14 +624,14 @@ class _SelectedSlotSummary extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: const Color(0xFF0F4C5C)),
+          Icon(icon, size: 14, color: const Color(0xFF2563eb)),
           const SizedBox(width: 6),
           Text(
             text,
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF0F4C5C),
+              color: Color(0xFF2563eb),
             ),
           ),
         ],

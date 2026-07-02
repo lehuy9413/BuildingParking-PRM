@@ -62,6 +62,19 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
           ref.read(bookingControllerProvider.notifier).resetBooking();
         });
       }
+      
+      // Show error message if any
+      if (prev?.errorMessage != next.errorMessage && next.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.errorMessage!),
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
     });
 
     // Determine whether to show back button
@@ -208,14 +221,14 @@ class _StepIndicator extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: isCompleted
-                  ? const Color(0xFF1B998B)
+                  ? const Color(0xFF2563eb)
                   : isCurrent
-                      ? const Color(0xFF0F4C5C)
+                      ? const Color(0xFF1e293b)
                       : (isDark ? const Color(0xFF2A3A4A) : const Color(0xFFE2E8F0)),
               boxShadow: isCurrent
                   ? [
                       BoxShadow(
-                        color: const Color(0xFF0F4C5C).withValues(alpha: 0.35),
+                        color: const Color(0xFF1e293b).withValues(alpha: 0.35),
                         blurRadius: 12,
                         spreadRadius: 1,
                         offset: const Offset(0, 3),
@@ -224,7 +237,7 @@ class _StepIndicator extends StatelessWidget {
                   : isCompleted
                       ? [
                           BoxShadow(
-                            color: const Color(0xFF1B998B).withValues(alpha: 0.25),
+                            color: const Color(0xFF2563eb).withValues(alpha: 0.25),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -259,9 +272,9 @@ class _StepIndicator extends StatelessWidget {
                         ? FontWeight.w700
                         : FontWeight.w500,
                 color: isCurrent
-                    ? (isDark ? Colors.white : const Color(0xFF0F4C5C))
+                    ? (isDark ? Colors.white : const Color(0xFF1e293b))
                     : isCompleted
-                        ? const Color(0xFF1B998B)
+                        ? const Color(0xFF2563eb)
                         : (isDark ? Colors.grey.shade600 : Colors.grey.shade400),
               ),
               overflow: TextOverflow.ellipsis,
@@ -301,7 +314,7 @@ class _StepIndicator extends StatelessWidget {
                     width: isActive ? constraints.maxWidth : 0,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF1B998B), Color(0xFF0F4C5C)],
+                        colors: [Color(0xFF2563eb), Color(0xFF1e293b)],
                       ),
                       borderRadius: BorderRadius.circular(1),
                     ),
@@ -384,14 +397,14 @@ class _BottomButtons extends StatelessWidget {
                 onPressed: canProceed && !isConfirming ? onNext : null,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: const Color(0xFF0F4C5C),
+                  backgroundColor: const Color(0xFF1e293b),
                   disabledBackgroundColor:
                       isDark ? const Color(0xFF2D3748) : const Color(0xFFE2E8F0),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                   elevation: canProceed ? 4 : 0,
-                  shadowColor: const Color(0xFF0F4C5C).withValues(alpha: 0.4),
+                  shadowColor: const Color(0xFF1e293b).withValues(alpha: 0.4),
                 ),
                 child: isConfirming
                     ? const SizedBox(

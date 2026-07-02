@@ -10,6 +10,10 @@ class Vehicle extends Equatable {
   final String? vehicleBrand;
   final String? nickname;
   final bool isDefault;
+  final double hourlyRate;
+  final double dayBlockRate;
+  final double nightBlockRate;
+  final double dailyRate;
 
   const Vehicle({
     required this.id,
@@ -21,6 +25,10 @@ class Vehicle extends Equatable {
     this.vehicleBrand,
     this.nickname,
     this.isDefault = false,
+    this.hourlyRate = 0.0,
+    this.dayBlockRate = 0.0,
+    this.nightBlockRate = 0.0,
+    this.dailyRate = 0.0,
   });
 
   @override
@@ -34,5 +42,9 @@ class Vehicle extends Equatable {
         vehicleBrand,
         nickname,
         isDefault,
+        hourlyRate,
+        dayBlockRate,
+        nightBlockRate,
+        dailyRate,
       ];
 }

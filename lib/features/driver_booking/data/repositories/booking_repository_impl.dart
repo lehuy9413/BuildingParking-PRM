@@ -3,6 +3,7 @@ import '../../domain/entities/parking_slot.dart';
 import '../../domain/entities/ai_suggestion.dart';
 import '../../domain/entities/parking_lot.dart';
 import '../../domain/entities/vehicle.dart';
+import '../../domain/entities/vehicle_type.dart';
 import '../../domain/repositories/booking_repository.dart';
 import '../datasources/api_booking_datasource.dart';
 import '../models/parking_slot_model.dart';
@@ -23,14 +24,31 @@ class BookingRepositoryImpl implements BookingRepository {
     required String vehicleTypeId,
     String? floorId,
     String? zoneId,
+    DateTime? scheduledDate,
+    String? startTime,
+    String? endTime,
   }) async {
     final response = await dataSource.getAvailableSlots(
       parkingLotId: parkingLotId,
       vehicleTypeId: vehicleTypeId,
       floorId: floorId,
       zoneId: zoneId,
+      scheduledDate: scheduledDate,
+      startTime: startTime,
+      endTime: endTime,
     );
-    final List slotsData = response['availableSlots'] ?? [];
+    
+    List slotsData = [];
+    if (response is List) {
+      slotsData = response;
+    } else if (response is Map) {
+      slotsData = response['availableSlots'] ?? response['docs'] ?? response['data'] ?? [];
+      // Sometimes the backend just returns the list in the map directly if it has no wrapper
+      if (slotsData.isEmpty && response.isNotEmpty && !response.containsKey('availableSlots')) {
+         // fallback if it's deeply nested
+      }
+    }
+    
     return slotsData.map((json) => ParkingSlotModel.fromJson(json)).toList();
   }
 
@@ -39,11 +57,11 @@ class BookingRepositoryImpl implements BookingRepository {
     required String parkingLotId,
     required String vehicleTypeId,
   }) async {
-    final response = await dataSource.getAvailableSlots(
+    final response = await dataSource.getAiSuggestions(
       parkingLotId: parkingLotId,
       vehicleTypeId: vehicleTypeId,
     );
-    final recommendedSlotJson = response['recommendedSlot'];
+    final recommendedSlotJson = response['recommended'];
     if (recommendedSlotJson == null) return [];
 
     final recommendedSlot = ParkingSlotModel.fromJson(recommendedSlotJson);
@@ -76,18 +94,27 @@ class BookingRepositoryImpl implements BookingRepository {
     required String startTime,
     required String endTime,
     String? vehicleId,
+    String? licensePlate,
     String? floorId,
     String? zoneId,
-  }) => dataSource.createBooking(
-    parkingLotId: parkingLotId,
-    vehicleTypeId: vehicleTypeId,
-    scheduledDate: scheduledDate,
-    startTime: startTime,
-    endTime: endTime,
-    vehicleId: vehicleId,
-    floorId: floorId,
-    zoneId: zoneId,
-  );
+    String? assignedSlot,
+    double? estimatedFee,
+    int? estimatedDuration,
+  }) async {
+    final model = await dataSource.createBooking(
+      parkingLotId: parkingLotId,
+      vehicleTypeId: vehicleTypeId,
+      scheduledDate: scheduledDate,
+      startTime: startTime,
+      endTime: endTime,
+      vehicleId: vehicleId,
+      licensePlate: licensePlate,
+      floorId: floorId,
+      zoneId: zoneId,
+      assignedSlot: assignedSlot,
+    );
+    return model;
+  }
 
   @override
   Future<Booking> getBookingById(String bookingId) =>
@@ -99,4 +126,10 @@ class BookingRepositoryImpl implements BookingRepository {
   @override
   Future<void> cancelBooking(String bookingId, String reason) =>
       dataSource.cancelBooking(bookingId, reason);
+
+  @override
+  Future<List<VehicleType>> getVehicleTypes() async {
+    final response = await dataSource.getVehicleTypes();
+    return response.map((json) => VehicleType.fromJson(json)).toList();
+  }
 }
