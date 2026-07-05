@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../domain/models/parking_session.dart';
+import '../controllers/staff_core_controller.dart';
 
-/// Dialog xác nhận thanh toán với 2 phương thức: Cash và QR.
+/// Dialog xác nhận thanh toán với 2 phương thức: Cash và QR (VietQR/SEPay).
 class PaymentConfirmationDialog extends StatefulWidget {
   const PaymentConfirmationDialog({
     super.key,
     required this.session,
     required this.totalFee,
+    required this.sessionId,
+    required this.controller,
   });
 
   final ParkingSession session;
   final double totalFee;
+  final String sessionId;
+  final StaffCoreController controller;
 
   @override
   State<PaymentConfirmationDialog> createState() =>
@@ -21,6 +27,14 @@ class _PaymentConfirmationDialogState
     extends State<PaymentConfirmationDialog> {
   String _method = ''; // '' | 'cash' | 'qr'
   bool _processing = false;
+
+  // QR payment state
+  String? _qrUrl;
+  String? _qrPaymentId;
+  String? _transferContent;
+  Map<String, dynamic>? _bankInfo;
+  String _qrStatus = 'pending'; // pending | completed
+  bool _qrLoading = false;
 
   String _formatMoney(double amount) {
     final str = amount.toInt().toString();
@@ -34,11 +48,68 @@ class _PaymentConfirmationDialogState
     return '${buf.toString().split('').reversed.join()} VND';
   }
 
-  Future<void> _handleConfirm() async {
-    if (_method.isEmpty) return;
+  Future<void> _handleCashConfirm() async {
     setState(() => _processing = true);
-    await Future.delayed(const Duration(milliseconds: 600));
-    if (mounted) Navigator.of(context).pop(true);
+    try {
+      await widget.controller.confirmCashPaymentApi(
+        sessionId: widget.sessionId,
+        cashReceived: widget.totalFee, // exact amount
+      );
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _processing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Payment failed: $e'),
+            backgroundColor: const Color(0xFFEF4444),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _generateQr() async {
+    setState(() => _qrLoading = true);
+    try {
+      final data = await widget.controller.initiateQrPaymentApi(widget.sessionId);
+      setState(() {
+        _qrUrl = data['qrUrl']?.toString();
+        _qrPaymentId = data['payment']?['_id']?.toString() ??
+            data['payment']?.toString();
+        _transferContent = data['transferContent']?.toString();
+        _bankInfo = data['bankInfo'] as Map<String, dynamic>?;
+        _qrLoading = false;
+      });
+      // Bắt đầu polling status
+      _pollQrStatus();
+    } catch (e) {
+      setState(() => _qrLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('QR error: $e'),
+            backgroundColor: const Color(0xFFEF4444),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _pollQrStatus() async {
+    if (_qrPaymentId == null) return;
+    // Poll mỗi 3 giây tối đa 10 lần
+    for (int i = 0; i < 10; i++) {
+      await Future.delayed(const Duration(seconds: 3));
+      if (!mounted) return;
+      final status = await widget.controller.checkQrStatus(_qrPaymentId!);
+      if (status == 'completed') {
+        setState(() => _qrStatus = 'completed');
+        await Future.delayed(const Duration(seconds: 1));
+        if (mounted) Navigator.of(context).pop(true);
+        return;
+      }
+    }
   }
 
   @override
@@ -98,186 +169,282 @@ class _PaymentConfirmationDialogState
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                // ─── Tổng tiền ──────────────────────────────────────────
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 14, horizontal: 20),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFBFDBFE)),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Total Amount',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1D4ED8),
-                        ),
-                      ),
-                      Text(
-                        _formatMoney(widget.totalFee),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF1D4ED8),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Select Payment Method',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF374151),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // ─── Phương thức ──────────────────────────────────────
-                Row(
-                  children: [
-                    Expanded(
-                      child: _MethodCard(
-                        label: 'Cash',
-                        icon: Icons.payments_outlined,
-                        color: const Color(0xFF16A34A),
-                        isSelected: _method == 'cash',
-                        onTap: () => setState(() => _method = 'cash'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _MethodCard(
-                        label: 'QR Payment',
-                        icon: Icons.qr_code_2_rounded,
-                        color: const Color(0xFF2563EB),
-                        isSelected: _method == 'qr',
-                        onTap: () => setState(() => _method = 'qr'),
-                      ),
-                    ),
-                  ],
-                ),
-
-                // ─── QR section ───────────────────────────────────────────────────
-                if (_method == 'qr') ...[
-                  const SizedBox(height: 16),
+                  // ─── Tổng tiền ──────────────────────────────────────────
                   Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 14, horizontal: 20),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
+                      color: const Color(0xFFEFF6FF),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(color: const Color(0xFFBFDBFE)),
                     ),
-                    child: Column(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Container(
-                          width: 140,
-                          height: 140,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                                color: const Color(0xFF2563EB), width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF2563EB)
-                                    .withOpacity(0.15),
-                                blurRadius: 16,
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.qr_code_2_rounded,
-                            size: 120,
+                        const Text(
+                          'Total Amount',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
                             color: Color(0xFF1D4ED8),
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Scan QR code to pay',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF64748B),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Instruct customer to scan the code for payment',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFF94A3B8),
-                            fontStyle: FontStyle.italic,
+                        Text(
+                          _formatMoney(widget.totalFee),
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF1D4ED8),
                           ),
                         ),
                       ],
                     ),
                   ),
-                ],
-
-                const SizedBox(height: 20),
-
-                // ─── Confirm ─────────────────────────────────────────
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed:
-                        (_method.isNotEmpty && !_processing)
-                            ? _handleConfirm
-                            : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2563EB),
-                      disabledBackgroundColor: Colors.grey.shade200,
-                      minimumSize: const Size(double.infinity, 52),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                      elevation: 0,
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Select Payment Method',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF374151),
                     ),
-                    child: _processing
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white),
-                          )
-                        : Text(
-                            _method.isEmpty
-                                ? 'SELECT PAYMENT METHOD'
-                                : 'CONFIRM PAYMENT',
-                            style: TextStyle(
-                              color: _method.isEmpty
-                                  ? Colors.grey.shade500
-                                  : Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 14,
-                              letterSpacing: 0.5,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // ─── Phương thức ──────────────────────────────────────
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _MethodCard(
+                          label: 'Cash',
+                          icon: Icons.payments_outlined,
+                          color: const Color(0xFF16A34A),
+                          isSelected: _method == 'cash',
+                          onTap: () => setState(() {
+                            _method = 'cash';
+                            _qrUrl = null;
+                          }),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _MethodCard(
+                          label: 'QR Payment',
+                          icon: Icons.qr_code_2_rounded,
+                          color: const Color(0xFF2563EB),
+                          isSelected: _method == 'qr',
+                          onTap: () {
+                            setState(() => _method = 'qr');
+                            if (_qrUrl == null && !_qrLoading) _generateQr();
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // ─── Cash section ─────────────────────────────────────
+                  if (_method == 'cash') ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFBBF7D0)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.info_outline_rounded,
+                              color: Color(0xFF16A34A), size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Collect ${_formatMoney(widget.totalFee)} from customer then click Confirm.',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF166534),
+                              ),
                             ),
                           ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(
-                      color: Color(0xFF64748B),
-                      fontWeight: FontWeight.w600,
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  // ─── QR section ───────────────────────────────────────
+                  if (_method == 'qr') ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        children: [
+                          if (_qrLoading)
+                            const CircularProgressIndicator()
+                          else if (_qrStatus == 'completed')
+                            ...[
+                              const Icon(Icons.check_circle_rounded,
+                                  color: Color(0xFF16A34A), size: 64),
+                              const SizedBox(height: 8),
+                              const Text('Payment successful!',
+                                  style: TextStyle(
+                                      color: Color(0xFF16A34A),
+                                      fontWeight: FontWeight.w700)),
+                            ]
+                          else if (_qrUrl != null) ...[
+                            // QR từ VietQR thực
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: CachedNetworkImage(
+                                imageUrl: _qrUrl!,
+                                width: 200,
+                                height: 200,
+                                placeholder: (_, __) => const SizedBox(
+                                  width: 200,
+                                  height: 200,
+                                  child: Center(
+                                      child: CircularProgressIndicator()),
+                                ),
+                                errorWidget: (_, __, ___) => Container(
+                                  width: 200,
+                                  height: 200,
+                                  color: const Color(0xFFF1F5F9),
+                                  child: Column(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.center,
+                                    children: const [
+                                      Icon(Icons.qr_code_2_rounded,
+                                          size: 80,
+                                          color: Color(0xFF1D4ED8)),
+                                      SizedBox(height: 8),
+                                      Text('Scan QR to pay',
+                                          style: TextStyle(
+                                              color: Color(0xFF64748B))),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            if (_bankInfo != null) ...[
+                              Text(
+                                '${_bankInfo!['bankName']} • ${_bankInfo!['accountNumber']}',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF374151),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                            ],
+                            if (_transferContent != null)
+                              Text(
+                                'Transfer code: $_transferContent',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF64748B),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Waiting for payment...',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF94A3B8),
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ] else ...[
+                            const Icon(Icons.qr_code_2_rounded,
+                                size: 80, color: Color(0xFF1D4ED8)),
+                            const SizedBox(height: 8),
+                            const Text('Generating QR code...',
+                                style:
+                                    TextStyle(color: Color(0xFF94A3B8))),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 20),
+
+                  // ─── Confirm button ───────────────────────────────────
+                  if (_method == 'cash')
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _processing ? null : _handleCashConfirm,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF16A34A),
+                          disabledBackgroundColor: Colors.grey.shade200,
+                          minimumSize: const Size(double.infinity, 52),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                          elevation: 0,
+                        ),
+                        child: _processing
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white),
+                              )
+                            : const Text(
+                                'CONFIRM CASH PAYMENT',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                      ),
+                    )
+                  else if (_method.isEmpty)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: null,
+                        style: ElevatedButton.styleFrom(
+                          disabledBackgroundColor: Colors.grey.shade200,
+                          minimumSize: const Size(double.infinity, 52),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          'SELECT PAYMENT METHOD',
+                          style: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  const SizedBox(height: 10),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
           ),
         ],
       ),

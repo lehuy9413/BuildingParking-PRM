@@ -34,6 +34,8 @@ class _StaffCoreScreenState extends State<StaffCoreScreen>
     _ctrl = StaffCoreController();
     _tabController = TabController(length: 2, vsync: this);
     _ctrl.addListener(_rebuild);
+    // Load vehicle types & dashboard data from API
+    _ctrl.init();
   }
 
   void _rebuild() => setState(() {});

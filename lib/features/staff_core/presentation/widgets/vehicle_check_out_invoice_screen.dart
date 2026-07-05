@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import '../controllers/staff_core_controller.dart';
 import '../../domain/models/parking_session.dart';
 import 'payment_confirmation_dialog.dart';
-import '../screens/simulated_camera_screen.dart';
+import '../screens/real_camera_screen.dart';
 
 /// Màn hình / component Check-out + Invoice.
 class VehicleCheckOutInvoiceScreen extends StatefulWidget {
@@ -33,76 +33,95 @@ class _VehicleCheckOutInvoiceScreenState
     super.dispose();
   }
 
-  void _findSession() {
-    final session = ctrl.findActiveSession(_searchController.text);
-    if (session == null) {
+  Future<void> _findSession() async {
+    final query = _searchController.text.trim();
+    if (query.isEmpty) return;
+
+    final session = await ctrl.findActiveSessionApi(query);
+    if (session == null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'No parking session found for "${_searchController.text.trim()}"',
+            'No active parking session found for "$query"',
           ),
           backgroundColor: const Color(0xFFEF4444),
           behavior: SnackBarBehavior.floating,
         ),
       );
-      ctrl.clearCheckoutSelection();
-    } else {
-      ctrl.selectForCheckout(session);
     }
     setState(() {});
   }
 
   Future<void> _scanQRCard() async {
-    final session = ctrl.latestActiveSession;
-    if (session == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No active parking session found.'),
-          backgroundColor: Color(0xFFF59E0B),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
-
-    // Hiện màn hình camera mô phỏng
-    final result = await Navigator.push<bool>(
+    final base64Image = await Navigator.push<String?>(
       context,
       MaterialPageRoute(
-        builder: (_) => const SimulatedCameraScreen(
-          title: 'Scan Session QR',
-          subtitle: 'Detecting QR/Card...',
-        ),
+        builder: (_) => const RealCameraScreen(),
       ),
     );
 
-    // Nếu trả về true (quét thành công)
-    if (result == true && mounted) {
-      _searchController.text = session.plateNumber;
-      ctrl.selectForCheckout(session);
-      setState(() {});
+    if (base64Image != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Recognizing license plate...')),
+      );
+
+      final plate = await widget.controller.recognizeLicensePlate(base64Image);
+
+      if (mounted) {
+        if (plate.isNotEmpty) {
+          _searchController.text = plate;
+          // Gọi API để lấy session mới nhất
+          await widget.controller.findActiveSessionApi(plate);
+          setState(() {});
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Recognized: $plate'), backgroundColor: Colors.green),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not recognize license plate. Please try again or type manually.'), backgroundColor: Colors.red),
+          );
+        }
+      }
     }
   }
 
-  Future<void> _confirmPayment() async {
-    if (ctrl.selectedCheckoutSession == null) return;
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => PaymentConfirmationDialog(
-        session: ctrl.selectedCheckoutSession!,
-        totalFee: ctrl.totalFee,
-      ),
-    );
-    if (result == true) {
-      ctrl.confirmPayment();
-      setState(() {});
-      widget.onPaymentCompleted();
-      if (mounted) {
+  Future<void> _checkoutAndShowPayment() async {
+    final session = ctrl.selectedCheckoutSession;
+    if (session == null) return;
+
+    try {
+      // Bước 1: Gọi API check-out để tính phí
+      final apiSession = await ctrl.checkOutApi(session.id);
+      if (!mounted) return;
+
+      // Bước 2: Hiện dialog thanh toán với fee từ server
+      final result = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => PaymentConfirmationDialog(
+          session: ctrl.selectedCheckoutSession!,
+          totalFee: apiSession.totalFee,
+          sessionId: apiSession.id,
+          controller: ctrl,
+        ),
+      );
+
+      if (result == true && mounted) {
+        widget.onPaymentCompleted();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('✅ Payment successful! Session closed.'),
             backgroundColor: Color(0xFF16A34A),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Check-out failed: $e'),
+            backgroundColor: const Color(0xFFEF4444),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -304,7 +323,7 @@ class _VehicleCheckOutInvoiceScreenState
             _InvoiceCard(
               session: ctrl.selectedCheckoutSession!,
               fee: ctrl.totalFee,
-              onConfirmPayment: _confirmPayment,
+              onConfirmPayment: _checkoutAndShowPayment,
             ),
           ],
         ],
@@ -409,7 +428,7 @@ class _InvoiceCard extends StatelessWidget {
                 _InvoiceRow(
                   label: 'Time In',
                   value: DateFormat('HH:mm dd/MM/yy')
-                      .format(session.checkInTime),
+                      .format(session.checkInTime.toLocal()),
                 ),
                 const SizedBox(height: 10),
                 _InvoiceRow(

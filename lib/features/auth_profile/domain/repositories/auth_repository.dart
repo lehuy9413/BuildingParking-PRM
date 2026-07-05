@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
+import '../../../../core/services/auth_service.dart';
 import '../models/user_model.dart';
 
 class AuthRepository {
@@ -26,22 +27,29 @@ class AuthRepository {
       if (response.statusCode == 200) {
         final body = response.data;
         final data = body['data'] ?? body;
-        
-        // Save tokens
+
+        final accessToken = data['accessToken']?.toString() ?? '';
+        final refreshToken = data['refreshToken']?.toString() ?? '';
+        final userData = data['user'] ?? data;
+
+        // Save to secure storage (legacy)
         final prefs = await SharedPreferences.getInstance();
-        if (data['accessToken'] != null) {
-          final accessToken = data['accessToken'].toString();
+        if (accessToken.isNotEmpty) {
           await _storage.write(key: _tokenKey, value: accessToken);
           await prefs.setString(_tokenKey, accessToken);
         }
-        if (data['refreshToken'] != null) {
-          final refreshToken = data['refreshToken'].toString();
+        if (refreshToken.isNotEmpty) {
           await _storage.write(key: _refreshTokenKey, value: refreshToken);
           await prefs.setString(_refreshTokenKey, refreshToken);
         }
-        
-        // Sometimes backend returns user in 'user' key
-        final userData = data['user'] ?? data;
+
+        // Save to AuthService singleton (dùng cho interceptor & controller)
+        await AuthService.instance.saveAuth(
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+          user: Map<String, dynamic>.from(userData),
+        );
+
         return UserModel.fromJson(userData);
       } else {
         throw Exception(response.data['message'] ?? 'Login failed');
