@@ -9,6 +9,9 @@ class ApiEndpoints {
   static const String refreshToken = '/auth/refresh-token';
   static const String me = '/auth/me';
 
+  // Users
+  static const String profile = '/users/profile';
+
   // Parking Sessions
   static const String checkIn = '/parking-sessions/check-in';
   static const String findActiveSession = '/parking-sessions/find-active';

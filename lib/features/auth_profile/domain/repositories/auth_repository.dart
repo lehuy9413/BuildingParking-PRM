@@ -123,6 +123,40 @@ class AuthRepository {
     }
   }
 
+  // Update Profile
+  Future<UserModel> updateProfile(String fullName, String phone) async {
+    try {
+      final response = await _dio.put(
+        ApiEndpoints.profile,
+        data: {
+          'fullName': fullName,
+          'phone': phone,
+        },
+      );
+      if (response.statusCode == 200) {
+        final body = response.data;
+        final data = body['data'] ?? body;
+        final userData = data['user'] ?? data;
+        
+        // Update user data in AuthService singleton
+        if (AuthService.instance.isLoggedIn) {
+          final updatedData = Map<String, dynamic>.from(userData);
+          await AuthService.instance.saveAuth(
+            accessToken: AuthService.instance.accessToken ?? '',
+            refreshToken: AuthService.instance.refreshToken ?? '',
+            user: updatedData,
+          );
+        }
+
+        return UserModel.fromJson(userData);
+      } else {
+        throw Exception(response.data['message'] ?? 'Failed to update profile');
+      }
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? e.message ?? 'Failed to update profile');
+    }
+  }
+
   // Logout
   Future<void> logout() async {
     await _storage.delete(key: _tokenKey);

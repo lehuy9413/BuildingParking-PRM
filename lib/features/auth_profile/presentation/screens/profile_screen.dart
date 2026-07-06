@@ -66,18 +66,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  void _toggleEditMode() {
-    setState(() {
-      _isEditing = !_isEditing;
-    });
-    if (!_isEditing) {
-      // Show save confirmation
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile updated successfully!'),
-          backgroundColor: Color(0xFF0B7A59),
-        ),
-      );
+  Future<void> _toggleEditMode() async {
+    if (_isEditing) {
+      // User clicked Save
+      setState(() => _isLoading = true);
+      try {
+        final updatedUser = await _authRepo.updateProfile(
+          _nameController.text,
+          _phoneController.text,
+        );
+        if (mounted) {
+          setState(() {
+            _user = updatedUser;
+            _isEditing = false;
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile updated successfully!'),
+              backgroundColor: Color(0xFF0B7A59),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString().replaceAll('Exception: ', '')),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } else {
+      // Enter edit mode
+      setState(() {
+        _isEditing = true;
+      });
     }
   }
 
