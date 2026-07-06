@@ -157,6 +157,24 @@ class AuthRepository {
     }
   }
 
+  // Change Password
+  Future<void> changePassword(String currentPassword, String newPassword) async {
+    try {
+      final response = await _dio.post(
+        ApiEndpoints.changePassword,
+        data: {
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        },
+      );
+      if (response.statusCode != 200) {
+        throw Exception(response.data['message'] ?? 'Failed to change password');
+      }
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? e.message ?? 'Failed to change password');
+    }
+  }
+
   // Logout
   Future<void> logout() async {
     await _storage.delete(key: _tokenKey);

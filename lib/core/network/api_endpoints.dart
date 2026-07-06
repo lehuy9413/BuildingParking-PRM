@@ -8,9 +8,12 @@ class ApiEndpoints {
   static const String logout = '/auth/logout';
   static const String refreshToken = '/auth/refresh-token';
   static const String me = '/auth/me';
+  static const String changePassword = '/auth/change-password';
 
-  // Users
+  // Users & Vehicles
   static const String profile = '/users/profile';
+  static const String vehicles = '/vehicles';
+  static String vehicleById(String id) => '/vehicles/$id';
 
   // Parking Sessions
   static const String checkIn = '/parking-sessions/check-in';

@@ -1,8 +1,70 @@
 import 'package:flutter/material.dart';
 import '../../../../app/app.dart' as import_app;
+import '../../domain/repositories/auth_repository.dart';
 
-class ChangePasswordScreen extends StatelessWidget {
+class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
+
+  @override
+  State<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
+}
+
+class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
+  final _authRepo = AuthRepository();
+
+  final _currentController = TextEditingController();
+  final _newController = TextEditingController();
+  final _confirmController = TextEditingController();
+
+  bool _obscureCurrent = true;
+  bool _obscureNew = true;
+  bool _obscureConfirm = true;
+
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _currentController.dispose();
+    _newController.dispose();
+    _confirmController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleChangePassword() async {
+    if (_currentController.text.isEmpty || _newController.text.isEmpty || _confirmController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
+      return;
+    }
+    if (_newController.text != _confirmController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('New passwords do not match')));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await _authRepo.changePassword(_currentController.text, _newController.text);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Password updated successfully!'),
+            backgroundColor: Color(0xFF0B7A59),
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,42 +126,63 @@ class ChangePasswordScreen extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             _buildLabel('Current Password', isDark),
-            _buildPasswordField(Icons.lock_outline, isDark),
+            _buildPasswordField(
+              icon: Icons.lock_outline,
+              isDark: isDark,
+              controller: _currentController,
+              obscure: _obscureCurrent,
+              onToggleObscure: () => setState(() => _obscureCurrent = !_obscureCurrent),
+            ),
             const SizedBox(height: 20),
             _buildLabel('New Password', isDark),
-            _buildPasswordField(Icons.vpn_key_outlined, isDark),
+            _buildPasswordField(
+              icon: Icons.vpn_key_outlined,
+              isDark: isDark,
+              controller: _newController,
+              obscure: _obscureNew,
+              onToggleObscure: () => setState(() => _obscureNew = !_obscureNew),
+            ),
             const SizedBox(height: 20),
             _buildLabel('Confirm New Password', isDark),
-            _buildPasswordField(Icons.verified_user_outlined, isDark),
+            _buildPasswordField(
+              icon: Icons.verified_user_outlined,
+              isDark: isDark,
+              controller: _confirmController,
+              obscure: _obscureConfirm,
+              onToggleObscure: () => setState(() => _obscureConfirm = !_obscureConfirm),
+            ),
             const SizedBox(height: 24),
             _buildRequirementsBox(isDark),
             const SizedBox(height: 32),
             ElevatedButton(
-              onPressed: () {},
+              onPressed: _isLoading ? null : _handleChangePassword,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0B7A59),
+                disabledBackgroundColor: Colors.grey,
                 minimumSize: const Size(double.infinity, 56),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
                 elevation: 0,
               ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'UPDATE PASSWORD',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                    ),
+              child: _isLoading
+                ? const CircularProgressIndicator(color: Colors.white)
+                : const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'UPDATE PASSWORD',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+                    ],
                   ),
-                  SizedBox(width: 8),
-                  Icon(Icons.arrow_forward, color: Colors.white, size: 20),
-                ],
-              ),
             ),
             const SizedBox(height: 32),
             Center(
@@ -129,16 +212,26 @@ class ChangePasswordScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPasswordField(IconData icon, bool isDark) {
+  Widget _buildPasswordField({
+    required IconData icon,
+    required bool isDark,
+    required TextEditingController controller,
+    required bool obscure,
+    required VoidCallback onToggleObscure,
+  }) {
     return TextFormField(
-      obscureText: true,
+      controller: controller,
+      obscureText: obscure,
       obscuringCharacter: '•',
       style: TextStyle(color: isDark ? Colors.white : Colors.black87),
       decoration: InputDecoration(
         hintText: '••••••••',
         hintStyle: TextStyle(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, fontSize: 18),
         prefixIcon: Icon(icon, color: isDark ? Colors.grey.shade400 : Colors.grey.shade500),
-        suffixIcon: Icon(Icons.visibility_outlined, color: isDark ? Colors.grey.shade400 : Colors.grey.shade500),
+        suffixIcon: IconButton(
+          icon: Icon(obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: isDark ? Colors.grey.shade400 : Colors.grey.shade500),
+          onPressed: onToggleObscure,
+        ),
         filled: true,
         fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         border: OutlineInputBorder(
