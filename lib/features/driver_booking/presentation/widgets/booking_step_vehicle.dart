@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../domain/entities/vehicle.dart';
-import '../../domain/entities/vehicle_type.dart';
 import '../controllers/booking_controller.dart';
 
 class BookingStepVehicle extends ConsumerWidget {
@@ -168,7 +166,7 @@ class BookingStepVehicle extends ConsumerWidget {
           
           if (state.vehicleTypes.isNotEmpty)
             DropdownButtonFormField<String>(
-              value: state.selectedVehicleType?.id,
+              initialValue: state.selectedVehicleType?.id,
               decoration: InputDecoration(
                 hintText: 'Select Vehicle Type',
                 hintStyle: TextStyle(

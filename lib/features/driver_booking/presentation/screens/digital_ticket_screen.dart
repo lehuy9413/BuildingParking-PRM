@@ -483,16 +483,18 @@ class _DetailRow extends StatelessWidget {
           child: Icon(icon, color: iconColor, size: 18),
         ),
         const SizedBox(width: 14),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+        SizedBox(
+          width: 100,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+            ),
           ),
         ),
-        const Spacer(),
-        Flexible(
+        Expanded(
           child: Text(
             value,
             style: TextStyle(
@@ -500,7 +502,7 @@ class _DetailRow extends StatelessWidget {
               fontWeight: FontWeight.w700,
               color: isDark ? Colors.white : const Color(0xFF0F172A),
             ),
-            textAlign: TextAlign.end,
+            textAlign: TextAlign.start,
           ),
         ),
       ],

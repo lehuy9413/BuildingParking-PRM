@@ -303,7 +303,10 @@ class BookingController extends Notifier<BookingState> {
       );
       // ignore: avoid_print
       print('[BookingController] Loaded ${slots.length} slots');
-      state = state.copyWith(availableSlots: slots, isLoading: false);
+      state = state.copyWith(availableSlots: slots);
+      
+      // Auto load AI suggestions and pick the best slot
+      await loadAiSuggestions();
     } catch (e) {
       // ignore: avoid_print
       print('[BookingController] Error loading slots: $e');
@@ -361,7 +364,11 @@ class BookingController extends Notifier<BookingState> {
         parkingLotId: state.selectedParkingLot!.id,
         vehicleTypeId: vId,
       );
-      state = state.copyWith(aiSuggestions: suggestions, isLoading: false);
+      state = state.copyWith(
+        aiSuggestions: suggestions, 
+        isLoading: false,
+        selectedSlot: suggestions.isNotEmpty ? suggestions.first.recommendedSlot : null,
+      );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -371,7 +378,7 @@ class BookingController extends Notifier<BookingState> {
   }
 
   void selectAiSuggestion(AiSuggestion suggestion) {
-    lockAndSelectSlot(suggestion.recommendedSlot);
+    state = state.copyWith(selectedSlot: suggestion.recommendedSlot);
   }
 
   // ── Booking Confirmation ──
@@ -407,9 +414,7 @@ class BookingController extends Notifier<BookingState> {
         state.checkOutTime!.hour,
         state.checkOutTime!.minute,
       );
-      final adjustedCheckOut = checkOutDt.isBefore(checkIn) 
-          ? checkOutDt.add(const Duration(days: 1)) 
-          : checkOutDt;
+
 
       final booking = await _repository.createBooking(
         parkingLotId: state.selectedParkingLot!.id,
@@ -438,7 +443,12 @@ class BookingController extends Notifier<BookingState> {
   // ── Reset ──
 
   void resetBooking() {
-    state = const BookingState();
+    state = BookingState(
+      parkingLots: state.parkingLots,
+      myVehicles: state.myVehicles,
+      vehicleTypes: state.vehicleTypes,
+      // all other fields revert to default
+    );
   }
 }
 

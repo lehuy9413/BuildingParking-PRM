@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/parking_slot.dart';
 import '../controllers/booking_controller.dart';
-import 'ai_suggestion_banner.dart';
 
 class BookingStepSlot extends ConsumerStatefulWidget {
   const BookingStepSlot({super.key});
@@ -32,10 +31,6 @@ class _BookingStepSlotState extends ConsumerState<BookingStepSlot> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── AI Suggestion Banner ──
-          AiSuggestionBanner(isDark: isDark),
-          const SizedBox(height: 24),
-
           // ── Visual Parking Map ──
           _SectionHeader(
             icon: Icons.map_rounded,
@@ -51,6 +46,49 @@ class _BookingStepSlotState extends ConsumerState<BookingStepSlot> {
               ),
             )
           else ...[
+            if (state.selectedSlot != null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF2563eb).withValues(alpha: 0.1) : const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF2563eb).withValues(alpha: 0.3) : const Color(0xFFBFDBFE),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.auto_awesome, color: const Color(0xFF2563eb), size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Hệ thống tự động xếp chỗ',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Vị trí tối ưu nhất: ${state.selectedSlot!.slotCode}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: isDark ? Colors.white : const Color(0xFF1E3A8A),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             _ParkingVisualMap(
               slots: state.availableSlots,
               selectedSlot: state.selectedSlot,
@@ -59,21 +97,6 @@ class _BookingStepSlotState extends ConsumerState<BookingStepSlot> {
             ),
             const SizedBox(height: 12),
             _SlotLegend(isDark: isDark),
-            const SizedBox(height: 28),
-
-            // ── Slot List (Manual Selection) ──
-            _SectionHeader(
-              icon: Icons.list_alt_rounded,
-              title: 'Or Select Manually',
-              isDark: isDark,
-            ),
-            const SizedBox(height: 16),
-            _SlotListView(
-              slots: state.availableSlots,
-              selectedSlot: state.selectedSlot,
-              onSlotSelected: controller.lockAndSelectSlot,
-              isDark: isDark,
-            ),
           ],
 
           // ── Selected Slot Summary ──
@@ -203,7 +226,7 @@ class _ParkingVisualMap extends StatelessWidget {
           const SizedBox(height: 16),
 
           // ── Road + Slots Layout ──
-          _buildParkingRows(),
+          _buildParkingRows(context),
 
           const SizedBox(height: 16),
           // ── Exit indicator ──
@@ -241,7 +264,7 @@ class _ParkingVisualMap extends StatelessWidget {
     );
   }
 
-  Widget _buildParkingRows() {
+  Widget _buildParkingRows(BuildContext context) {
     // Split slots into rows of pairs (left side + right side, separated by road)
     final rowCount = (slots.length / 2).ceil();
 
@@ -257,7 +280,7 @@ class _ParkingVisualMap extends StatelessWidget {
               // Left slot
               Expanded(
                 child: leftIndex < slots.length
-                    ? _buildSlotCell(slots[leftIndex], isLeft: true)
+                    ? _buildSlotCell(context, slots[leftIndex], isLeft: true)
                     : const SizedBox(),
               ),
               // Road
@@ -278,7 +301,7 @@ class _ParkingVisualMap extends StatelessWidget {
               // Right slot
               Expanded(
                 child: rightIndex < slots.length
-                    ? _buildSlotCell(slots[rightIndex], isLeft: false)
+                    ? _buildSlotCell(context, slots[rightIndex], isLeft: false)
                     : const SizedBox(),
               ),
             ],
@@ -288,7 +311,7 @@ class _ParkingVisualMap extends StatelessWidget {
     );
   }
 
-  Widget _buildSlotCell(ParkingSlot slot, {required bool isLeft}) {
+  Widget _buildSlotCell(BuildContext context, ParkingSlot slot, {required bool isLeft}) {
     final isAvailable = slot.status == SlotStatus.available;
     final isSelected = selectedSlot?.id == slot.id;
 
@@ -311,7 +334,15 @@ class _ParkingVisualMap extends StatelessWidget {
     }
 
     return GestureDetector(
-      onTap: isAvailable ? () => onSlotSelected(slot) : null,
+      onTap: isAvailable ? () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Hệ thống đã tự động sắp xếp vị trí tối ưu nhất cho bạn.'),
+            duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         height: 44,
@@ -404,152 +435,7 @@ class _SlotLegend extends StatelessWidget {
   }
 }
 
-// ─── Slot List View ──────────────────────────────────────────────────────────
 
-class _SlotListView extends StatelessWidget {
-  const _SlotListView({
-    required this.slots,
-    required this.selectedSlot,
-    required this.onSlotSelected,
-    required this.isDark,
-  });
-
-  final List<ParkingSlot> slots;
-  final ParkingSlot? selectedSlot;
-  final ValueChanged<ParkingSlot> onSlotSelected;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    final availableSlots = slots.where((s) => s.status == SlotStatus.available).toList();
-    final occupiedCount = slots.where((s) => s.status == SlotStatus.occupied).length;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Summary bar
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Text(
-                '${availableSlots.length} available',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                '•',
-                style: TextStyle(color: isDark ? Colors.grey.shade600 : Colors.grey.shade300),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                '$occupiedCount occupied',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // Available slots list
-        ...availableSlots.take(6).map((slot) {
-          final isSelected = selectedSlot?.id == slot.id;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: GestureDetector(
-              onTap: () => onSlotSelected(slot),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? (isDark ? const Color(0xFFF2C14E).withValues(alpha: 0.1) : const Color(0xFFFFFBEB))
-                      : (isDark ? const Color(0xFF1E293B) : Colors.white),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: isSelected
-                        ? const Color(0xFFF2C14E)
-                        : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                    width: isSelected ? 2 : 1,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? const Color(0xFFF2C14E).withValues(alpha: 0.2)
-                            : (isDark ? const Color(0xFF3b82f6).withValues(alpha: 0.15) : const Color(0xFFECFDF5)),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(
-                        child: Icon(
-                          Icons.local_parking_rounded,
-                          color: isSelected ? const Color(0xFFF2C14E) : const Color(0xFF3b82f6),
-                          size: 22,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            slot.slotCode,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: isDark ? Colors.white : const Color(0xFF0F172A),
-                            ),
-                          ),
-                          Text(
-                            slot.floorName ?? '',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isDark ? Colors.grey.shade500 : Colors.grey.shade500,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    if (isSelected) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFF2C14E),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.check, color: Colors.white, size: 14),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          );
-        }),
-      ],
-    );
-  }
-}
 
 // ─── Selected Slot Summary ───────────────────────────────────────────────────
 

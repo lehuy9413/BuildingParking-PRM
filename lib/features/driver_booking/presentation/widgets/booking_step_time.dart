@@ -4,8 +4,6 @@ import 'package:intl/intl.dart';
 
 import '../controllers/booking_controller.dart';
 
-/// Time slot classification for color coding
-enum _TimeSlotType { available, peak, promo, reserved }
 
 class BookingStepTime extends ConsumerWidget {
   const BookingStepTime({super.key});
