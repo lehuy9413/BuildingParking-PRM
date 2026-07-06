@@ -1,6 +1,6 @@
 class ApiEndpoints {
   // Base URL – đổi sang IP máy thật nếu chạy trên Android/iOS device
-  static const String baseUrl = 'http://localhost:5000/api/v1';
+  static const String baseUrl = 'https://parking-backend-prm.onrender.com/api/v1';
 
   // Auth
   static const String login = '/auth/login';
