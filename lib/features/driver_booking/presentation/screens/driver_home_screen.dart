@@ -8,13 +8,16 @@ import '../../../driver_tracking/presentation/screens/live_session_screen.dart';
 import '../../../driver_tracking/presentation/screens/feedback_screen.dart';
 import 'digital_ticket_screen.dart';
 import 'quick_check_in_screen.dart';
+import '../controllers/driver_home_controller.dart';
+import '../../../staff_core/data/models/vehicle_type_model.dart';
 
-class DriverHomeScreen extends StatelessWidget {
+class DriverHomeScreen extends ConsumerWidget {
   const DriverHomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final homeState = ref.watch(driverHomeControllerProvider);
     
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -26,7 +29,12 @@ class DriverHomeScreen extends StatelessWidget {
             children: [
               _buildHeader(context, isDark),
               const SizedBox(height: 28),
-              _buildLiveAvailabilityCard(isDark),
+              if (homeState.isLoading)
+                const Center(child: CircularProgressIndicator())
+              else if (homeState.error != null)
+                Center(child: Text(homeState.error!, style: const TextStyle(color: Colors.red)))
+              else
+                _buildLiveAvailabilityCard(isDark, homeState.parkingLot),
               const SizedBox(height: 32),
               _buildSectionTitle('FACILITY INFORMATION', isDark),
               const SizedBox(height: 16),
@@ -36,7 +44,8 @@ class DriverHomeScreen extends StatelessWidget {
               const SizedBox(height: 16),
               _buildQuickActions(context, isDark),
               const SizedBox(height: 32),
-              _buildStandardRatesCard(isDark),
+              if (!homeState.isLoading && homeState.error == null)
+                _buildStandardRatesCard(isDark, homeState.vehicleTypes),
               const SizedBox(height: 24),
             ],
           ),
@@ -145,7 +154,14 @@ class DriverHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLiveAvailabilityCard(bool isDark) {
+  Widget _buildLiveAvailabilityCard(bool isDark, Map<String, dynamic>? parkingLot) {
+    final available = parkingLot?['availableSlots'] ?? 0;
+    final total = parkingLot?['totalSlots'] ?? 0;
+    
+    // Simulate distribution for cars vs motorbikes if API doesn't split
+    final carsCount = (available / 2).floor();
+    final motorbikesCount = available - carsCount;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
@@ -187,7 +203,7 @@ class DriverHomeScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            '342',
+            '$available',
             style: TextStyle(
               fontSize: 64,
               fontWeight: FontWeight.w900,
@@ -197,7 +213,7 @@ class DriverHomeScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Slots Available Now',
+            'Slots Available Now (Total: $total)',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -216,7 +232,7 @@ class DriverHomeScreen extends StatelessWidget {
                 iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF3B82F6),
                 iconBgColor: isDark ? const Color(0xFF1E3A8A).withOpacity(0.5) : const Color(0xFFDBEAFE),
                 label: 'Cars',
-                count: '120',
+                count: '$carsCount',
                 status: 'vacant',
               ),
               Container(
@@ -230,7 +246,7 @@ class DriverHomeScreen extends StatelessWidget {
                 iconColor: isDark ? const Color(0xFFC084FC) : const Color(0xFFA855F7),
                 iconBgColor: isDark ? const Color(0xFF581C87).withOpacity(0.5) : const Color(0xFFF3E8FF),
                 label: 'Motorbikes',
-                count: '222',
+                count: '$motorbikesCount',
                 status: 'vacant',
               ),
             ],
@@ -549,7 +565,7 @@ class DriverHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStandardRatesCard(bool isDark) {
+  Widget _buildStandardRatesCard(bool isDark, List<VehicleTypeModel> vehicleTypes) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -589,15 +605,23 @@ class DriverHomeScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          _buildRateRow(Icons.two_wheeler_rounded, 'Motorbikes', '\$1.00', '/hour'),
-          const SizedBox(height: 16),
-          Divider(color: Colors.white.withOpacity(0.25), thickness: 1.5),
-          const SizedBox(height: 16),
-          _buildRateRow(Icons.directions_car_rounded, 'Cars', '\$3.00', '/hour'),
-          const SizedBox(height: 16),
-          Divider(color: Colors.white.withOpacity(0.25), thickness: 1.5),
-          const SizedBox(height: 16),
-          _buildRateRow(Icons.electric_car_rounded, 'Electric Vehicles', '\$4.00', '/hour'),
+          if (vehicleTypes.isEmpty)
+            const Text('No rates available', style: TextStyle(color: Colors.white)),
+          ...vehicleTypes.expand((type) {
+            IconData icon = Icons.directions_car_rounded;
+            if (type.name.toLowerCase().contains('motorbike') || type.name.toLowerCase().contains('xe máy')) {
+              icon = Icons.two_wheeler_rounded;
+            } else if (type.name.toLowerCase().contains('ev') || type.name.toLowerCase().contains('điện')) {
+              icon = Icons.electric_car_rounded;
+            }
+            return [
+              _buildRateRow(icon, type.name, '${type.dayBlockRate}₫', '/block'),
+              const SizedBox(height: 16),
+              Divider(color: Colors.white.withOpacity(0.25), thickness: 1.5),
+              const SizedBox(height: 16),
+            ];
+          }).toList()..removeLast()..removeLast(), // remove the trailing divider/sizedbox
+
           const SizedBox(height: 28),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
