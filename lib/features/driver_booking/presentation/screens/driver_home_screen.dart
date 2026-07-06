@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/app.dart' as import_app;
 import '../controllers/booking_controller.dart';
-import 'booking_flow_screen.dart';
-import 'ai_suggestion_screen.dart';
-import '../../../driver_tracking/presentation/screens/live_session_screen.dart';
 import '../../../driver_tracking/presentation/screens/feedback_screen.dart';
 import 'digital_ticket_screen.dart';
 import 'quick_check_in_screen.dart';
@@ -123,7 +120,7 @@ class DriverHomeScreen extends ConsumerWidget {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -177,7 +174,7 @@ class DriverHomeScreen extends ConsumerWidget {
         border: Border.all(color: isDark ? const Color(0xFF1B998B) : const Color(0xFFB2EBF2), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF00ACC1).withOpacity(isDark ? 0.4 : 0.15),
+            color: const Color(0xFF00ACC1).withValues(alpha: isDark ? 0.4 : 0.15),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -188,7 +185,7 @@ class DriverHomeScreen extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFF00ACC1).withOpacity(0.1),
+              color: isDark ? Colors.white.withValues(alpha: 0.15) : const Color(0xFF00ACC1).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -217,11 +214,11 @@ class DriverHomeScreen extends ConsumerWidget {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white.withOpacity(0.9) : const Color(0xFF00838F),
+              color: isDark ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF00838F),
             ),
           ),
           const SizedBox(height: 24),
-          Divider(color: (isDark ? Colors.white : const Color(0xFF00ACC1)).withOpacity(0.2), thickness: 1.5),
+          Divider(color: (isDark ? Colors.white : const Color(0xFF00ACC1)).withValues(alpha: 0.2), thickness: 1.5),
           const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -230,7 +227,7 @@ class DriverHomeScreen extends ConsumerWidget {
                 isDark: isDark,
                 icon: Icons.directions_car,
                 iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF3B82F6),
-                iconBgColor: isDark ? const Color(0xFF1E3A8A).withOpacity(0.5) : const Color(0xFFDBEAFE),
+                iconBgColor: isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.5) : const Color(0xFFDBEAFE),
                 label: 'Cars',
                 count: '$carsCount',
                 status: 'vacant',
@@ -238,13 +235,13 @@ class DriverHomeScreen extends ConsumerWidget {
               Container(
                 width: 1.5,
                 height: 48,
-                color: (isDark ? Colors.white : const Color(0xFF00ACC1)).withOpacity(0.2),
+                color: (isDark ? Colors.white : const Color(0xFF00ACC1)).withValues(alpha: 0.2),
               ),
               _buildVehicleAvailability(
                 isDark: isDark,
                 icon: Icons.two_wheeler_rounded,
                 iconColor: isDark ? const Color(0xFFC084FC) : const Color(0xFFA855F7),
-                iconBgColor: isDark ? const Color(0xFF581C87).withOpacity(0.5) : const Color(0xFFF3E8FF),
+                iconBgColor: isDark ? const Color(0xFF581C87).withValues(alpha: 0.5) : const Color(0xFFF3E8FF),
                 label: 'Motorbikes',
                 count: '$motorbikesCount',
                 status: 'vacant',
@@ -312,7 +309,7 @@ class DriverHomeScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -326,7 +323,7 @@ class DriverHomeScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E3A8A).withOpacity(0.4) : const Color(0xFFEFF6FF),
+                  color: isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.4) : const Color(0xFFEFF6FF),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(Icons.access_time_filled, color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB), size: 24),
@@ -348,7 +345,7 @@ class DriverHomeScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF064E3B).withOpacity(0.4) : const Color(0xFFECFDF5),
+                  color: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.4) : const Color(0xFFECFDF5),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(Icons.electric_bolt_rounded, color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669), size: 24),
@@ -361,11 +358,11 @@ class DriverHomeScreen extends ConsumerWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      _buildTag('Cars', isDark ? const Color(0xFF1E3A8A).withOpacity(0.4) : const Color(0xFFEFF6FF), isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB)),
+                      _buildTag('Cars', isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.4) : const Color(0xFFEFF6FF), isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB)),
                       const SizedBox(width: 8),
-                      _buildTag('Motorbikes', isDark ? const Color(0xFF581C87).withOpacity(0.4) : const Color(0xFFFAF5FF), isDark ? const Color(0xFFC084FC) : const Color(0xFF9333EA)),
+                      _buildTag('Motorbikes', isDark ? const Color(0xFF581C87).withValues(alpha: 0.4) : const Color(0xFFFAF5FF), isDark ? const Color(0xFFC084FC) : const Color(0xFF9333EA)),
                       const SizedBox(width: 8),
-                      _buildTag('EVs', isDark ? const Color(0xFF064E3B).withOpacity(0.4) : const Color(0xFFECFDF5), isDark ? const Color(0xFF34D399) : const Color(0xFF059669)),
+                      _buildTag('EVs', isDark ? const Color(0xFF064E3B).withValues(alpha: 0.4) : const Color(0xFFECFDF5), isDark ? const Color(0xFF34D399) : const Color(0xFF059669)),
                     ],
                   ),
                 ],
@@ -432,7 +429,7 @@ class DriverHomeScreen extends ConsumerWidget {
                     isDark: isDark,
                     icon: Icons.qr_code_scanner_rounded,
                     iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
-                    iconBgColor: isDark ? const Color(0xFF1E3A8A).withOpacity(0.4) : const Color(0xFFEFF6FF),
+                    iconBgColor: isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.4) : const Color(0xFFEFF6FF),
                     title: 'Quick Check-In',
                     subtitle: 'View active ticket/QR code',
                     onTap: () {
@@ -453,7 +450,7 @@ class DriverHomeScreen extends ConsumerWidget {
                 isDark: isDark,
                 icon: Icons.edit_calendar_rounded,
                 iconColor: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
-                iconBgColor: isDark ? const Color(0xFF064E3B).withOpacity(0.4) : const Color(0xFFECFDF5),
+                iconBgColor: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.4) : const Color(0xFFECFDF5),
                 title: 'Pre-book Slot',
                 subtitle: 'Reserve your spot in advance',
                 onTap: () {
@@ -471,7 +468,7 @@ class DriverHomeScreen extends ConsumerWidget {
                 isDark: isDark,
                 icon: Icons.timer_rounded,
                 iconColor: isDark ? const Color(0xFFFB923C) : const Color(0xFFEA580C),
-                iconBgColor: isDark ? const Color(0xFF7C2D12).withOpacity(0.4) : const Color(0xFFFFF7ED),
+                iconBgColor: isDark ? const Color(0xFF7C2D12).withValues(alpha: 0.4) : const Color(0xFFFFF7ED),
                 title: 'Track Session',
                 subtitle: 'Check live duration & fee',
                 onTap: () {
@@ -485,7 +482,7 @@ class DriverHomeScreen extends ConsumerWidget {
                 isDark: isDark,
                 icon: Icons.support_agent_rounded,
                 iconColor: isDark ? const Color(0xFFC084FC) : const Color(0xFF9333EA),
-                iconBgColor: isDark ? const Color(0xFF581C87).withOpacity(0.4) : const Color(0xFFFAF5FF),
+                iconBgColor: isDark ? const Color(0xFF581C87).withValues(alpha: 0.4) : const Color(0xFFFAF5FF),
                 title: 'Support',
                 subtitle: 'Report lost card or issues',
                 onTap: () {
@@ -514,7 +511,7 @@ class DriverHomeScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -580,7 +577,7 @@ class DriverHomeScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF059669).withOpacity(isDark ? 0.6 : 0.3),
+            color: const Color(0xFF059669).withValues(alpha: isDark ? 0.6 : 0.3),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -606,27 +603,27 @@ class DriverHomeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           if (vehicleTypes.isEmpty)
-            const Text('No rates available', style: TextStyle(color: Colors.white)),
-          ...vehicleTypes.expand((type) {
-            IconData icon = Icons.directions_car_rounded;
-            if (type.name.toLowerCase().contains('motorbike') || type.name.toLowerCase().contains('xe máy')) {
-              icon = Icons.two_wheeler_rounded;
-            } else if (type.name.toLowerCase().contains('ev') || type.name.toLowerCase().contains('điện')) {
-              icon = Icons.electric_car_rounded;
-            }
-            return [
-              _buildRateRow(icon, type.name, '${type.dayBlockRate}₫', '/block'),
-              const SizedBox(height: 16),
-              Divider(color: Colors.white.withOpacity(0.25), thickness: 1.5),
-              const SizedBox(height: 16),
-            ];
-          }).toList()..removeLast()..removeLast(), // remove the trailing divider/sizedbox
-
+            const Text('No rates available', style: TextStyle(color: Colors.white))
+          else
+            ...vehicleTypes.expand((type) {
+              IconData icon = Icons.directions_car_rounded;
+              if (type.name.toLowerCase().contains('motorbike') || type.name.toLowerCase().contains('xe máy')) {
+                icon = Icons.two_wheeler_rounded;
+              } else if (type.name.toLowerCase().contains('ev') || type.name.toLowerCase().contains('điện')) {
+                icon = Icons.electric_car_rounded;
+              }
+              return [
+                _buildRateRow(icon, type.name, '${type.dayBlockRate}₫', '/block'),
+                const SizedBox(height: 16),
+                Divider(color: Colors.white.withValues(alpha: 0.25), thickness: 1.5),
+                const SizedBox(height: 16),
+              ];
+            }).toList()..removeLast()..removeLast(), // remove the trailing divider/sizedbox
           const SizedBox(height: 28),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.15),
+              color: Colors.black.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Row(
@@ -657,7 +654,7 @@ class DriverHomeScreen extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
+            color: Colors.white.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(icon, color: Colors.white, size: 24),
@@ -687,7 +684,7 @@ class DriverHomeScreen extends ConsumerWidget {
             Text(
               suffix,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),

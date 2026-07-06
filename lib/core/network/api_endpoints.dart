@@ -15,7 +15,11 @@ class ApiEndpoints {
   static const String vehicles = '/vehicles';
   static String vehicleById(String id) => '/vehicles/$id';
   static String vehicleSetDefault(String id) => '/vehicles/$id/default';
+  static const String defaultVehicle = '/vehicles/default';
 
+  // Booking endpoints
+  static const String bookings = '/bookings';
+  static const String myBookings = '/bookings/my';
 
   // Parking Sessions
   static const String checkIn = '/parking-sessions/check-in';
@@ -39,4 +43,9 @@ class ApiEndpoints {
 
   // LPR (License Plate Recognition)
   static const String lprRecognize = '/lpr/recognize';
+
+  // Parking Slots
+  static const String availableSlots = '/parking-slots/available';
+  static String lockSlot(String id) => '/parking-slots/$id/lock';
+  static String unlockSlot(String id) => '/parking-slots/$id/lock'; // DELETE request
 }

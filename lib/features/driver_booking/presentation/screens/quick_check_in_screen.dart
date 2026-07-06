@@ -111,7 +111,7 @@ class _QuickCheckInScreenState extends State<QuickCheckInScreen>
                   borderRadius: BorderRadius.circular(32),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF2563EB).withOpacity(isDark ? 0.2 : 0.08),
+                      color: const Color(0xFF2563EB).withValues(alpha: isDark ? 0.2 : 0.08),
                       blurRadius: 32,
                       offset: const Offset(0, 16),
                     ),
@@ -130,7 +130,7 @@ class _QuickCheckInScreenState extends State<QuickCheckInScreen>
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 16,
                             offset: const Offset(0, 4),
                           ),
@@ -155,7 +155,7 @@ class _QuickCheckInScreenState extends State<QuickCheckInScreen>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF2563EB).withOpacity(0.15) : const Color(0xFFEFF6FF),
+                        color: isDark ? const Color(0xFF2563EB).withValues(alpha: 0.15) : const Color(0xFFEFF6FF),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(

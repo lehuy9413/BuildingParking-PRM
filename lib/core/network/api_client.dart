@@ -4,7 +4,6 @@ import 'api_endpoints.dart';
 
 class ApiClient {
   ApiClient._();
-
   static final ApiClient instance = ApiClient._();
 
   late final Dio dio = Dio(

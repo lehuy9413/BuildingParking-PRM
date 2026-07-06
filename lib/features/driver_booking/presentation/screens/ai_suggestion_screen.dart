@@ -94,8 +94,8 @@ class _AiSuggestionScreenState extends ConsumerState<AiSuggestionScreen>
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: isDark
-                  ? const Color(0xFF6366F1).withOpacity(0.15)
-                  : const Color(0xFF6366F1).withOpacity(0.08),
+                  ? const Color(0xFF6366F1).withValues(alpha: 0.15)
+                  : const Color(0xFF6366F1).withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: const SizedBox(
@@ -182,7 +182,7 @@ class _AiSuggestionScreenState extends ConsumerState<AiSuggestionScreen>
               ),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isDark ? const Color(0xFF6366F1).withOpacity(0.3) : const Color(0xFFC7D2FE),
+                color: isDark ? const Color(0xFF6366F1).withValues(alpha: 0.3) : const Color(0xFFC7D2FE),
               ),
             ),
             child: Column(
@@ -281,15 +281,15 @@ class _SuggestionCard extends StatelessWidget {
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: isTop
-            ? Border.all(color: rankColor.withOpacity(0.5), width: 2)
+            ? Border.all(color: rankColor.withValues(alpha: 0.5), width: 2)
             : Border.all(
                 color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
               ),
         boxShadow: [
           BoxShadow(
             color: isTop
-                ? rankColor.withOpacity(isDark ? 0.3 : 0.15)
-                : Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+                ? rankColor.withValues(alpha: isDark ? 0.3 : 0.15)
+                : Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
             blurRadius: isTop ? 24 : 16,
             offset: const Offset(0, 8),
           ),
@@ -301,7 +301,7 @@ class _SuggestionCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
-              color: rankColor.withOpacity(isDark ? 0.15 : 0.08),
+              color: rankColor.withValues(alpha: isDark ? 0.15 : 0.08),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: Row(
@@ -320,7 +320,7 @@ class _SuggestionCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: rankColor.withOpacity(isDark ? 0.25 : 0.15),
+                    color: rankColor.withValues(alpha: isDark ? 0.25 : 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -349,7 +349,7 @@ class _SuggestionCard extends StatelessWidget {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: isDark
-                            ? const Color(0xFF0F4C5C).withOpacity(0.25)
+                            ? const Color(0xFF0F4C5C).withValues(alpha: 0.25)
                             : const Color(0xFFE0F7FA),
                         borderRadius: BorderRadius.circular(14),
                       ),
@@ -365,7 +365,7 @@ class _SuggestionCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            slot.slotNumber,
+                            slot.slotCode,
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w900,
@@ -374,7 +374,7 @@ class _SuggestionCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            slot.floor ?? '',
+                            slot.floorName ?? '',
                             style: TextStyle(
                               fontSize: 14,
                               color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
@@ -406,9 +406,9 @@ class _SuggestionCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     _statChip(
-                      Icons.payments_rounded,
-                      '\$${slot.pricePerHour.toStringAsFixed(0)}/hr',
-                      'Rate',
+                      Icons.map_outlined,
+                      slot.zoneName ?? 'Zone',
+                      'Zone',
                       isDark,
                     ),
                   ],
@@ -420,7 +420,7 @@ class _SuggestionCard extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF374151).withOpacity(0.5) : const Color(0xFFF8FAFC),
+                    color: isDark ? const Color(0xFF374151).withValues(alpha: 0.5) : const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -444,7 +444,7 @@ class _SuggestionCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         color: isDark
-                            ? const Color(0xFF1B998B).withOpacity(0.15)
+                            ? const Color(0xFF1B998B).withValues(alpha: 0.15)
                             : const Color(0xFFECFDF5),
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -480,7 +480,7 @@ class _SuggestionCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(14),
                       ),
                       elevation: isTop ? 4 : 0,
-                      shadowColor: const Color(0xFF0F4C5C).withOpacity(0.3),
+                      shadowColor: const Color(0xFF0F4C5C).withValues(alpha: 0.3),
                     ),
                     child: Text(
                       isTop ? 'Select This Slot' : 'Select',
@@ -505,7 +505,7 @@ class _SuggestionCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF374151).withOpacity(0.4) : const Color(0xFFF8FAFC),
+          color: isDark ? const Color(0xFF374151).withValues(alpha: 0.4) : const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(

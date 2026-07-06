@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../domain/entities/parking_slot.dart';
 import '../controllers/booking_controller.dart';
 
 class BookingStepVehicle extends ConsumerWidget {
@@ -25,15 +23,15 @@ class BookingStepVehicle extends ConsumerWidget {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? const Color(0xFF0F4C5C).withOpacity(0.3)
-                      : const Color(0xFF0F4C5C).withOpacity(0.1),
+                      ? const Color(0xFF2563eb).withValues(alpha: 0.2)
+                      : const Color(0xFF2563eb).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.directions_car_rounded, color: Color(0xFF0F4C5C), size: 20),
+                child: const Icon(Icons.directions_car_rounded, color: Color(0xFF2563eb), size: 20),
               ),
               const SizedBox(width: 12),
               Text(
-                'Select Vehicle Type',
+                'Select Vehicle',
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w800,
@@ -44,63 +42,62 @@ class BookingStepVehicle extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
 
-          // ── Vehicle Type Cards ──
-          _VehicleCard(
-            icon: Icons.directions_car_rounded,
-            title: 'Car',
-            subtitle: 'Sedan, SUV, Hatchback',
-            price: '\$3.00/hr',
-            color: const Color(0xFF3B82F6),
-            bgColor: isDark ? const Color(0xFF1E3A8A).withOpacity(0.4) : const Color(0xFFEFF6FF),
-            isSelected: state.vehicleType == VehicleType.car,
-            isDark: isDark,
-            onTap: () => controller.selectVehicleType(VehicleType.car),
-          ),
-          const SizedBox(height: 16),
-          _VehicleCard(
-            icon: Icons.two_wheeler_rounded,
-            title: 'Motorbike',
-            subtitle: 'Scooter, Manual',
-            price: '\$1.00/hr',
-            color: const Color(0xFFA855F7),
-            bgColor: isDark ? const Color(0xFF581C87).withOpacity(0.4) : const Color(0xFFFAF5FF),
-            isSelected: state.vehicleType == VehicleType.motorbike,
-            isDark: isDark,
-            onTap: () => controller.selectVehicleType(VehicleType.motorbike),
-          ),
-          const SizedBox(height: 16),
-          _VehicleCard(
-            icon: Icons.electric_car_rounded,
-            title: 'Electric Vehicle',
-            subtitle: 'EV with charging support',
-            price: '\$4.00/hr',
-            color: const Color(0xFF059669),
-            bgColor: isDark ? const Color(0xFF064E3B).withOpacity(0.4) : const Color(0xFFECFDF5),
-            isSelected: state.vehicleType == VehicleType.ev,
-            isDark: isDark,
-            onTap: () => controller.selectVehicleType(VehicleType.ev),
-          ),
+          // ── Loading state ──
+          if (state.isLoading && state.myVehicles.isEmpty)
+            const Center(child: CircularProgressIndicator()),
+
+          // ── My Vehicles List ──
+          if (!state.isLoading && state.myVehicles.isEmpty)
+            Center(
+              child: Text(
+                'No vehicles found. Please add a vehicle first.',
+                style: TextStyle(
+                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                ),
+              ),
+            ),
+          
+          if (state.myVehicles.isNotEmpty)
+            ...state.myVehicles.map((vehicle) {
+              final isSelected = state.selectedVehicle?.id == vehicle.id;
+              final typeLower = vehicle.vehicleTypeName.toLowerCase();
+              IconData icon = Icons.directions_car_rounded;
+              Color color = const Color(0xFF2563eb);
+              if (typeLower.contains('motor')) {
+                icon = Icons.two_wheeler_rounded;
+                color = const Color(0xFFA855F7);
+              } else if (typeLower.contains('ev') || typeLower.contains('electric')) {
+                icon = Icons.electric_car_rounded;
+                color = const Color(0xFF059669);
+              }
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: _VehicleCard(
+                  icon: icon,
+                  title: vehicle.licensePlate,
+                  subtitle: vehicle.vehicleTypeName,
+                  price: '', // Removed fixed price here
+                  color: color,
+                  bgColor: isSelected 
+                    ? color.withValues(alpha: 0.2) 
+                    : (isDark ? color.withValues(alpha: 0.1) : color.withValues(alpha: 0.05)),
+                  isSelected: isSelected,
+                  isDark: isDark,
+                  onTap: () => controller.selectVehicle(vehicle),
+                ),
+              );
+            }),
           const SizedBox(height: 32),
 
-          // ── License Plate Input ──
+          const SizedBox(height: 16),
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF0F4C5C).withOpacity(0.3)
-                      : const Color(0xFF0F4C5C).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.confirmation_number_outlined, color: Color(0xFF0F4C5C), size: 20),
-              ),
-              const SizedBox(width: 12),
               Text(
-                'License Plate',
+                'Or Enter Manually',
                 style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
                   color: isDark ? Colors.white : const Color(0xFF0F172A),
                 ),
               ),
@@ -123,7 +120,8 @@ class BookingStepVehicle extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 16),
-          TextField(
+          TextFormField(
+            initialValue: state.licensePlate,
             onChanged: controller.setLicensePlate,
             style: TextStyle(
               fontWeight: FontWeight.w700,
@@ -164,10 +162,62 @@ class BookingStepVehicle extends ConsumerWidget {
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             ),
           ),
+          const SizedBox(height: 16),
+          
+          if (state.vehicleTypes.isNotEmpty)
+            DropdownButtonFormField<String>(
+              initialValue: state.selectedVehicleType?.id,
+              decoration: InputDecoration(
+                hintText: 'Select Vehicle Type',
+                hintStyle: TextStyle(
+                  color: isDark ? Colors.grey.shade600 : Colors.grey.shade400,
+                  fontWeight: FontWeight.w500,
+                ),
+                prefixIcon: Icon(
+                  Icons.commute_outlined,
+                  color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
+                ),
+                filled: true,
+                fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              ),
+              dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              items: state.vehicleTypes.map((type) {
+                return DropdownMenuItem<String>(
+                  value: type.id,
+                  child: Text(
+                    type.name,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                );
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) {
+                  final vt = state.vehicleTypes.firstWhere((t) => t.id == val);
+                  controller.selectVehicleType(vt);
+                }
+              },
+            ),
+          
           const SizedBox(height: 32),
 
           // ── Estimated Price ──
-          if (state.vehicleType != null && state.checkInTime != null && state.checkOutTime != null)
+          if (state.selectedVehicle != null && state.checkInTime != null && state.checkOutTime != null)
             _EstimatedPriceCard(
               price: state.estimatedPrice,
               duration: state.durationText,
@@ -214,7 +264,7 @@ class _VehicleCard extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: isSelected
-              ? (isDark ? color.withOpacity(0.15) : color.withOpacity(0.08))
+              ? (isDark ? color.withValues(alpha: 0.15) : color.withValues(alpha: 0.08))
               : (isDark ? const Color(0xFF1E293B) : Colors.white),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
@@ -224,7 +274,7 @@ class _VehicleCard extends StatelessWidget {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: color.withOpacity(0.2),
+                    color: color.withValues(alpha: 0.2),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
                   ),
@@ -266,21 +316,22 @@ class _VehicleCard extends StatelessWidget {
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: color.withOpacity(isDark ? 0.2 : 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                price,
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14,
-                  color: color,
+            if (price.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: isDark ? 0.2 : 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  price,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    color: color,
+                  ),
                 ),
               ),
-            ),
             if (isSelected) ...[
               const SizedBox(width: 12),
               Container(
@@ -320,15 +371,15 @@ class _EstimatedPriceCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF065F46), const Color(0xFF047857)]
-              : [const Color(0xFF10B981), const Color(0xFF059669)],
+              ? [const Color(0xFF1e293b), const Color(0xFF0f172a)]
+              : [const Color(0xFF2563eb), const Color(0xFF1d4ed8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF059669).withOpacity(0.3),
+            color: (isDark ? Colors.black : const Color(0xFF2563eb)).withValues(alpha: 0.3),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -339,7 +390,7 @@ class _EstimatedPriceCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(Icons.payments_rounded, color: Colors.white, size: 24),
@@ -358,7 +409,7 @@ class _EstimatedPriceCard extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                '\$${price.toStringAsFixed(2)}',
+                '${price.toInt()} VND',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 28,
@@ -371,7 +422,7 @@ class _EstimatedPriceCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
