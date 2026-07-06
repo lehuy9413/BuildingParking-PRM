@@ -89,4 +89,15 @@ class VehicleRepository {
       throw Exception(e.response?.data['message'] ?? e.message ?? 'Failed to delete vehicle');
     }
   }
+
+  Future<void> setDefaultVehicle(String id) async {
+    try {
+      final response = await _dio.patch(ApiEndpoints.vehicleSetDefault(id));
+      if (response.statusCode != 200) {
+        throw Exception(response.data['message'] ?? 'Failed to set active vehicle');
+      }
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? e.message ?? 'Failed to set active vehicle');
+    }
+  }
 }

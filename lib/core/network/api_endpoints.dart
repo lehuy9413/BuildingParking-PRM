@@ -14,6 +14,8 @@ class ApiEndpoints {
   static const String profile = '/users/profile';
   static const String vehicles = '/vehicles';
   static String vehicleById(String id) => '/vehicles/$id';
+  static String vehicleSetDefault(String id) => '/vehicles/$id/default';
+
 
   // Parking Sessions
   static const String checkIn = '/parking-sessions/check-in';

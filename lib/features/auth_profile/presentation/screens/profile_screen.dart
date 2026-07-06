@@ -618,6 +618,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
         actions: [
+          if (!vehicle.isDefault)
+            TextButton(
+              onPressed: () async {
+                try {
+                  await _vehicleRepo.setDefaultVehicle(vehicle.id);
+                  if (mounted) {
+                    Navigator.pop(context);
+                    _loadProfile();
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                  }
+                }
+              },
+              child: const Text('Set Active', style: TextStyle(color: Colors.blue)),
+            ),
           TextButton(
             onPressed: () async {
               try {
