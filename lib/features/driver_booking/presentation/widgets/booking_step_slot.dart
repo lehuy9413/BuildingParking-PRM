@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/parking_slot.dart';
@@ -31,7 +31,7 @@ class _BookingStepSlotState extends ConsumerState<BookingStepSlot> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Visual Parking Map ──
+          // â”€â”€ Visual Parking Map â”€â”€
           _SectionHeader(
             icon: Icons.map_rounded,
             title: 'Parking Map',
@@ -66,7 +66,7 @@ class _BookingStepSlotState extends ConsumerState<BookingStepSlot> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Hệ thống tự động xếp chỗ',
+                            'Há»‡ thá»‘ng tá»± Ä‘á»™ng xáº¿p chá»—',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
@@ -75,7 +75,7 @@ class _BookingStepSlotState extends ConsumerState<BookingStepSlot> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Vị trí tối ưu nhất: ${state.selectedSlot!.slotCode}',
+                            'Vá»‹ trÃ­ tá»‘i Æ°u nháº¥t: ${state.selectedSlot!.slotCode}',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
@@ -99,7 +99,7 @@ class _BookingStepSlotState extends ConsumerState<BookingStepSlot> {
             _SlotLegend(isDark: isDark),
           ],
 
-          // ── Selected Slot Summary ──
+          // â”€â”€ Selected Slot Summary â”€â”€
           if (state.selectedSlot != null) ...[
             const SizedBox(height: 24),
             _SelectedSlotSummary(
@@ -121,7 +121,7 @@ class _BookingStepSlotState extends ConsumerState<BookingStepSlot> {
   }
 }
 
-// ─── Section Header ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Section Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({
@@ -163,7 +163,7 @@ class _SectionHeader extends StatelessWidget {
 }
 
 
-// ─── Visual Parking Map ──────────────────────────────────────────────────────
+// â”€â”€â”€ Visual Parking Map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _ParkingVisualMap extends StatelessWidget {
   const _ParkingVisualMap({
@@ -199,7 +199,7 @@ class _ParkingVisualMap extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // ── Entrance indicator ──
+          // â”€â”€ Entrance indicator â”€â”€
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -231,11 +231,11 @@ class _ParkingVisualMap extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // ── Road + Slots Layout ──
+          // â”€â”€ Road + Slots Layout â”€â”€
           _buildParkingRows(context),
 
           const SizedBox(height: 16),
-          // ── Exit indicator ──
+          // â”€â”€ Exit indicator â”€â”€
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -343,7 +343,7 @@ class _ParkingVisualMap extends StatelessWidget {
       onTap: isAvailable ? () {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Hệ thống đã tự động sắp xếp vị trí tối ưu nhất cho bạn.'),
+            content: Text('Há»‡ thá»‘ng Ä‘Ã£ tá»± Ä‘á»™ng sáº¯p xáº¿p vá»‹ trÃ­ tá»‘i Æ°u nháº¥t cho báº¡n.'),
             duration: Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
           ),
@@ -395,7 +395,7 @@ class _ParkingVisualMap extends StatelessWidget {
   }
 }
 
-// ─── Slot Legend ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Slot Legend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _SlotLegend extends StatelessWidget {
   const _SlotLegend({required this.isDark});
@@ -443,7 +443,7 @@ class _SlotLegend extends StatelessWidget {
 
 
 
-// ─── Selected Slot Summary ───────────────────────────────────────────────────
+// â”€â”€â”€ Selected Slot Summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _SelectedSlotSummary extends StatelessWidget {
   const _SelectedSlotSummary({
@@ -532,7 +532,8 @@ class _SelectedSlotSummary extends StatelessWidget {
   }
 }
 
-// ─── Payment Method Selection ────────────────────────────────────────────────
+
+// --- Payment Method Selection ---
 
 class _PaymentMethodSelection extends StatelessWidget {
   const _PaymentMethodSelection({
@@ -560,8 +561,8 @@ class _PaymentMethodSelection extends StatelessWidget {
           children: [
             Expanded(
               child: _PaymentCard(
-                title: 'Tiền mặt',
-                subtitle: 'Thanh toán lúc ra',
+                title: 'Cash',
+                subtitle: 'Pay at exit',
                 icon: Icons.money_rounded,
                 isSelected: selectedMethod == 'cash',
                 onTap: () => onMethodChanged('cash'),
@@ -572,8 +573,8 @@ class _PaymentMethodSelection extends StatelessWidget {
             const SizedBox(width: 16),
             Expanded(
               child: _PaymentCard(
-                title: 'Chuyển khoản QR',
-                subtitle: 'Thanh toán ngay',
+                title: 'Bank QR',
+                subtitle: 'Pay now',
                 icon: Icons.qr_code_rounded,
                 isSelected: selectedMethod == 'qr',
                 onTap: () => onMethodChanged('qr'),
@@ -647,20 +648,23 @@ class _PaymentCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               title,
-              textAlign: TextAlign.center,
               style: TextStyle(
+                fontWeight: FontWeight.w800,
                 fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                color: isSelected
+                    ? activeColor
+                    : (isDark ? Colors.white : const Color(0xFF0F172A)),
               ),
             ),
             const SizedBox(height: 4),
             Text(
               subtitle,
-              textAlign: TextAlign.center,
               style: TextStyle(
+                fontWeight: FontWeight.w500,
                 fontSize: 11,
-                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                color: isSelected
+                    ? activeColor.withOpacity(0.8)
+                    : (isDark ? Colors.grey.shade500 : Colors.grey.shade500),
               ),
             ),
           ],

@@ -8,27 +8,29 @@ import '../../../staff_core/data/models/parking_session_api_model.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class LiveSessionState {
-  final ParkingSessionApiModel? session;
+  final List<ParkingSessionApiModel> sessions;
   final bool isLoading;
   final String? error;
 
   const LiveSessionState({
-    this.session,
+    this.sessions = const [],
     this.isLoading = false,
     this.error,
   });
 
-  bool get hasActiveSession => session != null && session!.isActive;
+  /// Backward-compat: first active session (used by LiveSessionScreen)
+  ParkingSessionApiModel? get session => sessions.isNotEmpty ? sessions.first : null;
+
+  bool get hasActiveSession => sessions.isNotEmpty;
 
   LiveSessionState copyWith({
-    ParkingSessionApiModel? session,
+    List<ParkingSessionApiModel>? sessions,
     bool? isLoading,
     String? error,
-    bool clearSession = false,
     bool clearError = false,
   }) {
     return LiveSessionState(
-      session: clearSession ? null : (session ?? this.session),
+      sessions: sessions ?? this.sessions,
       isLoading: isLoading ?? this.isLoading,
       error: clearError ? null : (error ?? this.error),
     );
@@ -41,13 +43,13 @@ class LiveSessionController extends AsyncNotifier<LiveSessionState> {
   @override
   Future<LiveSessionState> build() async {
     _ds = DriverTrackingDatasource();
-    return _fetchSession();
+    return _fetchSessions();
   }
 
-  Future<LiveSessionState> _fetchSession() async {
+  Future<LiveSessionState> _fetchSessions() async {
     try {
-      final session = await _ds.getMyActiveSession();
-      return LiveSessionState(session: session);
+      final sessions = await _ds.getMyActiveSessions();
+      return LiveSessionState(sessions: sessions);
     } catch (e) {
       return LiveSessionState(error: e.toString());
     }
@@ -55,7 +57,7 @@ class LiveSessionController extends AsyncNotifier<LiveSessionState> {
 
   Future<void> refresh() async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => _fetchSession());
+    state = await AsyncValue.guard(() => _fetchSessions());
   }
 }
 

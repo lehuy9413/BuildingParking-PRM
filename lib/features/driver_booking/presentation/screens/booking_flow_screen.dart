@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/network/api_endpoints.dart';
 import '../../data/datasources/api_booking_datasource.dart';
 import '../controllers/booking_controller.dart';
 import '../widgets/booking_step_time.dart';
@@ -201,11 +202,19 @@ class _BookingQrSheetState extends State<_BookingQrSheet> {
   String? _transferContent;
   String? _bankInfo;
   double? _amount;
+  String? _paymentId;
+  bool _isChecking = false;
 
   @override
   void initState() {
     super.initState();
     _initQr();
+  }
+
+  @override
+  void dispose() {
+    _isChecking = false;
+    super.dispose();
   }
 
   Future<void> _initQr() async {
@@ -222,6 +231,12 @@ class _BookingQrSheetState extends State<_BookingQrSheet> {
             _bankInfo = '${bi['bankName']} – ${bi['accountNumber']} (${bi['accountName']})';
           }
           _amount = (data['amount'] as num?)?.toDouble();
+          
+          final paymentObj = data['payment'];
+          if (paymentObj is Map && paymentObj['_id'] != null) {
+            _paymentId = paymentObj['_id'].toString();
+            _startPolling();
+          }
         });
       }
     } catch (e) {
@@ -230,6 +245,28 @@ class _BookingQrSheetState extends State<_BookingQrSheet> {
           _loading = false;
           _error = e.toString().replaceFirst('Exception: ', '');
         });
+      }
+    }
+  }
+
+  void _startPolling() async {
+    _isChecking = true;
+    final ds = ApiBookingDataSource(); // Reusing the DIO instance
+    while (_isChecking && mounted && _paymentId != null) {
+      await Future.delayed(const Duration(seconds: 3));
+      if (!mounted || !_isChecking) break;
+      
+      try {
+        final res = await ds.dio.get(ApiEndpoints.bankTransferStatus(_paymentId!));
+        if (res.statusCode == 200) {
+          final isPaid = res.data['data']['isPaid'] == true;
+          if (isPaid && mounted) {
+            _isChecking = false;
+            widget.onPaid();
+          }
+        }
+      } catch (e) {
+        debugPrint('Polling error: $e');
       }
     }
   }
@@ -276,7 +313,7 @@ class _BookingQrSheetState extends State<_BookingQrSheet> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Thanh toán Booking', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
+                          const Text('Payment via QR', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
                           if (_amount != null)
                             Text(
                               '${_amount!.toInt().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => '.')} ₫',
@@ -308,17 +345,17 @@ class _BookingQrSheetState extends State<_BookingQrSheet> {
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
                   child: SizedBox(
                     width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: widget.onPaid,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        backgroundColor: const Color(0xFF059669),
-                        foregroundColor: Colors.white,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        _isChecking = false;
+                        Navigator.pop(context);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: BorderSide(color: Colors.grey.shade400),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        elevation: 4,
                       ),
-                      icon: const Icon(Icons.check_circle_rounded),
-                      label: const Text('Đã chuyển khoản – Lấy vé', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                      child: Text('Cancel', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: widget.isDark ? Colors.grey.shade300 : Colors.grey.shade700)),
                     ),
                   ),
                 ),
@@ -340,7 +377,7 @@ class _BookingQrSheetState extends State<_BookingQrSheet> {
         const SizedBox(height: 24),
         TextButton(
           onPressed: () { setState(() { _loading = true; _error = null; }); _initQr(); },
-          child: const Text('Thử lại'),
+          child: const Text('Try Again'),
         ),
       ],
     );
@@ -372,13 +409,23 @@ class _BookingQrSheetState extends State<_BookingQrSheet> {
                     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                       Icon(Icons.qr_code_2_rounded, size: 80, color: Color(0xFF059669)),
                       SizedBox(height: 8),
-                      Text('Dùng nội dung chuyển khoản bên dưới', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      Text('Use the transfer content below', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey)),
                     ]),
                   ),
                 )
               : const SizedBox(width: 220, height: 220, child: Center(child: Icon(Icons.qr_code_2_rounded, size: 80, color: Color(0xFF059669)))),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
+        // Loading Indicator
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF059669))),
+            const SizedBox(width: 12),
+            Text('Awaiting payment...', style: TextStyle(fontWeight: FontWeight.w600, color: widget.isDark ? Colors.grey.shade300 : Colors.grey.shade700)),
+          ],
+        ),
+        const SizedBox(height: 24),
         // Transfer content
         if (_transferContent != null)
           Container(
@@ -395,7 +442,7 @@ class _BookingQrSheetState extends State<_BookingQrSheet> {
                 Row(children: [
                   Icon(Icons.info_outline_rounded, color: const Color(0xFF059669), size: 15),
                   const SizedBox(width: 6),
-                  const Text('Nội dung chuyển khoản', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF059669))),
+                  const Text('Transfer Message (Required)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF059669))),
                 ]),
                 const SizedBox(height: 8),
                 SelectableText(
@@ -426,7 +473,7 @@ class _BookingQrSheetState extends State<_BookingQrSheet> {
               SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Xe vào bãi ngay sau khi chuyển khoản thành công.\nNếu đậu lố giờ sẽ tính thêm phí khi lấy xe.',
+                  'Enter the parking lot immediately after payment is successful.\nIf you overstay, extra fees will be applied upon exit.',
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF059669), height: 1.5),
                 ),
               ),

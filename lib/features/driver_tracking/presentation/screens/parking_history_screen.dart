@@ -297,6 +297,7 @@ class ParkingHistoryScreen extends ConsumerWidget {
       child: Column(
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
@@ -316,7 +317,8 @@ class ParkingHistoryScreen extends ConsumerWidget {
                   size: 24,
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
+              // Left: plate + status + location
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -329,19 +331,20 @@ class ParkingHistoryScreen extends ConsumerWidget {
                                 ? session.licensePlate
                                 : session.vehicleTypeName,
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.w800,
                               color: isDark
                                   ? Colors.white
                                   : const Color(0xFF0F172A),
-                              letterSpacing: 0.5,
+                              letterSpacing: 0.3,
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
+                              horizontal: 7, vertical: 3),
                           decoration: BoxDecoration(
                             color: statusColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(6),
@@ -359,26 +362,52 @@ class ParkingHistoryScreen extends ConsumerWidget {
                       ],
                     ),
                     const SizedBox(height: 4),
+                    // Floor/zone on one line
                     Text(
-                      session.suggestedArea,
+                      '${session.floorName}${session.zoneName != null ? ' – ${session.zoneName}' : ''}',
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: isDark
                             ? Colors.grey.shade400
                             : Colors.grey.shade500,
                       ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                    const SizedBox(height: 3),
+                    // Slot as compact chip
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.07)
+                            : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        session.slotCode,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: isDark
+                              ? Colors.grey.shade300
+                              : const Color(0xFF475569),
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 10),
+              // Right: fee + duration
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
                     _formatCurrency(session.totalFee),
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.w900,
                       color: isDark
                           ? const Color(0xFF34D399)

@@ -13,18 +13,16 @@ class DriverTrackingDatasource {
 
   // ─── LIVE SESSION ─────────────────────────────────────────────────────────
 
-  /// Lấy phiên đỗ xe đang active của driver hiện tại.
-  /// Backend lọc theo user đang đăng nhập (JWT).
-  Future<ParkingSessionApiModel?> getMyActiveSession() async {
+  /// Lấy tất cả phiên đỗ xe đang active của driver hiện tại.
+  Future<List<ParkingSessionApiModel>> getMyActiveSessions() async {
     try {
       final res = await _dio.get(
         ApiEndpoints.sessions,
-        queryParameters: {'status': 'active', 'limit': 1},
+        queryParameters: {'status': 'active', 'limit': 50},
       );
       final data = res.data['data'];
       final List docs = data is List ? data : (data['docs'] ?? []);
-      if (docs.isEmpty) return null;
-      return ParkingSessionApiModel.fromJson(docs.first as Map<String, dynamic>);
+      return docs.map((e) => ParkingSessionApiModel.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
       throw _handleError(e);
     }
@@ -164,9 +162,9 @@ class DriverTrackingDatasource {
   Future<String?> _resolveParkingLotId() async {
     try {
       // Thử session active trước
-      final active = await getMyActiveSession();
-      if (active != null && active.parkingLotId.isNotEmpty) {
-        return active.parkingLotId;
+      final activeSessions = await getMyActiveSessions();
+      if (activeSessions.isNotEmpty && activeSessions.first.parkingLotId.isNotEmpty) {
+        return activeSessions.first.parkingLotId;
       }
       // Fallback: session completed gần nhất
       final res = await _dio.get(

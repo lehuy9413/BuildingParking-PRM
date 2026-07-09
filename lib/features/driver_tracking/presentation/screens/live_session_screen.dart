@@ -9,7 +9,9 @@ import 'payment_screen.dart';
 /// Màn hình theo dõi lượt gửi xe hiện tại (Live Session Tracking).
 /// Hiển thị giờ vào, vị trí đỗ, phí tạm tính nhảy realtime – lấy từ API.
 class LiveSessionScreen extends ConsumerStatefulWidget {
-  const LiveSessionScreen({super.key});
+  /// [sessionId] nếu null thì lấy session đầu tiên (legacy).
+  final String? sessionId;
+  const LiveSessionScreen({super.key, this.sessionId});
 
   @override
   ConsumerState<LiveSessionScreen> createState() => _LiveSessionScreenState();
@@ -27,12 +29,17 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
   void initState() {
     super.initState();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      final session = ref.read(liveSessionProvider).value?.session;
-      if (session != null && mounted) {
-        setState(() {
-          _elapsed = DateTime.now().difference(session.entryTime);
-        });
-      }
+      final sessions = ref.read(liveSessionProvider).value?.sessions ?? [];
+      if (sessions.isEmpty || !mounted) return;
+      final session = widget.sessionId != null
+          ? sessions.firstWhere(
+              (s) => s.id == widget.sessionId,
+              orElse: () => sessions.first,
+            )
+          : sessions.first;
+      setState(() {
+        _elapsed = DateTime.now().difference(session.entryTime);
+      });
     });
 
     _pulseController = AnimationController(
@@ -128,10 +135,15 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
           if (sessionState.error != null) {
             return _buildError(isDark, sessionState.error!);
           }
-          if (!sessionState.hasActiveSession) {
-            return _buildNoSession(isDark);
-          }
-          final session = sessionState.session!;
+          final sessions = sessionState.sessions;
+          if (sessions.isEmpty) return _buildNoSession(isDark);
+          // Find by sessionId if provided, fallback to first
+          final session = widget.sessionId != null
+              ? sessions.firstWhere(
+                  (s) => s.id == widget.sessionId,
+                  orElse: () => sessions.first,
+                )
+              : sessions.first;
           _elapsed = DateTime.now().difference(session.entryTime);
           return _buildContent(isDark, session);
         },
@@ -817,7 +829,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
     Color color,
   ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
           Container(
@@ -828,25 +840,30 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
             ),
             child: Icon(icon, color: color, size: 18),
           ),
-          const SizedBox(width: 14),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 4,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+              ),
             ),
           ),
-          const Spacer(),
-          Flexible(
+          Expanded(
+            flex: 5,
             child: Text(
               value,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: isDark ? Colors.white : const Color(0xFF0F172A),
               ),
               textAlign: TextAlign.end,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
             ),
           ),
         ],
