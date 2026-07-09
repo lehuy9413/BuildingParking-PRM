@@ -107,6 +107,12 @@ class _BookingStepSlotState extends ConsumerState<BookingStepSlot> {
               estimatedPrice: state.estimatedPrice,
               isDark: isDark,
             ),
+            const SizedBox(height: 24),
+            _PaymentMethodSelection(
+              selectedMethod: state.paymentMethod,
+              onMethodChanged: controller.setPaymentMethod,
+              isDark: isDark,
+            ),
           ],
           const SizedBox(height: 20),
         ],
@@ -521,6 +527,144 @@ class _SelectedSlotSummary extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Payment Method Selection ────────────────────────────────────────────────
+
+class _PaymentMethodSelection extends StatelessWidget {
+  const _PaymentMethodSelection({
+    required this.selectedMethod,
+    required this.onMethodChanged,
+    required this.isDark,
+  });
+
+  final String selectedMethod;
+  final ValueChanged<String> onMethodChanged;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          icon: Icons.payments_rounded,
+          title: 'Payment Method',
+          isDark: isDark,
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _PaymentCard(
+                title: 'Tiền mặt',
+                subtitle: 'Thanh toán lúc ra',
+                icon: Icons.money_rounded,
+                isSelected: selectedMethod == 'cash',
+                onTap: () => onMethodChanged('cash'),
+                isDark: isDark,
+                activeColor: const Color(0xFFF59E0B),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _PaymentCard(
+                title: 'Chuyển khoản QR',
+                subtitle: 'Thanh toán ngay',
+                icon: Icons.qr_code_rounded,
+                isSelected: selectedMethod == 'qr',
+                onTap: () => onMethodChanged('qr'),
+                isDark: isDark,
+                activeColor: const Color(0xFF059669),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _PaymentCard extends StatelessWidget {
+  const _PaymentCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+    required this.isDark,
+    required this.activeColor,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final bool isDark;
+  final Color activeColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? activeColor.withOpacity(isDark ? 0.2 : 0.1)
+              : (isDark ? const Color(0xFF1E293B) : Colors.white),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? activeColor
+                : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: activeColor.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : [],
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              color: isSelected
+                  ? activeColor
+                  : (isDark ? Colors.grey.shade400 : Colors.grey.shade500),
+              size: 28,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : const Color(0xFF0F172A),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

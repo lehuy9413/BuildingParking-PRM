@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/datasources/api_booking_datasource.dart';
 import '../controllers/booking_controller.dart';
 import '../widgets/booking_step_time.dart';
 import '../widgets/booking_step_vehicle.dart';
@@ -10,7 +11,6 @@ import 'digital_ticket_screen.dart';
 class BookingFlowScreen extends ConsumerStatefulWidget {
   const BookingFlowScreen({super.key, this.isEmbedded = false});
 
-  /// When true, the screen is embedded inside a tab (no back navigation at step 0).
   final bool isEmbedded;
 
   @override
@@ -46,24 +46,10 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
     final state = ref.watch(bookingControllerProvider);
     final controller = ref.read(bookingControllerProvider.notifier);
 
-    // Listen for step changes to animate PageView
     ref.listen<BookingState>(bookingControllerProvider, (prev, next) {
       if (prev?.currentStep != next.currentStep) {
         _animateToPage(next.currentStep);
       }
-      // Navigate to ticket screen when booking is confirmed
-      if (prev?.confirmedBooking == null && next.confirmedBooking != null) {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => DigitalTicketScreen(booking: next.confirmedBooking!),
-          ),
-        ).then((_) {
-          // Reset booking state when returning from ticket screen
-          ref.read(bookingControllerProvider.notifier).resetBooking();
-        });
-      }
-      
-      // Show error message if any
       if (prev?.errorMessage != next.errorMessage && next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -77,7 +63,6 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
       }
     });
 
-    // Determine whether to show back button
     final showBackButton = state.currentStep > 0 || !widget.isEmbedded;
 
     return Scaffold(
@@ -114,11 +99,8 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
       ),
       body: Column(
         children: [
-          // ── Stepper Indicator ──
           _StepIndicator(currentStep: state.currentStep, isDark: isDark),
           const SizedBox(height: 8),
-
-          // ── PageView Content ──
           Expanded(
             child: PageView(
               controller: _pageController,
@@ -130,17 +112,28 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
               ],
             ),
           ),
-
-          // ── Bottom Navigation Buttons ──
           _BottomButtons(
             currentStep: state.currentStep,
             canProceed: _canProceedCurrentStep(state),
             isConfirming: state.isBookingConfirming,
             isDark: isDark,
             onBack: () => controller.previousStep(),
-            onNext: () {
+            onNext: () async {
               if (state.currentStep == 2) {
-                controller.confirmBooking();
+                await controller.confirmBooking();
+                final confirmed = ref.read(bookingControllerProvider).confirmedBooking;
+                if (confirmed != null && mounted) {
+                  if (state.paymentMethod == 'qr') {
+                    _showQrPaymentSheet(context, confirmed.id, isDark);
+                  } else {
+                    // Cash: đặt chỗ xong, trả tiền lúc lấy xe
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => DigitalTicketScreen(booking: confirmed),
+                    )).then((_) {
+                      ref.read(bookingControllerProvider.notifier).resetBooking();
+                    });
+                  }
+                }
               } else {
                 controller.nextStep();
               }
@@ -151,17 +144,298 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
     );
   }
 
+  void _showQrPaymentSheet(BuildContext context, String bookingId, bool isDark) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _BookingQrSheet(
+        bookingId: bookingId,
+        isDark: isDark,
+        onPaid: () {
+          Navigator.pop(ctx);
+          final confirmed = ref.read(bookingControllerProvider).confirmedBooking;
+          if (confirmed != null) {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => DigitalTicketScreen(booking: confirmed),
+            )).then((_) {
+              ref.read(bookingControllerProvider.notifier).resetBooking();
+            });
+          }
+        },
+      ),
+    );
+  }
+
   bool _canProceedCurrentStep(BookingState state) {
     switch (state.currentStep) {
-      case 0:
-        return state.canProceedStep1;
-      case 1:
-        return state.canProceedStep2;
-      case 2:
-        return state.canProceedStep3;
-      default:
-        return false;
+      case 0: return state.canProceedStep1;
+      case 1: return state.canProceedStep2;
+      case 2: return state.canProceedStep3;
+      default: return false;
     }
+  }
+}
+
+// ─── QR Payment Bottom Sheet ─────────────────────────────────────────────────
+
+class _BookingQrSheet extends StatefulWidget {
+  const _BookingQrSheet({
+    required this.bookingId,
+    required this.isDark,
+    required this.onPaid,
+  });
+
+  final String bookingId;
+  final bool isDark;
+  final VoidCallback onPaid;
+
+  @override
+  State<_BookingQrSheet> createState() => _BookingQrSheetState();
+}
+
+class _BookingQrSheetState extends State<_BookingQrSheet> {
+  bool _loading = true;
+  String? _error;
+  String? _qrUrl;
+  String? _transferContent;
+  String? _bankInfo;
+  double? _amount;
+
+  @override
+  void initState() {
+    super.initState();
+    _initQr();
+  }
+
+  Future<void> _initQr() async {
+    try {
+      final ds = ApiBookingDataSource();
+      final data = await ds.initiateBookingQrPayment(widget.bookingId);
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _qrUrl = data['qrUrl'] as String?;
+          _transferContent = data['transferContent'] as String?;
+          final bi = data['bankInfo'];
+          if (bi is Map) {
+            _bankInfo = '${bi['bankName']} – ${bi['accountNumber']} (${bi['accountName']})';
+          }
+          _amount = (data['amount'] as num?)?.toDouble();
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = e.toString().replaceFirst('Exception: ', '');
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.9,
+      maxChildSize: 0.95,
+      minChildSize: 0.5,
+      builder: (ctx, scroll) {
+        return Container(
+          decoration: BoxDecoration(
+            color: widget.isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade400,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Header
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF059669), Color(0xFF34D399)],
+                    begin: Alignment.topLeft, end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.qr_code_2_rounded, color: Colors.white, size: 36),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Thanh toán Booking', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
+                          if (_amount != null)
+                            Text(
+                              '${_amount!.toInt().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => '.')} ₫',
+                              style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scroll,
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: _loading
+                      ? const Center(child: Padding(
+                          padding: EdgeInsets.all(48),
+                          child: CircularProgressIndicator(color: Color(0xFF059669)),
+                        ))
+                      : _error != null
+                          ? _buildError()
+                          : _buildQrContent(),
+                ),
+              ),
+              if (!_loading && _error == null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: widget.onPaid,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        backgroundColor: const Color(0xFF059669),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 4,
+                      ),
+                      icon: const Icon(Icons.check_circle_rounded),
+                      label: const Text('Đã chuyển khoản – Lấy vé', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildError() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const SizedBox(height: 32),
+        Icon(Icons.error_outline_rounded, size: 56, color: Colors.red.shade400),
+        const SizedBox(height: 16),
+        Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: Colors.red.shade400, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 24),
+        TextButton(
+          onPressed: () { setState(() { _loading = true; _error = null; }); _initQr(); },
+          child: const Text('Thử lại'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQrContent() {
+    return Column(
+      children: [
+        // QR Image
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 20, offset: const Offset(0, 8)),
+            ],
+          ),
+          child: _qrUrl != null
+              ? Image.network(
+                  _qrUrl!,
+                  width: 220, height: 220,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (_, child, prog) => prog == null
+                      ? child
+                      : const SizedBox(width: 220, height: 220, child: Center(child: CircularProgressIndicator(color: Color(0xFF059669)))),
+                  errorBuilder: (_, __, ___) => const SizedBox(
+                    width: 220, height: 220,
+                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Icon(Icons.qr_code_2_rounded, size: 80, color: Color(0xFF059669)),
+                      SizedBox(height: 8),
+                      Text('Dùng nội dung chuyển khoản bên dưới', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    ]),
+                  ),
+                )
+              : const SizedBox(width: 220, height: 220, child: Center(child: Icon(Icons.qr_code_2_rounded, size: 80, color: Color(0xFF059669)))),
+        ),
+        const SizedBox(height: 20),
+        // Transfer content
+        if (_transferContent != null)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF059669).withOpacity(widget.isDark ? 0.15 : 0.08),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFF059669).withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Icon(Icons.info_outline_rounded, color: const Color(0xFF059669), size: 15),
+                  const SizedBox(width: 6),
+                  const Text('Nội dung chuyển khoản', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF059669))),
+                ]),
+                const SizedBox(height: 8),
+                SelectableText(
+                  _transferContent!,
+                  style: TextStyle(
+                    fontSize: 22, fontWeight: FontWeight.w900,
+                    color: widget.isDark ? Colors.white : const Color(0xFF0F172A),
+                    letterSpacing: 2,
+                  ),
+                ),
+                if (_bankInfo != null) ...[
+                  const SizedBox(height: 6),
+                  Text(_bankInfo!, style: TextStyle(fontSize: 12, color: widget.isDark ? Colors.grey.shade400 : Colors.grey.shade600)),
+                ],
+              ],
+            ),
+          ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF059669).withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.info_rounded, color: Color(0xFF059669), size: 18),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Xe vào bãi ngay sau khi chuyển khoản thành công.\nNếu đậu lố giờ sẽ tính thêm phí khi lấy xe.',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF059669), height: 1.5),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
   }
 }
 
@@ -187,9 +461,7 @@ class _StepIndicator extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1A2332) : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? const Color(0xFF2A3A4A) : const Color(0xFFE8EDF2),
-        ),
+        border: Border.all(color: isDark ? const Color(0xFF2A3A4A) : const Color(0xFFE8EDF2)),
       ),
       child: Row(
         children: [
@@ -226,22 +498,9 @@ class _StepIndicator extends StatelessWidget {
                       ? const Color(0xFF1e293b)
                       : (isDark ? const Color(0xFF2A3A4A) : const Color(0xFFE2E8F0)),
               boxShadow: isCurrent
-                  ? [
-                      BoxShadow(
-                        color: const Color(0xFF1e293b).withValues(alpha: 0.35),
-                        blurRadius: 12,
-                        spreadRadius: 1,
-                        offset: const Offset(0, 3),
-                      ),
-                    ]
+                  ? [BoxShadow(color: const Color(0xFF1e293b).withOpacity(0.35), blurRadius: 12, spreadRadius: 1, offset: const Offset(0, 3))]
                   : isCompleted
-                      ? [
-                          BoxShadow(
-                            color: const Color(0xFF2563eb).withValues(alpha: 0.25),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
+                      ? [BoxShadow(color: const Color(0xFF2563eb).withOpacity(0.25), blurRadius: 8, offset: const Offset(0, 2))]
                       : [],
             ),
             child: Center(
@@ -249,14 +508,7 @@ class _StepIndicator extends StatelessWidget {
                 duration: const Duration(milliseconds: 250),
                 child: isCompleted
                     ? const Icon(Icons.check_rounded, color: Colors.white, size: 16, key: ValueKey('check'))
-                    : Icon(
-                        icon,
-                        color: isCurrent
-                            ? Colors.white
-                            : (isDark ? Colors.grey.shade600 : Colors.grey.shade400),
-                        size: isCurrent ? 18 : 14,
-                        key: const ValueKey('icon'),
-                      ),
+                    : Icon(icon, color: isCurrent ? Colors.white : (isDark ? Colors.grey.shade600 : Colors.grey.shade400), size: isCurrent ? 18 : 14, key: const ValueKey('icon')),
               ),
             ),
           ),
@@ -266,11 +518,7 @@ class _StepIndicator extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: isCurrent ? 13 : 12,
-                fontWeight: isCurrent
-                    ? FontWeight.w800
-                    : isCompleted
-                        ? FontWeight.w700
-                        : FontWeight.w500,
+                fontWeight: isCurrent ? FontWeight.w800 : isCompleted ? FontWeight.w700 : FontWeight.w500,
                 color: isCurrent
                     ? (isDark ? Colors.white : const Color(0xFF1e293b))
                     : isCompleted
@@ -291,39 +539,26 @@ class _StepIndicator extends StatelessWidget {
       flex: 1,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 2),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              height: 2,
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF2A3A4A) : const Color(0xFFE2E8F0),
-                borderRadius: BorderRadius.circular(1),
+        child: Stack(alignment: Alignment.center, children: [
+          Container(height: 2, decoration: BoxDecoration(color: isDark ? const Color(0xFF2A3A4A) : const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(1))),
+          LayoutBuilder(builder: (context, constraints) {
+            return AnimatedAlign(
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.centerLeft,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeOutCubic,
+                height: 2,
+                width: isActive ? constraints.maxWidth : 0,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [Color(0xFF2563eb), Color(0xFF1e293b)]),
+                  borderRadius: BorderRadius.circular(1),
+                ),
               ),
-            ),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                return AnimatedAlign(
-                  duration: const Duration(milliseconds: 400),
-                  curve: Curves.easeOutCubic,
-                  alignment: Alignment.centerLeft,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.easeOutCubic,
-                    height: 2,
-                    width: isActive ? constraints.maxWidth : 0,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF2563eb), Color(0xFF1e293b)],
-                      ),
-                      borderRadius: BorderRadius.circular(1),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
+            );
+          }),
+        ]),
       ),
     );
   }
@@ -356,7 +591,7 @@ class _BottomButtons extends StatelessWidget {
         color: isDark ? const Color(0xFF1A202C) : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.06),
             blurRadius: 20,
             offset: const Offset(0, -8),
           ),
@@ -370,22 +605,10 @@ class _BottomButtons extends StatelessWidget {
                 onPressed: onBack,
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: BorderSide(
-                    color: isDark ? Colors.grey.shade600 : const Color(0xFFCBD5E1),
-                    width: 1.5,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                  side: BorderSide(color: isDark ? Colors.grey.shade600 : const Color(0xFFCBD5E1), width: 1.5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
-                child: Text(
-                  'Back',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                    color: isDark ? Colors.grey.shade300 : const Color(0xFF475569),
-                  ),
-                ),
+                child: Text('Back', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: isDark ? Colors.grey.shade300 : const Color(0xFF475569))),
               ),
             ),
           if (currentStep > 0) const SizedBox(width: 16),
@@ -398,31 +621,19 @@ class _BottomButtons extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   backgroundColor: const Color(0xFF1e293b),
-                  disabledBackgroundColor:
-                      isDark ? const Color(0xFF2D3748) : const Color(0xFFE2E8F0),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                  disabledBackgroundColor: isDark ? const Color(0xFF2D3748) : const Color(0xFFE2E8F0),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   elevation: canProceed ? 4 : 0,
-                  shadowColor: const Color(0xFF1e293b).withValues(alpha: 0.4),
+                  shadowColor: const Color(0xFF1e293b).withOpacity(0.4),
                 ),
                 child: isConfirming
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: Colors.white,
-                        ),
-                      )
+                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
                     : Text(
                         currentStep == 2 ? 'Confirm Booking' : 'Continue',
                         style: TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 16,
-                          color: canProceed
-                              ? Colors.white
-                              : (isDark ? Colors.grey.shade600 : Colors.grey.shade400),
+                          color: canProceed ? Colors.white : (isDark ? Colors.grey.shade600 : Colors.grey.shade400),
                         ),
                       ),
               ),

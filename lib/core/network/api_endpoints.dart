@@ -30,6 +30,7 @@ class ApiEndpoints {
   // Payments
   static const String cashPayment = '/payments/cash';
   static const String bankTransferInitiate = '/payments/bank-transfer/initiate';
+  static const String bankTransferBookingInitiate = '/payments/bank-transfer/booking/initiate';
   static String bankTransferStatus(String paymentId) => '/payments/bank-transfer/$paymentId/status';
 
   // Parking Lots
@@ -48,4 +49,7 @@ class ApiEndpoints {
   static const String availableSlots = '/parking-slots/available';
   static String lockSlot(String id) => '/parking-slots/$id/lock';
   static String unlockSlot(String id) => '/parking-slots/$id/lock'; // DELETE request
+
+  // Feedbacks
+  static const String feedbacks = '/feedbacks';
 }

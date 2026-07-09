@@ -142,6 +142,25 @@ class ApiBookingDataSource {
     }
   }
 
+  /// Gọi API khởi tạo QR thanh toán cho Booking (trước khi xe vào bãi).
+  /// Endpoint: POST /payments/bank-transfer/booking/initiate
+  /// Backend trả về { qrUrl, transferContent, amount, bankInfo }
+  Future<Map<String, dynamic>> initiateBookingQrPayment(String bookingId) async {
+    try {
+      final response = await dio.post(
+        ApiEndpoints.bankTransferBookingInitiate,
+        data: {'bookingId': bookingId},
+      );
+      if (response.statusCode == 201) {
+        return (response.data['data'] as Map<String, dynamic>?) ?? {};
+      }
+      throw Exception('Failed to initiate booking QR payment');
+    } on DioException catch (e) {
+      final errorMsg = e.response?.data?['message'] ?? 'Lỗi khởi tạo QR thanh toán';
+      throw Exception(errorMsg);
+    }
+  }
+
   Future<BookingModel> getBookingById(String bookingId) async {
     final response = await dio.get('${ApiEndpoints.bookings}/$bookingId');
     if (response.statusCode == 200) {
