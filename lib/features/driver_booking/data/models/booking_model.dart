@@ -21,15 +21,49 @@ class BookingModel extends Booking {
   });
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
+    // Handle zone: can be a Map (populated), a String (ID), or null
+    String? resolvedZoneName;
+    if (json['zone'] is Map) {
+      resolvedZoneName = json['zone']['name'];
+    }
+    // Fallbacks for zone name
+    resolvedZoneName ??= json['zoneName'] ?? json['zone_name'];
+
+    // Handle floor: can be a Map (populated), a String (ID), or null
+    String? resolvedFloorName;
+    if (json['floor'] is Map) {
+      resolvedFloorName = json['floor']['name'] ?? json['floor']['floorNumber']?.toString();
+    }
+    resolvedFloorName ??= json['floorName'] ?? json['floor_name'];
+
+    // Handle assignedSlot: can be a Map (populated) or a String (ID)
+    String? resolvedSlotId;
+    String? resolvedSlotCode;
+    if (json['assignedSlot'] is Map) {
+      resolvedSlotId = json['assignedSlot']['_id'];
+      resolvedSlotCode = json['assignedSlot']['slotCode'];
+      // If zone/floor still null, try to get from slot
+      if (resolvedZoneName == null && json['assignedSlot']['zone'] is Map) {
+        resolvedZoneName = json['assignedSlot']['zone']['name'];
+      }
+      if (resolvedFloorName == null && json['assignedSlot']['floor'] is Map) {
+        resolvedFloorName = json['assignedSlot']['floor']['name'] ?? 
+            json['assignedSlot']['floor']['floorNumber']?.toString();
+      }
+    } else if (json['assignedSlot'] is String) {
+      resolvedSlotId = json['assignedSlot'];
+    }
+    resolvedSlotCode ??= json['slotCode'];
+
     return BookingModel(
       id: json['_id'] ?? '',
       bookingCode: json['bookingCode'] ?? '',
       parkingLotId: json['parkingLot'] is Map ? json['parkingLot']['_id'] ?? '' : (json['parkingLot'] is String ? json['parkingLot'] : ''),
       parkingLotName: json['parkingLot'] is Map ? json['parkingLot']['name'] ?? '' : '',
-      slotId: json['assignedSlot'] is Map ? json['assignedSlot']['_id'] : (json['assignedSlot'] is String ? json['assignedSlot'] : null),
-      slotCode: json['assignedSlot'] is Map ? json['assignedSlot']['slotCode'] : null,
-      floorName: json['floor'] is Map ? json['floor']['name'] ?? json['floor']['floorNumber']?.toString() : null,
-      zoneName: json['zone'] is Map ? json['zone']['name'] : null,
+      slotId: resolvedSlotId,
+      slotCode: resolvedSlotCode,
+      floorName: resolvedFloorName,
+      zoneName: resolvedZoneName,
       vehicleTypeName: json['vehicleType'] is Map ? json['vehicleType']['name'] ?? '' : '',
       licensePlate: json['vehicleInfo'] is Map ? json['vehicleInfo']['licensePlate'] ?? '' : '',
       scheduledDate: DateTime.parse(json['scheduledDate']),

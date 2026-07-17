@@ -131,7 +131,9 @@ class BookingStepTime extends ConsumerWidget {
           _SectionHeader(
             icon: Icons.login_rounded,
             title: 'Check-in Time',
-            subtitle: 'Select arrival time to find the best spots',
+            subtitle: state.selectedDate == null
+                ? 'Please select a date first'
+                : 'Select arrival time to find the best spots',
             isDark: isDark,
           ),
           const SizedBox(height: 12),
@@ -140,6 +142,8 @@ class BookingStepTime extends ConsumerWidget {
             selectedTime: state.checkInTime,
             onTimeSelected: controller.selectCheckInTime,
             isDark: isDark,
+            selectedDate: state.selectedDate,
+            enabled: state.selectedDate != null,
           ),
           const SizedBox(height: 28),
 
@@ -147,7 +151,9 @@ class BookingStepTime extends ConsumerWidget {
           _SectionHeader(
             icon: Icons.logout_rounded,
             title: 'Check-out Time',
-            subtitle: 'Estimated departure time',
+            subtitle: state.selectedDate == null
+                ? 'Please select a date first'
+                : 'Estimated departure time',
             isDark: isDark,
           ),
           const SizedBox(height: 12),
@@ -156,6 +162,9 @@ class BookingStepTime extends ConsumerWidget {
             selectedTime: state.checkOutTime,
             onTimeSelected: controller.selectCheckOutTime,
             isDark: isDark,
+            selectedDate: state.selectedDate,
+            enabled: state.selectedDate != null,
+            isCheckout: true,
           ),
           const SizedBox(height: 24),
 
@@ -426,97 +435,151 @@ class _NativeTimePicker extends StatelessWidget {
   final ValueChanged<TimeOfDay> onTimeSelected;
   final bool isDark;
   final String label;
+  final DateTime? selectedDate;
+  final bool enabled;
+  final bool isCheckout;
 
   const _NativeTimePicker({
     required this.selectedTime,
     required this.onTimeSelected,
     required this.isDark,
     required this.label,
+    this.selectedDate,
+    this.enabled = true,
+    this.isCheckout = false,
   });
+
+  bool _isToday(DateTime? date) {
+    if (date == null) return false;
+    final now = DateTime.now();
+    return date.year == now.year && date.month == now.month && date.day == now.day;
+  }
+
+  bool _isPastTime(TimeOfDay time) {
+    if (isCheckout) return false; // Checkout can be earlier hour (wraps to next day)
+    if (!_isToday(selectedDate)) return false;
+    final now = TimeOfDay.now();
+    return time.hour < now.hour || (time.hour == now.hour && time.minute < now.minute);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () async {
-        final time = await showTimePicker(
-          context: context,
-          initialTime: selectedTime ?? TimeOfDay.now(),
-          builder: (context, child) {
-            return Theme(
-              data: Theme.of(context).copyWith(
-                colorScheme: ColorScheme.light(
-                  primary: const Color(0xFF2563eb),
-                  onPrimary: Colors.white,
-                  surface: isDark ? const Color(0xFF1e293b) : Colors.white,
-                  onSurface: isDark ? Colors.white : const Color(0xFF1e293b),
+    final isDisabled = !enabled;
+
+    return Opacity(
+      opacity: isDisabled ? 0.5 : 1.0,
+      child: InkWell(
+        onTap: isDisabled ? null : () async {
+          // If today, ensure initial time is not in the past
+          TimeOfDay initialTime = selectedTime ?? TimeOfDay.now();
+          if (_isToday(selectedDate)) {
+            final now = TimeOfDay.now();
+            // Round up to next hour if current time is in the past
+            if (initialTime.hour < now.hour || 
+                (initialTime.hour == now.hour && initialTime.minute <= now.minute)) {
+              initialTime = TimeOfDay(hour: (now.hour + 1) % 24, minute: 0);
+            }
+          }
+
+          final time = await showTimePicker(
+            context: context,
+            initialTime: initialTime,
+            builder: (context, child) {
+              return Theme(
+                data: Theme.of(context).copyWith(
+                  colorScheme: ColorScheme.light(
+                    primary: const Color(0xFF2563eb),
+                    onPrimary: Colors.white,
+                    surface: isDark ? const Color(0xFF1e293b) : Colors.white,
+                    onSurface: isDark ? Colors.white : const Color(0xFF1e293b),
+                  ),
                 ),
-              ),
-              child: child!,
-            );
-          },
-        );
-        if (time != null) {
-          onTimeSelected(time);
-        }
-      },
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1e293b) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isDark ? const Color(0xFF334155) : const Color(0xFFe2e8f0),
-            width: 1.5,
+                child: child!,
+              );
+            },
+          );
+          if (time != null) {
+            // Validate: if today, don't allow past times
+            if (_isPastTime(time)) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Cannot select a time in the past'),
+                    backgroundColor: Colors.red.shade600,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+              return;
+            }
+            onTimeSelected(time);
+          }
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1e293b) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark ? const Color(0xFF334155) : const Color(0xFFe2e8f0),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 15,
+                offset: const Offset(0, 4),
+              )
+            ],
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 15,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? const Color(0xFF94a3b8) : const Color(0xFF64748b),
-                    letterSpacing: 1.2,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? const Color(0xFF94a3b8) : const Color(0xFF64748b),
+                      letterSpacing: 1.2,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  selectedTime != null
-                      ? '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}'
-                      : '--:--',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    color: selectedTime != null
-                        ? (isDark ? Colors.white : const Color(0xFF1e293b))
-                        : (isDark ? const Color(0xFF475569) : const Color(0xFFcbd5e1)),
+                  const SizedBox(height: 6),
+                  Text(
+                    selectedTime != null
+                        ? '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}'
+                        : isDisabled ? 'Select date first' : '--:--',
+                    style: TextStyle(
+                      fontSize: selectedTime != null ? 28 : (isDisabled ? 16 : 28),
+                      fontWeight: FontWeight.w900,
+                      color: selectedTime != null
+                          ? (isDark ? Colors.white : const Color(0xFF1e293b))
+                          : (isDark ? const Color(0xFF475569) : const Color(0xFFcbd5e1)),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2563eb).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+                ],
               ),
-              child: const Icon(Icons.access_time_filled_rounded, color: Color(0xFF2563eb), size: 28),
-            ),
-          ],
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2563eb).withValues(alpha: isDisabled ? 0.05 : 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.access_time_filled_rounded, 
+                  color: Color(isDisabled ? 0xFF94A3B8 : 0xFF2563EB), 
+                  size: 28,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
