@@ -99,7 +99,12 @@ class DriverTrackingScreen extends ConsumerWidget {
                 ),
               ]),
               const SizedBox(height: 8),
-              Text('${session.licensePlate} • ${session.floorName} • ${session.slotCode}', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+              Text(
+                '${session.licensePlate} • ${session.floorName} • ${session.slotCode}',
+                style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
               const SizedBox(height: 4),
               Text('Tap to view live session', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, fontWeight: FontWeight.w500)),
             ])),
