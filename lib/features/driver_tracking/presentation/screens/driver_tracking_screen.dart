@@ -15,7 +15,8 @@ class DriverTrackingScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final sessionState = ref.watch(liveSessionProvider);
-    final sessions = sessionState.value?.sessions ?? [];
+    // Show empty list while loading to prevent stale data flash
+    final sessions = sessionState.isLoading ? <ParkingSessionApiModel>[] : (sessionState.value?.sessions ?? []);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
