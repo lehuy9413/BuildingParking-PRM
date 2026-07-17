@@ -9,6 +9,7 @@ import '../../domain/models/vehicle_model.dart';
 import '../../domain/repositories/vehicle_repository.dart';
 import '../../../driver_booking/data/datasources/driver_remote_datasource.dart';
 import '../../../staff_core/data/models/vehicle_type_model.dart';
+import '../../../driver_tracking/presentation/screens/parking_history_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -510,6 +511,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Column(
         children: [
+          _buildActionRow(Icons.history_rounded, 'History & Receipts', isDark: isDark, onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ParkingHistoryScreen()),
+            );
+          }),
+          Divider(color: isDark ? Colors.grey.shade700 : Colors.grey.shade100, height: 1),
           _buildActionRow(Icons.lock_outline, 'Change Password', isDark: isDark, onTap: () {
             Navigator.push(
               context,

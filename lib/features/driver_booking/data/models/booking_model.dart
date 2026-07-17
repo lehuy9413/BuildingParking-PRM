@@ -1,4 +1,4 @@
-import '../../domain/entities/booking.dart';
+﻿import '../../domain/entities/booking.dart';
 
 class BookingModel extends Booking {
   const BookingModel({
@@ -16,6 +16,8 @@ class BookingModel extends Booking {
     required super.startTime,
     required super.endTime,
     required super.estimatedFee,
+    super.actualFee,
+    super.overtimeFee,
     required super.status,
     super.qrCode,
   });
@@ -66,10 +68,12 @@ class BookingModel extends Booking {
       zoneName: resolvedZoneName,
       vehicleTypeName: json['vehicleType'] is Map ? json['vehicleType']['name'] ?? '' : '',
       licensePlate: json['vehicleInfo'] is Map ? json['vehicleInfo']['licensePlate'] ?? '' : '',
-      scheduledDate: DateTime.parse(json['scheduledDate']),
+      scheduledDate: DateTime.parse(json['scheduledDate']).toLocal(),
       startTime: json['startTime'] ?? '',
       endTime: json['endTime'] ?? '',
       estimatedFee: (json['estimatedFee'] ?? 0).toDouble(),
+      actualFee: json['actualFee'] != null ? (json['actualFee'] as num).toDouble() : null,
+      overtimeFee: json['overtimeFee'] != null ? (json['overtimeFee'] as num).toDouble() : null,
       status: _parseStatus(json['status']),
       qrCode: json['qrCode'],
     );
@@ -88,3 +92,4 @@ class BookingModel extends Booking {
     }
   }
 }
+

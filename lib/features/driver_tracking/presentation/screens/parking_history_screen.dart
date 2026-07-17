@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../controllers/driver_tracking_controller.dart';
 import '../../../staff_core/data/models/parking_session_api_model.dart';
+import '../../../driver_booking/data/datasources/api_booking_datasource.dart';
+import '../../../driver_booking/domain/entities/booking.dart';
 
 /// Màn hình Lịch sử gửi xe & Giao dịch thanh toán – lấy từ API.
 class ParkingHistoryScreen extends ConsumerWidget {
@@ -12,13 +15,10 @@ class ParkingHistoryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final asyncHistory = ref.watch(parkingHistoryProvider);
 
-    return DefaultTabController(
-      length: 1,
-      child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
@@ -44,163 +44,146 @@ class ParkingHistoryScreen extends ConsumerWidget {
             ),
           ],
         ),
-        body: asyncHistory.when(
-          loading: () =>
-              const Center(child: CircularProgressIndicator()),
-          error: (e, _) => _buildError(context, isDark, e.toString(), ref),
-          data: (historyState) {
-            if (historyState.error != null) {
-              return _buildError(
-                  context, isDark, historyState.error!, ref);
-            }
-            return _buildBody(context, isDark, historyState, ref);
-          },
-        ),
-      ),
-    );
+        body: const _BookingsTab(),
+      );
+  }
+}
+
+// ─── Bookings Tab ────────────────────────────────────────────────────────────
+
+class _BookingsTab extends StatefulWidget {
+  const _BookingsTab();
+
+  @override
+  State<_BookingsTab> createState() => _BookingsTabState();
+}
+
+class _BookingsTabState extends State<_BookingsTab> {
+  final _ds = ApiBookingDataSource();
+  List<Booking> _bookings = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
   }
 
-  Widget _buildBody(BuildContext context, bool isDark,
-      ParkingHistoryState historyState, WidgetRef ref) {
-    final sessions = historyState.sessions;
-
-    return Column(
-      children: [
-        // ── Summary Cards ──
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          child: Row(
-            children: [
-              _buildSummaryCard(
-                isDark: isDark,
-                icon: Icons.local_parking_rounded,
-                iconColor: const Color(0xFF3B82F6),
-                label: 'Total Sessions',
-                value: '${sessions.length}',
-              ),
-              const SizedBox(width: 12),
-              _buildSummaryCard(
-                isDark: isDark,
-                icon: Icons.payments_rounded,
-                iconColor: const Color(0xFF059669),
-                label: 'Total Spent',
-                value: _formatCurrency(historyState.totalSpent),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-
-        // ── Content ──
-        Expanded(
-          child: sessions.isEmpty
-              ? _buildEmpty(isDark, ref)
-              : ListView.separated(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 8),
-                  itemCount: sessions.length,
-                  separatorBuilder: (_, __) =>
-                      const SizedBox(height: 12),
-                  itemBuilder: (_, i) =>
-                      _buildSessionCard(sessions[i], isDark),
-                ),
-        ),
-      ],
-    );
+  Future<void> _load() async {
+    setState(() { _isLoading = true; _error = null; });
+    try {
+      final list = await _ds.getMyBookings();
+      list.sort((a, b) => b.scheduledDate.compareTo(a.scheduledDate));
+      if (mounted) setState(() { _bookings = list; _isLoading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString().replaceAll('Exception: ', ''); _isLoading = false; });
+    }
   }
 
-  Widget _buildError(BuildContext context, bool isDark, String message,
-      WidgetRef ref) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
+  // A booking is "done" if: completed, or approved past its actual end datetime
+  bool _isDone(Booking b) {
+    if (b.status == BookingStatus.completed) return true;
+    if (b.status == BookingStatus.approved) {
+      try {
+        final sParts = b.startTime.split(':');
+        final eParts = b.endTime.split(':');
+        final startMin = int.parse(sParts[0]) * 60 + int.parse(sParts[1]);
+        final endMin   = int.parse(eParts[0]) * 60 + int.parse(eParts[1]);
+        var endDt = DateTime(
+          b.scheduledDate.year, b.scheduledDate.month, b.scheduledDate.day,
+          int.parse(eParts[0]), int.parse(eParts[1]),
+        );
+        // Overnight booking: endTime < startTime means it ends the next day
+        if (endMin < startMin) endDt = endDt.add(const Duration(days: 1));
+        return DateTime.now().isAfter(endDt);
+      } catch (_) {
+        return b.scheduledDate.isBefore(DateTime.now());
+      }
+    }
+    return false;
+  }
+
+  int get _totalBookings => _bookings.where(_isDone).length;
+
+  double get _totalSpent {
+    return _bookings
+        .where(_isDone)
+        .fold(0.0, (sum, b) => sum + (b.actualFee ?? b.estimatedFee));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFF0B7A59)));
+    }
+    
+    if (_error != null) {
+      return Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.wifi_off_rounded,
-                size: 64,
-                color: isDark
-                    ? Colors.grey.shade600
-                    : Colors.grey.shade400),
+            const Icon(Icons.wifi_off_rounded, size: 48, color: Colors.grey),
+            const SizedBox(height: 12),
+            Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey)),
             const SizedBox(height: 16),
-            Text('Failed to load history',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: isDark
-                        ? Colors.white
-                        : const Color(0xFF0F172A))),
-            const SizedBox(height: 8),
-            Text(message,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 13,
-                    color: isDark
-                        ? Colors.grey.shade400
-                        : Colors.grey.shade600)),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () =>
-                  ref.read(parkingHistoryProvider.notifier).refresh(),
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Retry'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3B82F6),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-              ),
-            ),
+            ElevatedButton(onPressed: _load, child: const Text('Retry')),
           ],
         ),
-      ),
-    );
-  }
+      );
+    }
+    
+    return RefreshIndicator(
+      color: const Color(0xFF0B7A59),
+      onRefresh: _load,
+      child: CustomScrollView(
+        slivers: [
 
-  Widget _buildEmpty(bool isDark, WidgetRef ref) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xFF1E293B)
-                    : const Color(0xFFF1F5F9),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.history_rounded,
-                  size: 64,
-                  color: isDark
-                      ? Colors.grey.shade600
-                      : Colors.grey.shade400),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'No History Yet',
-              style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: isDark
-                      ? Colors.white
-                      : const Color(0xFF0F172A)),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Your completed parking sessions will appear here.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 14,
-                  color: isDark
-                      ? Colors.grey.shade400
-                      : Colors.grey.shade600,
-                  height: 1.5),
-            ),
-          ],
-        ),
+          _bookings.isEmpty
+              ? SliverFillRemaining(
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.receipt_long_rounded, size: 48,
+                              color: isDark ? Colors.grey.shade500 : Colors.grey.shade400),
+                        ),
+                        const SizedBox(height: 20),
+                        Text('No Bookings Yet',
+                            style: TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.w800,
+                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            )),
+                        const SizedBox(height: 8),
+                        Text('Your reservations will appear here.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isDark ? Colors.grey.shade500 : Colors.grey.shade500,
+                            )),
+                      ],
+                    ),
+                  ),
+                )
+              : SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (ctx, i) => _BookingCard(
+                      booking: _bookings[i],
+                      isDark: isDark,
+                    ),
+                    childCount: _bookings.length,
+                  ),
+                ),
+          const SliverToBoxAdapter(child: SizedBox(height: 32)),
+        ],
       ),
     );
   }
@@ -220,7 +203,7 @@ class ParkingHistoryScreen extends ConsumerWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -232,7 +215,7 @@ class ParkingHistoryScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(isDark ? 0.15 : 0.08),
+                color: iconColor.withValues(alpha: isDark ? 0.15 : 0.08),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: iconColor, size: 22),
@@ -252,9 +235,330 @@ class ParkingHistoryScreen extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: isDark
-                    ? Colors.grey.shade400
-                    : Colors.grey.shade500,
+                color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BookingCard extends StatelessWidget {
+  const _BookingCard({required this.booking, required this.isDark});
+  final Booking booking;
+  final bool isDark;
+
+  // A booking is "done" if: completed, or approved past its end time
+  bool get _isUsed {
+    if (booking.status == BookingStatus.completed) return true;
+    if (booking.status == BookingStatus.approved) {
+      try {
+        final sParts = booking.startTime.split(':');
+        final eParts = booking.endTime.split(':');
+        final startMin = int.parse(sParts[0]) * 60 + int.parse(sParts[1]);
+        final endMin   = int.parse(eParts[0]) * 60 + int.parse(eParts[1]);
+        var endDt = DateTime(
+          booking.scheduledDate.year,
+          booking.scheduledDate.month,
+          booking.scheduledDate.day,
+          int.parse(eParts[0]),
+          int.parse(eParts[1]),
+        );
+        if (endMin < startMin) endDt = endDt.add(const Duration(days: 1));
+        return DateTime.now().isAfter(endDt);
+      } catch (_) {
+        return booking.scheduledDate.isBefore(DateTime.now());
+      }
+    }
+    return false;
+  }
+
+  Color get _statusColor {
+    if (_isUsed) return const Color(0xFF10B981); // green = used
+    switch (booking.status) {
+      case BookingStatus.completed: return const Color(0xFF10B981);
+      case BookingStatus.approved: return const Color(0xFF3B82F6);
+      case BookingStatus.pending: return const Color(0xFFF59E0B);
+      case BookingStatus.cancelled: return Colors.grey;
+      case BookingStatus.rejected: return const Color(0xFFEF4444);
+      case BookingStatus.noShow: return const Color(0xFFEF4444);
+    }
+  }
+
+  String get _statusLabel {
+    if (_isUsed) return 'Used';
+    switch (booking.status) {
+      case BookingStatus.completed: return 'Completed';
+      case BookingStatus.approved: return 'Approved';
+      case BookingStatus.pending: return 'Pending';
+      case BookingStatus.cancelled: return 'Cancelled';
+      case BookingStatus.rejected: return 'Rejected';
+      case BookingStatus.noShow: return 'No Show';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = NumberFormat('#,###', 'vi_VN');
+    final dateStr = DateFormat('dd MMM yyyy').format(booking.scheduledDate);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      child: InkWell(
+        onTap: () => _showDetail(context),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+                blurRadius: 16, offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              children: [
+                // Icon
+                Container(
+                  width: 52, height: 52,
+                  decoration: BoxDecoration(
+                    color: _statusColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    booking.status == BookingStatus.completed
+                        ? Icons.check_circle_rounded
+                        : booking.status == BookingStatus.approved
+                            ? Icons.qr_code_rounded
+                            : Icons.receipt_long_rounded,
+                    color: _statusColor, size: 26,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                // Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(booking.parkingLotName.isNotEmpty ? booking.parkingLotName : 'Parking Lot',
+                          style: TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w800,
+                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          ),
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 4),
+                      Text('$dateStr · ${booking.startTime}–${booking.endTime}',
+                          style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w500,
+                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+                          )),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: _statusColor.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(_statusLabel,
+                                style: TextStyle(
+                                  fontSize: 11, fontWeight: FontWeight.w700,
+                                  color: _statusColor,
+                                )),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(booking.licensePlate,
+                              style: TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
+                              )),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Amount
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('${fmt.format((booking.actualFee ?? booking.estimatedFee).toInt())} đ',
+                        style: TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w900,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        )),
+                    const SizedBox(height: 4),
+                    Icon(Icons.chevron_right_rounded,
+                        color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, size: 20),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showDetail(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _BookingDetailSheet(booking: booking, isDark: isDark),
+    );
+  }
+}
+
+class _BookingDetailSheet extends StatelessWidget {
+  const _BookingDetailSheet({required this.booking, required this.isDark});
+  final Booking booking;
+  final bool isDark;
+
+  String _formatDuration(String start, String end) {
+    try {
+      final s = start.split(':');
+      final e = end.split(':');
+      var diff = (int.parse(e[0]) * 60 + int.parse(e[1])) - (int.parse(s[0]) * 60 + int.parse(s[1]));
+      if (diff < 0) diff += 1440;
+      final h = diff ~/ 60, m = diff % 60;
+      if (h == 0) return '$m min';
+      if (m == 0) return '$h h';
+      return '$h h $m min';
+    } catch (_) { return 'N/A'; }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = NumberFormat('#,###', 'vi_VN');
+    final hasOvertime = booking.overtimeFee != null && booking.overtimeFee! > 0;
+    final hasActual = booking.actualFee != null;
+    final dateStr = DateFormat('dd MMM yyyy').format(booking.scheduledDate);
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.85,
+      maxChildSize: 0.95,
+      minChildSize: 0.5,
+      builder: (_, ctrl) => Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF7F9FB),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          children: [
+            // Handle
+            Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 4),
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Row(
+                children: [
+                  Text('Booking Detail',
+                      style: TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.w800,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      )),
+                  const Spacer(),
+                  IconButton(
+                    icon: Icon(Icons.close_rounded,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                controller: ctrl,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  // QR Code
+                  _buildQrSection(context),
+                  const SizedBox(height: 20),
+
+                  // Booking Info
+                  _buildCard(isDark, children: [
+                    _row(Icons.location_on_rounded, const Color(0xFF3B82F6), 'Parking', booking.parkingLotName.isNotEmpty ? booking.parkingLotName : '—'),
+                    _divider(),
+                    _row(Icons.local_parking_rounded, const Color(0xFF0B7A59), 'Slot', booking.slotCode ?? 'Auto-assigned'),
+                    _divider(),
+                    _row(Icons.layers_rounded, const Color(0xFF8B5CF6), 'Floor / Zone',
+                        [booking.floorName, booking.zoneName].where((e) => e != null).join(' / ').isNotEmpty
+                            ? [booking.floorName, booking.zoneName].where((e) => e != null).join(' / ')
+                            : 'Auto-assigned'),
+                    _divider(),
+                    _row(Icons.directions_car_rounded, const Color(0xFFF59E0B), 'Vehicle', '${booking.vehicleTypeName} · ${booking.licensePlate}'),
+                    _divider(),
+                    _row(Icons.login_rounded, const Color(0xFF10B981), 'Check-in', '${booking.startTime} — $dateStr'),
+                    _divider(),
+                    _row(Icons.logout_rounded, const Color(0xFFEF4444), 'Check-out', '${booking.endTime} — $dateStr'),
+                    _divider(),
+                    _row(Icons.timer_rounded, const Color(0xFFF59E0B), 'Duration', _formatDuration(booking.startTime, booking.endTime)),
+                  ]),
+                  const SizedBox(height: 16),
+
+                  // Fee Breakdown
+                  _buildCard(isDark, children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text('Fee Breakdown',
+                          style: TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 1,
+                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+                          )),
+                    ),
+                    _feeRow('Booking Deposit', fmt.format(booking.estimatedFee.toInt()), isDark, isDeposit: true),
+                    if (hasOvertime) ...[
+                      _divider(),
+                      _feeRow('Overtime Fee', fmt.format(booking.overtimeFee!.toInt()), isDark, isOvertime: true),
+                    ],
+                    _divider(),
+                    _totalRow(
+                      hasActual ? fmt.format(booking.actualFee!.toInt()) : fmt.format(booking.estimatedFee.toInt()),
+                      isDark,
+                    ),
+                    if (hasOvertime || hasActual)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.info_outline_rounded, size: 14, color: Color(0xFFF59E0B)),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  hasOvertime
+                                      ? 'Overtime fee was charged for exceeding the reserved period.'
+                                      : 'Actual fee may differ from estimate due to real checkout time.',
+                                  style: const TextStyle(fontSize: 11, color: Color(0xFFF59E0B), fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ]),
+                  const SizedBox(height: 32),
+                ],
               ),
             ),
           ],
@@ -263,272 +567,153 @@ class ParkingHistoryScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSessionCard(ParkingSessionApiModel session, bool isDark) {
-    final duration = session.exitTime != null
-        ? session.exitTime!.difference(session.entryTime)
-        : DateTime.now().difference(session.entryTime);
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes % 60;
-    final durationText =
-        hours > 0 ? '${hours}h ${minutes}m' : '${minutes}m';
-
-    final statusColor = switch (session.status) {
-      'completed' => const Color(0xFF16A34A),
-      'active' => const Color(0xFF3B82F6),
-      _ => const Color(0xFFEF4444),
-    };
-
-    final isMotorbike =
-        session.vehicleTypeName.toLowerCase().contains('motor');
-
+  Widget _buildQrSection(BuildContext context) {
+    final qrData = booking.bookingCode;
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+            blurRadius: 16, offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Column(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF064E3B).withOpacity(0.4)
-                      : const Color(0xFFECFDF5),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(
-                  isMotorbike
-                      ? Icons.two_wheeler_rounded
-                      : Icons.directions_car_filled_rounded,
-                  color: isDark
-                      ? const Color(0xFF34D399)
-                      : const Color(0xFF059669),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Left: plate + status + location
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            session.licensePlate.isNotEmpty
-                                ? session.licensePlate
-                                : session.vehicleTypeName,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: isDark
-                                  ? Colors.white
-                                  : const Color(0xFF0F172A),
-                              letterSpacing: 0.3,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            session.status.toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
-                              color: statusColor,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    // Floor/zone on one line
-                    Text(
-                      '${session.floorName}${session.zoneName != null ? ' – ${session.zoneName}' : ''}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: isDark
-                            ? Colors.grey.shade400
-                            : Colors.grey.shade500,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                    const SizedBox(height: 3),
-                    // Slot as compact chip
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.white.withOpacity(0.07)
-                            : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        session.slotCode,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: isDark
-                              ? Colors.grey.shade300
-                              : const Color(0xFF475569),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              // Right: fee + duration
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    _formatCurrency(session.totalFee),
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
-                      color: isDark
-                          ? const Color(0xFF34D399)
-                          : const Color(0xFF059669),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    durationText,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? Colors.grey.shade400
-                          : Colors.grey.shade500,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Divider(
-            color:
-                isDark ? Colors.grey.shade700 : Colors.grey.shade100,
-            height: 1,
+          Text('# ${booking.bookingCode}',
+              style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.w700, letterSpacing: 1.5,
+                color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+              )),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: QrImageView(
+              data: qrData,
+              version: QrVersions.auto,
+              size: 160,
+              backgroundColor: Colors.white,
+              eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Color(0xFF0F4C5C)),
+              dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Color(0xFF0F172A)),
+            ),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(Icons.login_rounded,
-                  size: 14,
-                  color: isDark
-                      ? Colors.grey.shade500
-                      : Colors.grey.shade400),
-              const SizedBox(width: 6),
-              Text(
-                DateFormat('HH:mm dd/MM').format(session.entryTime),
+          Text('Scan at parking gate',
+              style: TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w600,
+                color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
+              )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCard(bool isDark, {required List<Widget> children}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+            blurRadius: 12, offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    );
+  }
+
+  Widget _row(IconData icon, Color color, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(icon, color: color, size: 16),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 90,
+            child: Text(label,
                 style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: isDark
-                      ? Colors.grey.shade400
-                      : Colors.grey.shade500,
+                  fontSize: 13, fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+                )),
+          ),
+          Expanded(
+            child: Text(value,
+                style: TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
                 ),
-              ),
-              if (session.exitTime != null) ...[
-                const SizedBox(width: 12),
-                Icon(Icons.arrow_forward_rounded,
-                    size: 14,
-                    color: isDark
-                        ? Colors.grey.shade600
-                        : Colors.grey.shade300),
-                const SizedBox(width: 12),
-                Icon(Icons.logout_rounded,
-                    size: 14,
-                    color: isDark
-                        ? Colors.grey.shade500
-                        : Colors.grey.shade400),
-                const SizedBox(width: 6),
-                Text(
-                  DateFormat('HH:mm dd/MM')
-                      .format(session.exitTime!),
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? Colors.grey.shade400
-                        : Colors.grey.shade500,
-                  ),
-                ),
-              ],
-              const Spacer(),
-              // Payment status badge
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: session.isPaid
-                      ? const Color(0xFF059669).withOpacity(0.1)
-                      : const Color(0xFFEF4444).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: session.isPaid
-                            ? const Color(0xFF059669)
-                            : const Color(0xFFEF4444),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      session.isPaid ? 'PAID' : 'UNPAID',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        color: session.isPaid
-                            ? const Color(0xFF059669)
-                            : const Color(0xFFEF4444),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+                textAlign: TextAlign.end),
           ),
         ],
       ),
     );
   }
 
-  String _formatCurrency(double amount) {
-    return NumberFormat.currency(
-            locale: 'vi_VN', symbol: '₫', decimalDigits: 0)
-        .format(amount);
+  Widget _feeRow(String label, String amount, bool isDark, {bool isDeposit = false, bool isOvertime = false}) {
+    final color = isOvertime ? const Color(0xFFEF4444) : (isDark ? Colors.grey.shade300 : const Color(0xFF475569));
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          Icon(
+            isOvertime ? Icons.timer_off_rounded : Icons.receipt_rounded,
+            size: 16,
+            color: isOvertime ? const Color(0xFFEF4444) : (isDark ? Colors.grey.shade400 : Colors.grey.shade500),
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: color))),
+          Text('$amount đ', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: color)),
+        ],
+      ),
+    );
   }
+
+  Widget _totalRow(String amount, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text('Total Paid',
+              style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.w800,
+                color: isDark ? Colors.white : const Color(0xFF0F172A),
+              )),
+          Text('$amount đ',
+              style: const TextStyle(
+                fontSize: 22, fontWeight: FontWeight.w900,
+                color: Color(0xFF0B7A59),
+              )),
+        ],
+      ),
+    );
+  }
+
+  Widget _divider() => Divider(
+    color: isDark ? Colors.grey.shade700.withValues(alpha: 0.5) : Colors.grey.shade100,
+    height: 1,
+  );
 }
+
+

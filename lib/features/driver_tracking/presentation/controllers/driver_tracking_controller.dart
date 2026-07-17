@@ -39,11 +39,21 @@ class LiveSessionState {
 
 class LiveSessionController extends AsyncNotifier<LiveSessionState> {
   late final DriverTrackingDatasource _ds;
+  Timer? _refreshTimer;
 
   @override
   Future<LiveSessionState> build() async {
     _ds = DriverTrackingDatasource();
+    _startAutoRefresh();
+    ref.onDispose(() => _refreshTimer?.cancel());
     return _fetchSessions();
+  }
+
+  void _startAutoRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
+      state = await AsyncValue.guard(() => _fetchSessions());
+    });
   }
 
   Future<LiveSessionState> _fetchSessions() async {

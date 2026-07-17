@@ -17,6 +17,8 @@ class Booking extends Equatable {
   final String startTime;
   final String endTime;
   final double estimatedFee;
+  final double? actualFee;
+  final double? overtimeFee;
   final BookingStatus status;
   final String? qrCode;
 
@@ -35,6 +37,8 @@ class Booking extends Equatable {
     required this.startTime,
     required this.endTime,
     required this.estimatedFee,
+    this.actualFee,
+    this.overtimeFee,
     required this.status,
     this.qrCode,
   });
@@ -42,6 +46,6 @@ class Booking extends Equatable {
   @override
   List<Object?> get props => [
         id, bookingCode, parkingLotId, parkingLotName, slotId, slotCode, floorName, zoneName,
-        vehicleTypeName, licensePlate, scheduledDate, startTime, endTime, estimatedFee, status, qrCode,
+        vehicleTypeName, licensePlate, scheduledDate, startTime, endTime, estimatedFee, actualFee, overtimeFee, status, qrCode,
       ];
 }

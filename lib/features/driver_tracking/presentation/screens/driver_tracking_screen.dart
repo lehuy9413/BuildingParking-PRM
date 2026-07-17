@@ -23,6 +23,13 @@ class DriverTrackingScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent, elevation: 0,
         title: Text('Tracking & Services', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20, color: isDark ? Colors.white : const Color(0xFF0F172A))),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh_rounded, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+            tooltip: 'Refresh sessions',
+            onPressed: () => ref.read(liveSessionProvider.notifier).refresh(),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),

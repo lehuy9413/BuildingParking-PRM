@@ -81,8 +81,8 @@ class ParkingSessionApiModel {
 
   static DateTime _parseDate(dynamic val) {
     if (val == null) return DateTime.now();
-    if (val is DateTime) return val;
-    return DateTime.tryParse(val.toString()) ?? DateTime.now();
+    if (val is DateTime) return val.toLocal();
+    return (DateTime.tryParse(val.toString()) ?? DateTime.now()).toLocal();
   }
 
   /// Khu vực gợi ý hiển thị (floor + zone)

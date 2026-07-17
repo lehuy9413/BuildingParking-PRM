@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/parking_slot.dart';
@@ -343,7 +343,7 @@ class _ParkingVisualMap extends StatelessWidget {
       onTap: isAvailable ? () {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Há»‡ thá»‘ng Ä‘Ã£ tá»± Ä‘á»™ng sáº¯p xáº¿p vá»‹ trÃ­ tá»‘i Æ°u nháº¥t cho báº¡n.'),
+            content: Text('The system has automatically selected the optimal slot for you.'),
             duration: Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
           ),

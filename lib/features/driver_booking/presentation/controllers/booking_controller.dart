@@ -438,8 +438,8 @@ class BookingController extends Notifier<BookingState> {
         state.selectedDate!.year,
         state.selectedDate!.month,
         state.selectedDate!.day,
-        state.checkInTime!.hour,
-        state.checkInTime!.minute,
+        12, // Force NOON to prevent UTC date shifting on the backend
+        0,
       );
 
       var booking = await _repository.createBooking(
