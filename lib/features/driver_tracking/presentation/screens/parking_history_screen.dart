@@ -7,6 +7,7 @@ import '../controllers/driver_tracking_controller.dart';
 import '../../../staff_core/data/models/parking_session_api_model.dart';
 import '../../../driver_booking/data/datasources/api_booking_datasource.dart';
 import '../../../driver_booking/domain/entities/booking.dart';
+import '../../data/driver_tracking_datasource.dart';
 
 /// Màn hình Lịch sử gửi xe & Giao dịch thanh toán – lấy từ API.
 class ParkingHistoryScreen extends ConsumerWidget {
@@ -60,7 +61,9 @@ class _BookingsTab extends StatefulWidget {
 
 class _BookingsTabState extends State<_BookingsTab> {
   final _ds = ApiBookingDataSource();
+  final _sessionDs = DriverTrackingDatasource();
   List<Booking> _bookings = [];
+  List<ParkingSessionApiModel> _walkinSessions = [];
   bool _isLoading = true;
   String? _error;
 
@@ -73,9 +76,21 @@ class _BookingsTabState extends State<_BookingsTab> {
   Future<void> _load() async {
     setState(() { _isLoading = true; _error = null; });
     try {
-      final list = await _ds.getMyBookings();
-      list.sort((a, b) => b.scheduledDate.compareTo(a.scheduledDate));
-      if (mounted) setState(() { _bookings = list; _isLoading = false; });
+      final results = await Future.wait([
+        _ds.getMyBookings(),
+        _sessionDs.getMySessionHistory(),
+      ]);
+      final bookings = results[0] as List<Booking>;
+      final sessions = results[1] as List<ParkingSessionApiModel>;
+      // Walk-in = sessions not linked to any booking
+      final walkins = sessions.where((s) => s.bookingId == null || s.bookingId!.isEmpty).toList();
+      bookings.sort((a, b) => b.scheduledDate.compareTo(a.scheduledDate));
+      walkins.sort((a, b) => b.entryTime.compareTo(a.entryTime));
+      if (mounted) setState(() {
+        _bookings = bookings;
+        _walkinSessions = walkins;
+        _isLoading = false;
+      });
     } catch (e) {
       if (mounted) setState(() { _error = e.toString().replaceAll('Exception: ', ''); _isLoading = false; });
     }
@@ -104,12 +119,14 @@ class _BookingsTabState extends State<_BookingsTab> {
     return false;
   }
 
-  int get _totalBookings => _bookings.where(_isDone).length;
+  int get _totalBookings => _bookings.where(_isDone).length + _walkinSessions.length;
 
   double get _totalSpent {
-    return _bookings
+    final bookingTotal = _bookings
         .where(_isDone)
         .fold(0.0, (sum, b) => sum + (b.actualFee ?? b.estimatedFee));
+    final sessionTotal = _walkinSessions.fold(0.0, (sum, s) => sum + s.totalFee);
+    return bookingTotal + sessionTotal;
   }
 
   @override
@@ -140,48 +157,105 @@ class _BookingsTabState extends State<_BookingsTab> {
       onRefresh: _load,
       child: CustomScrollView(
         slivers: [
-
-          _bookings.isEmpty
-              ? SliverFillRemaining(
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(Icons.receipt_long_rounded, size: 48,
-                              color: isDark ? Colors.grey.shade500 : Colors.grey.shade400),
-                        ),
-                        const SizedBox(height: 20),
-                        Text('No Bookings Yet',
-                            style: TextStyle(
-                              fontSize: 20, fontWeight: FontWeight.w800,
-                              color: isDark ? Colors.white : const Color(0xFF0F172A),
-                            )),
-                        const SizedBox(height: 8),
-                        Text('Your reservations will appear here.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: isDark ? Colors.grey.shade500 : Colors.grey.shade500,
-                            )),
-                      ],
+          // ── Bookings Section ──────────────────────────────────────────
+          if (_bookings.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.qr_code_rounded, color: Color(0xFF3B82F6), size: 16),
                     ),
-                  ),
-                )
-              : SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (ctx, i) => _BookingCard(
-                      booking: _bookings[i],
-                      isDark: isDark,
-                    ),
-                    childCount: _bookings.length,
-                  ),
+                    const SizedBox(width: 10),
+                    Text('Reservations',
+                        style: TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 1,
+                          color: isDark ? Colors.grey.shade400 : const Color(0xFF475569),
+                        )),
+                  ],
                 ),
+              ),
+            ),
+
+          if (_bookings.isEmpty && _walkinSessions.isEmpty)
+            SliverFillRemaining(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.receipt_long_rounded, size: 48,
+                          color: isDark ? Colors.grey.shade500 : Colors.grey.shade400),
+                    ),
+                    const SizedBox(height: 20),
+                    Text('No History Yet',
+                        style: TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.w800,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        )),
+                    const SizedBox(height: 8),
+                    Text('Your parking history will appear here.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isDark ? Colors.grey.shade500 : Colors.grey.shade500,
+                        )),
+                  ],
+                ),
+              ),
+            )
+          else
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (ctx, i) => _BookingCard(booking: _bookings[i], isDark: isDark),
+                childCount: _bookings.length,
+              ),
+            ),
+
+          // ── Walk-in Sessions Section ───────────────────────────────────
+          if (_walkinSessions.isNotEmpty) ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.directions_car_rounded, color: Color(0xFF10B981), size: 16),
+                    ),
+                    const SizedBox(width: 10),
+                    Text('Walk-in Sessions',
+                        style: TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 1,
+                          color: isDark ? Colors.grey.shade400 : const Color(0xFF475569),
+                        )),
+                  ],
+                ),
+              ),
+            ),
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (ctx, i) => _WalkinSessionCard(session: _walkinSessions[i], isDark: isDark),
+                childCount: _walkinSessions.length,
+              ),
+            ),
+          ],
+
           const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
       ),
@@ -716,4 +790,283 @@ class _BookingDetailSheet extends StatelessWidget {
   );
 }
 
+// ─── Walk-in Session Card ─────────────────────────────────────────────────────
 
+class _WalkinSessionCard extends StatelessWidget {
+  const _WalkinSessionCard({required this.session, required this.isDark});
+  final ParkingSessionApiModel session;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = NumberFormat('#,###', 'vi_VN');
+    final dateStr = DateFormat('dd MMM yyyy').format(session.entryTime);
+    final timeIn = DateFormat('HH:mm').format(session.entryTime);
+    final timeOut = session.exitTime != null ? DateFormat('HH:mm').format(session.exitTime!) : '--:--';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      child: InkWell(
+        onTap: () => showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => _WalkinSessionDetailSheet(session: session, isDark: isDark),
+        ),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+                blurRadius: 16, offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              children: [
+                // Icon
+                Container(
+                  width: 52, height: 52,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(Icons.directions_car_filled_rounded,
+                      color: Color(0xFF10B981), size: 26),
+                ),
+                const SizedBox(width: 14),
+                // Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(session.licensePlate,
+                          style: TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w800,
+                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          )),
+                      const SizedBox(height: 4),
+                      Text('$dateStr · $timeIn – $timeOut',
+                          style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w500,
+                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+                          )),
+                      const SizedBox(height: 6),
+                      Row(children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text('Completed',
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                                  color: Color(0xFF10B981))),
+                        ),
+                        const SizedBox(width: 8),
+                        Text('${session.floorName} · ${session.slotCode}',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.grey.shade500 : Colors.grey.shade400)),
+                      ]),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Amount
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('${fmt.format(session.totalFee.toInt())} đ',
+                        style: TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w900,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        )),
+                    const SizedBox(height: 4),
+                    Icon(Icons.chevron_right_rounded,
+                        color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, size: 20),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Walk-in Session Detail Sheet ────────────────────────────────────────────
+
+class _WalkinSessionDetailSheet extends StatelessWidget {
+  const _WalkinSessionDetailSheet({required this.session, required this.isDark});
+  final ParkingSessionApiModel session;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = NumberFormat('#,###', 'vi_VN');
+    final entryStr = DateFormat('HH:mm – dd/MM/yyyy').format(session.entryTime);
+    final exitStr = session.exitTime != null
+        ? DateFormat('HH:mm – dd/MM/yyyy').format(session.exitTime!)
+        : 'In progress';
+
+    Duration? dur;
+    String durStr = 'N/A';
+    if (session.exitTime != null) {
+      dur = session.exitTime!.difference(session.entryTime);
+      final h = dur.inHours;
+      final m = dur.inMinutes % 60;
+      durStr = h > 0 ? (m > 0 ? '$h h $m min' : '$h h') : '$m min';
+    }
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      maxChildSize: 0.92,
+      minChildSize: 0.4,
+      builder: (_, ctrl) => Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF7F9FB),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 4),
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Row(
+                children: [
+                  Text('Session Detail',
+                      style: TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.w800,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      )),
+                  const Spacer(),
+                  IconButton(
+                    icon: Icon(Icons.close_rounded,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                controller: ctrl,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  // Session code banner
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06), blurRadius: 16, offset: const Offset(0, 6))],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(Icons.directions_car_filled_rounded, color: Color(0xFF10B981), size: 28),
+                        ),
+                        const SizedBox(width: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(session.licensePlate,
+                                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900,
+                                    color: isDark ? Colors.white : const Color(0xFF0F172A), letterSpacing: 2)),
+                            const SizedBox(height: 4),
+                            Text(session.sessionCode,
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                                    color: isDark ? Colors.grey.shade500 : Colors.grey.shade400, letterSpacing: 1)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Details card
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04), blurRadius: 12, offset: const Offset(0, 4))],
+                    ),
+                    child: Column(children: [
+                      _sRow(Icons.local_parking_rounded, const Color(0xFF3B82F6), 'Slot', '${session.floorName} · ${session.slotCode}', isDark),
+                      Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, height: 1),
+                      _sRow(Icons.login_rounded, const Color(0xFF10B981), 'Check-in', entryStr, isDark),
+                      Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, height: 1),
+                      _sRow(Icons.logout_rounded, const Color(0xFFEF4444), 'Check-out', exitStr, isDark),
+                      Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, height: 1),
+                      _sRow(Icons.timer_rounded, const Color(0xFFF59E0B), 'Duration', durStr, isDark),
+                      Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, height: 1),
+                      _sRow(Icons.directions_car_rounded, const Color(0xFF8B5CF6), 'Vehicle Type', session.vehicleTypeName, isDark),
+                    ]),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Fee card
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04), blurRadius: 12, offset: const Offset(0, 4))],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Total Paid',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800,
+                                color: isDark ? Colors.white : const Color(0xFF0F172A))),
+                        Text('${fmt.format(session.totalFee.toInt())} đ',
+                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900,
+                                color: Color(0xFF0B7A59))),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sRow(IconData icon, Color color, String label, String value, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(children: [
+        Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(9)),
+          child: Icon(icon, color: color, size: 16),
+        ),
+        const SizedBox(width: 12),
+        SizedBox(width: 90, child: Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.grey.shade400 : Colors.grey.shade500))),
+        Expanded(child: Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF0F172A)), textAlign: TextAlign.end)),
+      ]),
+    );
+  }
+}

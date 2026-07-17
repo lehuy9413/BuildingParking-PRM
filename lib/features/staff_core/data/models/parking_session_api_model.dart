@@ -9,6 +9,7 @@ class ParkingSessionApiModel {
   final String floorName;
   final String? zoneName;
   final String parkingLotId;
+  final String? bookingId; // null = walk-in session
   final DateTime entryTime;
   final DateTime? exitTime;
   final double totalFee;
@@ -29,6 +30,7 @@ class ParkingSessionApiModel {
     required this.floorName,
     this.zoneName,
     required this.parkingLotId,
+    this.bookingId,
     required this.entryTime,
     this.exitTime,
     this.totalFee = 0,
@@ -67,6 +69,9 @@ class ParkingSessionApiModel {
       parkingLotId: json['parkingLot'] is Map
           ? json['parkingLot']['_id']?.toString() ?? ''
           : json['parkingLot']?.toString() ?? '',
+      bookingId: json['booking'] is Map
+          ? json['booking']['_id']?.toString()
+          : json['booking']?.toString(),
       entryTime: _parseDate(json['entryTime']),
       exitTime: json['exitTime'] != null ? _parseDate(json['exitTime']) : null,
       totalFee: (json['totalFee'] ?? 0).toDouble(),

@@ -17,7 +17,7 @@ class DriverTrackingDatasource {
   Future<List<ParkingSessionApiModel>> getMyActiveSessions() async {
     try {
       final res = await _dio.get(
-        ApiEndpoints.sessions,
+        '${ApiEndpoints.sessions}/my',
         queryParameters: {'status': 'active', 'limit': 50},
       );
       final data = res.data['data'];
@@ -34,7 +34,7 @@ class DriverTrackingDatasource {
   Future<List<ParkingSessionApiModel>> getMySessionHistory() async {
     try {
       final res = await _dio.get(
-        ApiEndpoints.sessions,
+        '${ApiEndpoints.sessions}/my',
         queryParameters: {'status': 'completed', 'limit': 50},
       );
       final data = res.data['data'];
