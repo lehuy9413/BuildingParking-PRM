@@ -66,7 +66,7 @@ class _BookingStepSlotState extends ConsumerState<BookingStepSlot> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Há»‡ thá»‘ng tá»± Ä‘á»™ng xáº¿p chá»—',
+                            'Auto-assigned by System',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
@@ -75,7 +75,7 @@ class _BookingStepSlotState extends ConsumerState<BookingStepSlot> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Vá»‹ trÃ­ tá»‘i Æ°u nháº¥t: ${state.selectedSlot!.slotCode}',
+                            'Optimal Location: ${state.selectedSlot!.slotCode}',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w900,

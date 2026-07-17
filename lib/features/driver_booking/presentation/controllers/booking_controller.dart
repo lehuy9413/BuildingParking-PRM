@@ -84,12 +84,13 @@ class BookingState extends Equatable {
     bool clearSlot = false,
     bool clearBooking = false,
     bool clearError = false,
+    bool clearTime = false,
   }) {
     return BookingState(
       currentStep: currentStep ?? this.currentStep,
       selectedDate: selectedDate ?? this.selectedDate,
-      checkInTime: checkInTime ?? this.checkInTime,
-      checkOutTime: checkOutTime ?? this.checkOutTime,
+      checkInTime: clearTime ? checkInTime : (checkInTime ?? this.checkInTime),
+      checkOutTime: clearTime ? checkOutTime : (checkOutTime ?? this.checkOutTime),
       parkingLots: parkingLots ?? this.parkingLots,
       selectedParkingLot: selectedParkingLot ?? this.selectedParkingLot,
       myVehicles: myVehicles ?? this.myVehicles,
@@ -125,15 +126,23 @@ class BookingState extends Equatable {
       return 0.0;
     }
 
-    // Use pricing from backend (vehicle or vehicleType)
+    // Use pricing from backend (vehicle or vehicleType), fallback to logic below if 0
     final dRate = selectedVehicle?.dayBlockRate ?? selectedVehicleType?.dayBlockRate ?? 0.0;
-    final hRate = selectedVehicle?.hourlyRate ?? selectedVehicleType?.hourlyRate ?? 0.0;
     final nRate = selectedVehicle?.nightBlockRate ?? selectedVehicleType?.nightBlockRate ?? 0.0;
 
-    final dayRate = dRate > 0 ? dRate : (hRate > 0 ? hRate * 4 : 20000.0);
-    final nightRate = nRate > 0 ? nRate : dayRate * 1.5;
+    // Determine vehicle type for fallback
+    final vTypeName = (selectedVehicleType?.name ?? selectedVehicle?.vehicleTypeName ?? '').toLowerCase();
+    final isCar = vTypeName.contains('ô tô') || vTypeName.contains('oto') || vTypeName.contains('car');
 
-    // Calculate duration in blocks of 4 hours (matching Web logic)
+    // Default fallbacks: Motorbike (2k/3k), Car (4k/5k)
+    final defaultDayRate = isCar ? 4000.0 : 2000.0;
+    final defaultNightRate = isCar ? 5000.0 : 3000.0;
+
+    // Day is 6:00 to 18:00, Night is 18:00 to 6:00
+    final dayRate = dRate > 0 ? dRate : defaultDayRate;
+    final nightRate = nRate > 0 ? nRate : defaultNightRate;
+
+    // Calculate duration in blocks of 4 hours
     final baseDate = selectedDate ?? DateTime.now();
     var tempStart = DateTime(baseDate.year, baseDate.month, baseDate.day,
         checkInTime!.hour, checkInTime!.minute);
@@ -243,6 +252,24 @@ class BookingController extends Notifier<BookingState> {
   }
 
   void selectDate(DateTime date) {
+    // Reset times when date changes to prevent stale past times
+    final now = DateTime.now();
+    final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
+    
+    // If switching to today and existing times are in the past, clear them
+    if (isToday && state.checkInTime != null) {
+      final currentHour = now.hour;
+      final currentMinute = now.minute;
+      if (state.checkInTime!.hour < currentHour || 
+          (state.checkInTime!.hour == currentHour && state.checkInTime!.minute < currentMinute)) {
+        state = state.copyWith(
+          selectedDate: date,
+          clearTime: true,
+          clearError: true,
+        );
+        return;
+      }
+    }
     state = state.copyWith(selectedDate: date, clearError: true);
   }
 
@@ -415,35 +442,60 @@ class BookingController extends Notifier<BookingState> {
         state.checkInTime!.minute,
       );
 
-      final checkOutDt = DateTime(
-        state.selectedDate!.year,
-        state.selectedDate!.month,
-        state.selectedDate!.day,
-        state.checkOutTime!.hour,
-        state.checkOutTime!.minute,
-      );
-
-
-      final booking = await _repository.createBooking(
+      var booking = await _repository.createBooking(
         parkingLotId: state.selectedParkingLot!.id,
         vehicleTypeId: state.selectedVehicle?.vehicleTypeId ?? state.selectedVehicleType!.id,
-        scheduledDate: checkIn, // Sending the date
+        scheduledDate: checkIn,
         startTime: '${state.checkInTime!.hour.toString().padLeft(2, '0')}:${state.checkInTime!.minute.toString().padLeft(2, '0')}',
         endTime: '${state.checkOutTime!.hour.toString().padLeft(2, '0')}:${state.checkOutTime!.minute.toString().padLeft(2, '0')}',
-        licensePlate: state.licensePlate, // Use the state licensePlate which includes manual input
+        licensePlate: state.licensePlate,
         floorId: state.selectedSlot?.floorId,
         zoneId: state.selectedSlot?.zoneId,
         assignedSlot: state.selectedSlot?.id,
       );
+
+      // Enrich booking with local slot info when API doesn't return populated zone/floor
+      if (state.selectedSlot != null) {
+        final slot = state.selectedSlot!;
+        booking = Booking(
+          id: booking.id,
+          bookingCode: booking.bookingCode,
+          parkingLotId: booking.parkingLotId,
+          parkingLotName: booking.parkingLotName.isNotEmpty 
+              ? booking.parkingLotName 
+              : (state.selectedParkingLot?.name ?? ''),
+          slotId: booking.slotId ?? slot.id,
+          slotCode: booking.slotCode ?? slot.slotCode,
+          floorName: booking.floorName ?? slot.floorName,
+          zoneName: booking.zoneName ?? slot.zoneName,
+          vehicleTypeName: booking.vehicleTypeName.isNotEmpty 
+              ? booking.vehicleTypeName 
+              : (state.selectedVehicle?.vehicleTypeName ?? state.selectedVehicleType?.name ?? ''),
+          licensePlate: booking.licensePlate.isNotEmpty 
+              ? booking.licensePlate 
+              : state.licensePlate,
+          scheduledDate: booking.scheduledDate,
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          estimatedFee: booking.estimatedFee > 0 ? booking.estimatedFee : state.estimatedPrice,
+          status: booking.status,
+          qrCode: booking.qrCode,
+        );
+      }
 
       state = state.copyWith(
         confirmedBooking: booking,
         isBookingConfirming: false,
       );
     } catch (e) {
+      // Clean up error message for user display
+      String errorMsg = e.toString();
+      if (errorMsg.startsWith('Exception: ')) {
+        errorMsg = errorMsg.substring('Exception: '.length);
+      }
       state = state.copyWith(
         isBookingConfirming: false,
-        errorMessage: 'Booking failed: $e',
+        errorMessage: errorMsg,
       );
     }
   }
