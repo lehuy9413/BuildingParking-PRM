@@ -5,6 +5,10 @@ import 'change_password_screen.dart';
 import '../../../driver_tracking/presentation/screens/feedback_screen.dart';
 import '../../domain/models/user_model.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/models/vehicle_model.dart';
+import '../../domain/repositories/vehicle_repository.dart';
+import '../../../driver_booking/data/datasources/driver_remote_datasource.dart';
+import '../../../staff_core/data/models/vehicle_type_model.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -17,7 +21,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isEditing = false;
 
   final _authRepo = AuthRepository();
+  final _vehicleRepo = VehicleRepository();
+  final _driverDatasource = DriverRemoteDatasource();
+
   UserModel? _user;
+  List<VehicleModel> _vehicles = [];
+  List<VehicleTypeModel> _vehicleTypes = [];
+
   bool _isLoading = true;
 
   late TextEditingController _nameController;
@@ -36,9 +46,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadProfile() async {
     try {
       final user = await _authRepo.getMe();
+      final vehicles = await _vehicleRepo.getMyVehicles();
+      final types = await _driverDatasource.getVehicleTypes();
       if (mounted) {
         setState(() {
           _user = user;
+          _vehicles = vehicles;
+          _vehicleTypes = types;
           _nameController.text = user.fullName;
           _phoneController.text = user.phone;
           _emailController.text = user.email;
@@ -66,18 +80,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  void _toggleEditMode() {
-    setState(() {
-      _isEditing = !_isEditing;
-    });
-    if (!_isEditing) {
-      // Show save confirmation
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile updated successfully!'),
-          backgroundColor: Color(0xFF0B7A59),
-        ),
-      );
+  Future<void> _toggleEditMode() async {
+    if (_isEditing) {
+      setState(() => _isLoading = true);
+      try {
+        final updatedUser = await _authRepo.updateProfile(
+          _nameController.text,
+          _phoneController.text,
+        );
+        if (mounted) {
+          setState(() {
+            _user = updatedUser;
+            _isEditing = false;
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile updated successfully!'),
+              backgroundColor: Color(0xFF0B7A59),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString().replaceAll('Exception: ', '')),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } else {
+      setState(() {
+        _isEditing = true;
+      });
     }
   }
 
@@ -111,19 +149,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
               import_app.SmartParkingApp.of(context).toggleTheme(isDark);
             },
           ),
-          if (_isEditing)
+          if (_isEditing) ...[
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _isEditing = false;
+                  _nameController.text = _user?.fullName ?? '';
+                  _phoneController.text = _user?.phone ?? '';
+                  _emailController.text = _user?.email ?? '';
+                });
+              },
+              child: const Text('Cancel', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)),
+            ),
             TextButton(
               onPressed: _toggleEditMode,
               child: const Text(
                 'Save',
-                style: TextStyle(
-                  color: Color(0xFF0B7A59),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
+                style: TextStyle(color: Color(0xFF0B7A59), fontWeight: FontWeight.bold, fontSize: 16),
               ),
-            )
-          else
+            ),
+          ] else
             IconButton(
               icon: const Icon(Icons.settings_outlined, color: Color(0xFF0B7A59)),
               onPressed: () {},
@@ -194,7 +239,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             letterSpacing: 1.2,
           ),
         ),
-        ?trailing,
+        if (trailing != null) trailing,
       ],
     );
   }
@@ -310,7 +355,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade500, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
-                if (_isEditing)
+                if (_isEditing && title != 'Email Address')
                   TextFormField(
                     controller: controller,
                     keyboardType: keyboardType,
@@ -342,7 +387,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildVehicleInfo(bool isDark) {
+    if (_vehicles.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Text('No vehicles added yet.', style: TextStyle(color: isDark ? Colors.white : Colors.black)),
+      );
+    }
+    return Column(
+      children: _vehicles.map((v) => _buildSingleVehicleCard(v, isDark)).toList(),
+    );
+  }
+
+  Widget _buildSingleVehicleCard(VehicleModel vehicle, bool isDark) {
+    String typeName = 'Vehicle';
+    if (vehicle.vehicleType != null) {
+      if (vehicle.vehicleType is Map) {
+        typeName = vehicle.vehicleType['name'] ?? typeName;
+      } else {
+        final t = _vehicleTypes.where((e) => e.id == vehicle.vehicleType).firstOrNull;
+        if (t != null) typeName = t.name;
+      }
+    }
+
     return Container(
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF064E3B).withOpacity(0.3) : const Color(0xFFE8F5EE),
@@ -352,7 +420,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: _showVehicleDetailsDialog,
+          onTap: () => _showVehicleDetailsDialog(vehicle),
           borderRadius: BorderRadius.circular(20),
           child: Row(
             children: [
@@ -362,36 +430,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: isDark ? const Color(0xFF064E3B) : Colors.white,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(Icons.directions_car_outlined, color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59), size: 30),
+                child: Icon(
+                  typeName.toLowerCase().contains('motorbike') ? Icons.two_wheeler_rounded : Icons.directions_car_outlined, 
+                  color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59), size: 30
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          'Default Vehicle',
-                          style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59), fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59),
-                            borderRadius: BorderRadius.circular(4),
+                    if (vehicle.isDefault)
+                      Row(
+                        children: [
+                          Text(
+                            'Default Vehicle',
+                            style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59), fontWeight: FontWeight.w700),
                           ),
-                          child: Text(
-                            'ACTIVE',
-                            style: TextStyle(color: isDark ? Colors.black : Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'ACTIVE',
+                              style: TextStyle(color: isDark ? Colors.black : Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
                     const SizedBox(height: 4),
                     Text(
-                      'Car',
+                      typeName,
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF0F172A)),
                     ),
                     const SizedBox(height: 6),
@@ -406,7 +478,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             border: Border.all(color: isDark ? Colors.grey.shade600 : Colors.grey.shade300),
                           ),
                           child: Text(
-                            '51A-123.45',
+                            vehicle.licensePlate,
                             style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black),
                           ),
                         ),
@@ -509,8 +581,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showVehicleDetailsDialog() {
+  void _showVehicleDetailsDialog(VehicleModel vehicle) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    String typeName = 'Vehicle';
+    if (vehicle.vehicleType != null) {
+      if (vehicle.vehicleType is Map) {
+        typeName = vehicle.vehicleType['name'] ?? typeName;
+      } else {
+        final t = _vehicleTypes.where((e) => e.id == vehicle.vehicleType).firstOrNull;
+        if (t != null) typeName = t.name;
+      }
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -527,27 +610,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDialogRow('Type', 'Car', isDark),
+            _buildDialogRow('Type', typeName, isDark),
             const SizedBox(height: 12),
-            _buildDialogRow('Plate', '51A-123.45', isDark),
+            _buildDialogRow('Plate', vehicle.licensePlate, isDark),
             const SizedBox(height: 12),
-            _buildDialogRow('Status', 'Active (Default)', isDark),
-            const SizedBox(height: 12),
-            _buildDialogRow('Added on', '12 Oct 2023', isDark),
+            _buildDialogRow('Status', vehicle.isDefault ? 'Active (Default)' : 'Normal', isDark),
           ],
         ),
         actions: [
+          if (!vehicle.isDefault)
+            TextButton(
+              onPressed: () async {
+                try {
+                  await _vehicleRepo.setDefaultVehicle(vehicle.id);
+                  if (mounted) {
+                    Navigator.pop(context);
+                    _loadProfile();
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                  }
+                }
+              },
+              child: const Text('Set Active', style: TextStyle(color: Colors.blue)),
+            ),
+          TextButton(
+            onPressed: () async {
+              try {
+                await _vehicleRepo.deleteVehicle(vehicle.id);
+                if (mounted) {
+                  Navigator.pop(context);
+                  _loadProfile();
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                }
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text('Close', style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: Text('Edit', style: TextStyle(color: isDark ? Colors.black : Colors.white)),
           ),
         ],
       ),
@@ -566,80 +672,119 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _showAddVehicleDialog() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final plateController = TextEditingController();
+    String? selectedType = _vehicleTypes.isNotEmpty ? _vehicleTypes.first.id : null;
+    bool isSaving = false;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Add New Vehicle',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Add New Vehicle',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                  ),
+                  const SizedBox(height: 24),
+                  if (_vehicleTypes.isNotEmpty)
+                    DropdownButtonFormField<String>(
+                      value: selectedType,
+                      dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                      decoration: InputDecoration(
+                        labelText: 'Vehicle Type',
+                        labelStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: isDark ? Colors.grey.shade600 : Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59), width: 1.5),
+                        ),
+                      ),
+                      items: _vehicleTypes.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
+                      onChanged: (val) {
+                        setModalState(() {
+                          selectedType = val;
+                        });
+                      },
+                    ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: plateController,
+                    style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                    decoration: InputDecoration(
+                      labelText: 'License Plate (e.g. 29A-12345)',
+                      labelStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: isDark ? Colors.grey.shade600 : Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59), width: 1.5),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: isSaving ? null : () async {
+                        if (plateController.text.trim().isEmpty || selectedType == null) return;
+                        setModalState(() => isSaving = true);
+                        try {
+                          await _vehicleRepo.addVehicle(
+                            licensePlate: plateController.text.trim(),
+                            vehicleType: selectedType!,
+                            isDefault: _vehicles.isEmpty,
+                          );
+                          if (mounted) {
+                            Navigator.pop(context);
+                            _loadProfile();
+                          }
+                        } catch (e) {
+                          setModalState(() => isSaving = false);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                      child: isSaving 
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Text('SAVE VEHICLE', style: TextStyle(color: isDark ? Colors.black : Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
               ),
-              const SizedBox(height: 24),
-              TextFormField(
-                style: TextStyle(color: isDark ? Colors.white : Colors.black),
-                decoration: InputDecoration(
-                  labelText: 'Vehicle Type (e.g. Car, Motorbike)',
-                  labelStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: isDark ? Colors.grey.shade600 : Colors.grey.shade300),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59), width: 1.5),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                style: TextStyle(color: isDark ? Colors.white : Colors.black),
-                decoration: InputDecoration(
-                  labelText: 'License Plate',
-                  labelStyle: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: isDark ? Colors.grey.shade600 : Colors.grey.shade300),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59), width: 1.5),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  child: Text('SAVE VEHICLE', style: TextStyle(color: isDark ? Colors.black : Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        ),
+            ),
+          );
+        }
       ),
     );
   }

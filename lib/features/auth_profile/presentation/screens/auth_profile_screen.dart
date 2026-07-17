@@ -133,7 +133,7 @@ class _TabButton extends StatelessWidget {
 }
 
 // Custom TextField
-class _InputField extends StatelessWidget {
+class _InputField extends StatefulWidget {
   const _InputField({
     required this.hintText,
     required this.icon,
@@ -149,20 +149,45 @@ class _InputField extends StatelessWidget {
   final TextEditingController? controller;
 
   @override
+  State<_InputField> createState() => _InputFieldState();
+}
+
+class _InputFieldState extends State<_InputField> {
+  late bool _obscureText;
+
+  @override
+  void initState() {
+    super.initState();
+    _obscureText = widget.obscureText;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return TextFormField(
-      controller: controller,
-      obscureText: obscureText,
+      controller: widget.controller,
+      obscureText: _obscureText,
       style: TextStyle(
         color: isDark ? Colors.white : const Color(0xFF0F172A),
       ),
       decoration: InputDecoration(
-        hintText: hintText,
+        hintText: widget.hintText,
         hintStyle: TextStyle(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, fontSize: 15),
-        prefixIcon: Icon(icon, color: isDark ? Colors.grey.shade500 : Colors.grey.shade500),
-        suffixIcon: trailingIcon != null ? Icon(trailingIcon, color: isDark ? Colors.grey.shade500 : Colors.grey.shade500) : null,
+        prefixIcon: Icon(widget.icon, color: isDark ? Colors.grey.shade500 : Colors.grey.shade500),
+        suffixIcon: widget.trailingIcon != null
+            ? IconButton(
+                icon: Icon(
+                  _obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  color: isDark ? Colors.grey.shade500 : Colors.grey.shade500,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _obscureText = !_obscureText;
+                  });
+                },
+              )
+            : null,
         filled: true,
         fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF7F9FB),
         border: OutlineInputBorder(
@@ -306,8 +331,10 @@ class _LoginCardState extends State<_LoginCard> {
       final user = await _authRepo.login(email, password);
       
       if (!mounted) return;
-      
-      final isStaff = user.role == 'staff' || email == 'staff@parking.com' || email == 'staff';
+
+      // Route theo role thực từ backend
+      final role = user.role ?? '';
+      final isStaff = role == 'parking_staff' || role == 'parking_manager';
 
       Navigator.pushReplacement(
         context,
@@ -329,6 +356,7 @@ class _LoginCardState extends State<_LoginCard> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

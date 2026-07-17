@@ -8,6 +8,10 @@ import '../widgets/vehicle_check_out_invoice_screen.dart';
 import '../../../auth_profile/presentation/screens/auth_profile_screen.dart';
 import '../../../staff_exception/presentation/screens/staff_exception_screen.dart';
 
+import '../../../staff_exception/presentation/screens/staff_exception_screen.dart';
+import '../../../../app/app.dart' as import_app;
+
+
 /// Màn hình chính của Staff Core – quản lý luồng xe vào/ra tiêu chuẩn.
 class StaffCoreScreen extends StatefulWidget {
   const StaffCoreScreen({super.key});
@@ -30,6 +34,8 @@ class _StaffCoreScreenState extends State<StaffCoreScreen>
     _ctrl = StaffCoreController();
     _tabController = TabController(length: 2, vsync: this);
     _ctrl.addListener(_rebuild);
+    // Load vehicle types & dashboard data from API
+    _ctrl.init();
   }
 
   void _rebuild() => setState(() {});
@@ -68,19 +74,20 @@ class _StaffCoreScreenState extends State<StaffCoreScreen>
 
   @override
   Widget build(BuildContext context) {
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FB),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF7F9FB),
       appBar: _buildAppBar(),
       body: Column(
         children: [
           // ─── Tab bar ────────────────────────────────────────────────
           Container(
-            color: Colors.white,
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
             child: TabBar(
               controller: _tabController,
-              labelColor: const Color(0xFF2563EB),
-              unselectedLabelColor: const Color(0xFF94A3B8),
+              labelColor: isDark ? Colors.blue[300] : const Color(0xFF2563EB),
+              unselectedLabelColor: isDark ? Colors.grey[500] : const Color(0xFF94A3B8),
               labelStyle: const TextStyle(
                 fontWeight: FontWeight.w800,
                 fontSize: 13,
@@ -115,16 +122,17 @@ class _StaffCoreScreenState extends State<StaffCoreScreen>
   }
 
   PreferredSizeWidget _buildAppBar() {
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       elevation: 0,
       leading: null,
       automaticallyImplyLeading: true,
-      title: const Row(
+      title: Row(
         children: [
-          Icon(Icons.local_parking_rounded,
+          const Icon(Icons.local_parking_rounded,
               color: Color(0xFF2563EB), size: 26),
-          SizedBox(width: 10),
+          const SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -133,14 +141,14 @@ class _StaffCoreScreenState extends State<StaffCoreScreen>
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFF0F172A),
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
                 ),
               ),
               Text(
                 'Parking Gate Operations',
                 style: TextStyle(
                   fontSize: 11,
-                  color: Color(0xFF64748B),
+                  color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -149,6 +157,13 @@ class _StaffCoreScreenState extends State<StaffCoreScreen>
         ],
       ),
       actions: [
+        IconButton(
+          icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: isDark ? Colors.amber : const Color(0xFF0F172A)),
+          onPressed: () {
+            import_app.SmartParkingApp.of(context).toggleTheme(isDark);
+          },
+          tooltip: 'Toggle Theme',
+        ),
         IconButton(
           icon: const Icon(Icons.history_rounded, color: Color(0xFF64748B)),
           onPressed: () => _showSessionHistory(context),

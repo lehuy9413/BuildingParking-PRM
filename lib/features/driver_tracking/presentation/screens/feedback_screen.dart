@@ -1,31 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../controllers/driver_tracking_controller.dart';
 
 /// Màn hình Gửi Phản hồi/Khiếu nại – Báo mất thẻ, sai phí, slot bị chiếm.
-class FeedbackScreen extends StatefulWidget {
+class FeedbackScreen extends ConsumerStatefulWidget {
   const FeedbackScreen({super.key});
 
   @override
-  State<FeedbackScreen> createState() => _FeedbackScreenState();
+  ConsumerState<FeedbackScreen> createState() => _FeedbackScreenState();
 }
 
-class _FeedbackScreenState extends State<FeedbackScreen> {
+class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
   int _selectedIssueIndex = -1;
   final _descController = TextEditingController();
   final _plateController = TextEditingController(text: '51A-123.45');
+  final _titleController = TextEditingController();
   final List<String> _attachedImages = [];
   bool _isSubmitting = false;
   bool _submitted = false;
+  String? _feedbackId;
 
   static const _issues = [
-    _IssueType('Lost parking card', 'The parking card is lost or damaged', Icons.credit_card_off_rounded, Color(0xFFEF4444)),
-    _IssueType('Incorrect parking fee', 'The calculated fee is incorrect', Icons.money_off_rounded, Color(0xFFF59E0B)),
-    _IssueType('Slot occupied', 'The reserved slot is occupied by another vehicle', Icons.block_rounded, Color(0xFFEA580C)),
-    _IssueType('Vehicle damaged', 'Found scratches/damage on vehicle in the parking lot', Icons.car_crash_rounded, Color(0xFF8B5CF6)),
-    _IssueType('Other issues', 'Other issues that need support', Icons.help_outline_rounded, Color(0xFF0EA5E9)),
+    _IssueType('Lost parking card', 'The parking card is lost or damaged',
+        Icons.credit_card_off_rounded, Color(0xFFEF4444), 'issue_report'),
+    _IssueType('Incorrect parking fee', 'The calculated fee is incorrect',
+        Icons.money_off_rounded, Color(0xFFF59E0B), 'complaint'),
+    _IssueType('Slot occupied',
+        'The reserved slot is occupied by another vehicle',
+        Icons.block_rounded, Color(0xFFEA580C), 'complaint'),
+    _IssueType('Vehicle damaged',
+        'Found scratches/damage on vehicle in the parking lot',
+        Icons.car_crash_rounded, Color(0xFF8B5CF6), 'issue_report'),
+    _IssueType('Other issues', 'Other issues that need support',
+        Icons.help_outline_rounded, Color(0xFF0EA5E9), 'general'),
   ];
 
   @override
   void dispose() {
+    _titleController.dispose();
     _descController.dispose();
     _plateController.dispose();
     super.dispose();
@@ -34,14 +47,46 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   Future<void> _submit() async {
     if (_selectedIssueIndex < 0 || _descController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select an issue type and provide a description'), backgroundColor: Color(0xFFEF4444), behavior: SnackBarBehavior.floating),
+        const SnackBar(
+            content: Text(
+                'Please select an issue type and provide a description'),
+            backgroundColor: Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating),
       );
       return;
     }
     setState(() => _isSubmitting = true);
-    await Future.delayed(const Duration(seconds: 2));
+
+    final issue = _issues[_selectedIssueIndex];
+    final title = _titleController.text.trim().isNotEmpty
+        ? _titleController.text.trim()
+        : issue.title;
+
+    await ref.read(feedbackProvider.notifier).submit(
+      title: title,
+      content: _descController.text.trim(),
+      rating: 3, // neutral default
+      type: issue.apiType,
+    );
+
     if (!mounted) return;
-    setState(() { _isSubmitting = false; _submitted = true; });
+    final feedbackState = ref.read(feedbackProvider);
+
+    setState(() => _isSubmitting = false);
+
+    if (feedbackState.status == FeedbackSubmitStatus.success) {
+      setState(() {
+        _submitted = true;
+        _feedbackId = feedbackState.feedbackId;
+      });
+    } else if (feedbackState.status == FeedbackSubmitStatus.failed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(feedbackState.error ?? 'Submit failed'),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating),
+      );
+    }
   }
 
   void _simulateAttachImage() {
@@ -112,6 +157,13 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   padding: const EdgeInsets.only(bottom: 10),
                   child: _buildIssueCard(e.value, e.key, isDark),
                 )),
+                const SizedBox(height: 20),
+
+                // Title (optional)
+                _sectionTitle('TITLE (optional)', isDark),
+                const SizedBox(height: 12),
+                _buildTextField(_titleController, 'Short title for your report',
+                    Icons.title_rounded, isDark),
                 const SizedBox(height: 20),
 
                 // Plate
@@ -330,7 +382,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
               boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.3 : 0.06), blurRadius: 20, offset: const Offset(0, 8))],
             ),
             child: Column(children: [
-              _receiptRow(isDark, 'Report ID', 'FB-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}'),
+              _receiptRow(isDark, 'Report ID',
+                  _feedbackId != null
+                      ? '#${_feedbackId!.substring(_feedbackId!.length > 6 ? _feedbackId!.length - 6 : 0)}'
+                      : 'FB-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}'),
               _receiptRow(isDark, 'Issue Type', _issues[_selectedIssueIndex].title),
               _receiptRow(isDark, 'License Plate', _plateController.text),
               _receiptRow(isDark, 'Attachments', '${_attachedImages.length} images'),
@@ -372,5 +427,6 @@ class _IssueType {
   final String title, subtitle;
   final IconData icon;
   final Color color;
-  const _IssueType(this.title, this.subtitle, this.icon, this.color);
+  final String apiType;
+  const _IssueType(this.title, this.subtitle, this.icon, this.color, this.apiType);
 }

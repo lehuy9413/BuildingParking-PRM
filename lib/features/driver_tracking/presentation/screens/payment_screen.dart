@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import '../controllers/driver_tracking_controller.dart';
 
-/// Màn hình Thanh toán Online – giả lập cổng thanh toán (Momo, ZaloPay, QR Bank).
-class PaymentScreen extends StatefulWidget {
+/// Màn hình Thanh toán – Bank QR dùng SEPay thật, mời khác giả lập.
+class PaymentScreen extends ConsumerStatefulWidget {
   const PaymentScreen({
     super.key,
     required this.amount,
@@ -16,10 +18,10 @@ class PaymentScreen extends StatefulWidget {
   final String plateNumber;
 
   @override
-  State<PaymentScreen> createState() => _PaymentScreenState();
+  ConsumerState<PaymentScreen> createState() => _PaymentScreenState();
 }
 
-class _PaymentScreenState extends State<PaymentScreen>
+class _PaymentScreenState extends ConsumerState<PaymentScreen>
     with TickerProviderStateMixin {
   int _selectedMethodIndex = -1;
   bool _showQr = false;
@@ -31,32 +33,18 @@ class _PaymentScreenState extends State<PaymentScreen>
 
   final List<_PaymentMethod> _methods = const [
     _PaymentMethod(
-      name: 'MoMo',
-      subtitle: 'MoMo E-Wallet',
-      icon: Icons.account_balance_wallet_rounded,
-      color: Color(0xFFAE2070),
-      gradientColors: [Color(0xFFAE2070), Color(0xFFD63384)],
-    ),
-    _PaymentMethod(
       name: 'Cash',
-      subtitle: 'Pay at the counter',
+      subtitle: 'Thanh toán tại quầy',
       icon: Icons.payments_rounded,
       color: Color(0xFFF59E0B),
       gradientColors: [Color(0xFFF59E0B), Color(0xFFFCD34D)],
     ),
     _PaymentMethod(
       name: 'Bank QR',
-      subtitle: 'Bank Transfer',
+      subtitle: 'Chuyển khoản ngân hàng',
       icon: Icons.qr_code_rounded,
       color: Color(0xFF059669),
       gradientColors: [Color(0xFF059669), Color(0xFF34D399)],
-    ),
-    _PaymentMethod(
-      name: 'Visa / Master',
-      subtitle: 'International Card',
-      icon: Icons.credit_card_rounded,
-      color: Color(0xFF6366F1),
-      gradientColors: [Color(0xFF6366F1), Color(0xFFA78BFA)],
     ),
   ];
 
@@ -80,7 +68,8 @@ class _PaymentScreenState extends State<PaymentScreen>
   }
 
   String _formatCurrency(double amount) {
-    return '\$${amount.toStringAsFixed(2)}';
+    return NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0)
+        .format(amount);
   }
 
   void _onPaymentMethodSelected(int index) {
@@ -93,44 +82,23 @@ class _PaymentScreenState extends State<PaymentScreen>
 
   Future<void> _processPayment() async {
     if (_selectedMethodIndex < 0 || _isProcessing) return;
-
     final method = _methods[_selectedMethodIndex];
 
+    if (method.name == 'Bank QR') {
+      setState(() => _showQr = true);
+      await ref.read(qrPaymentProvider.notifier).initiateQr(widget.sessionId);
+      return;
+    }
+
     if (method.name == 'Cash') {
-      setState(() {
-        _isProcessing = true;
-      });
+      setState(() => _isProcessing = true);
       await Future.delayed(const Duration(seconds: 2));
       if (!mounted) return;
-      setState(() {
-        _isProcessing = false;
-        _paymentSuccess = true;
-      });
+      setState(() { _isProcessing = false; _paymentSuccess = true; });
       _successAnimController.forward();
       return;
     }
 
-    setState(() {
-      _showQr = true;
-    });
-
-    // Simulate QR display time
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (!mounted) return;
-    setState(() {
-      _isProcessing = true;
-    });
-
-    // Simulate payment processing
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (!mounted) return;
-    setState(() {
-      _isProcessing = false;
-      _paymentSuccess = true;
-    });
-    _successAnimController.forward();
   }
 
   @override
@@ -157,11 +125,35 @@ class _PaymentScreenState extends State<PaymentScreen>
         ),
         centerTitle: true,
       ),
-      body: _paymentSuccess
-          ? _buildSuccessView(isDark)
-          : _showQr
-              ? _buildQrPaymentView(isDark)
-              : _buildMethodSelectionView(isDark),
+      body: Builder(builder: (ctx) {
+        final qrState = ref.watch(qrPaymentProvider);
+        final isBankQr = _selectedMethodIndex >= 0 &&
+            _methods[_selectedMethodIndex].name == 'Bank QR';
+        if (isBankQr && qrState.step == QrPaymentStep.success && !_paymentSuccess) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() => _paymentSuccess = true);
+              _successAnimController.forward();
+            }
+          });
+        }
+        if (isBankQr && qrState.step == QrPaymentStep.failed && qrState.error != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                content: Text(qrState.error!),
+                backgroundColor: const Color(0xFFEF4444),
+                behavior: SnackBarBehavior.floating,
+              ));
+              ref.read(qrPaymentProvider.notifier).reset();
+              setState(() => _showQr = false);
+            }
+          });
+        }
+        if (_paymentSuccess) return _buildSuccessView(isDark);
+        if (_showQr) return _buildQrPaymentView(isDark, qrState);
+        return _buildMethodSelectionView(isDark);
+      }),
     );
   }
 
@@ -499,202 +491,139 @@ class _PaymentScreenState extends State<PaymentScreen>
   // QR PAYMENT VIEW
   // ═══════════════════════════════════════════════════════════════════════════
 
-  Widget _buildQrPaymentView(bool isDark) {
+  Widget _buildQrPaymentView(bool isDark, QrPaymentState qrState) {
     final method = _methods[_selectedMethodIndex];
+    final isBankQr = method.name == 'Bank QR';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Column(
-        children: [
-          const SizedBox(height: 16),
-          // ── Method Header ──
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
+      child: Column(children: [
+        const SizedBox(height: 16),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
                 colors: method.gradientColors,
                 begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: method.color.withOpacity(0.4),
-                  blurRadius: 24,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Icon(method.icon, color: Colors.white, size: 40),
-                const SizedBox(height: 12),
-                Text(
-                  'Pay with ${method.name}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _formatCurrency(widget.amount),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 34,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
+                end: Alignment.bottomRight),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [BoxShadow(color: method.color.withOpacity(0.4), blurRadius: 24, offset: const Offset(0, 10))],
           ),
-          const SizedBox(height: 28),
-
-          // ── QR Code ──
-          Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.4 : 0.08),
-                  blurRadius: 32,
-                  offset: const Offset(0, 12),
-                ),
-              ],
+          child: Column(children: [
+            Icon(method.icon, color: Colors.white, size: 40),
+            const SizedBox(height: 12),
+            Text('Pay with ${method.name}', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 4),
+            Text(_formatCurrency(widget.amount), style: const TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w900)),
+          ]),
+        ),
+        const SizedBox(height: 28),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.4 : 0.08), blurRadius: 32, offset: const Offset(0, 12))],
+          ),
+          child: Column(children: [
+            Text('Scan QR Code to Pay', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF0F172A))),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: method.color.withOpacity(0.3), width: 3)),
+              child: _buildQrContent(method, qrState),
             ),
-            child: Column(
-              children: [
-                Text(
-                  'Scan QR Code to Pay',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.white : const Color(0xFF0F172A),
-                  ),
-                ),
-                const SizedBox(height: 20),
+            const SizedBox(height: 16),
+            if (isBankQr && (qrState.step == QrPaymentStep.loading || qrState.step == QrPaymentStep.polling)) ...[
+              SizedBox(width: 26, height: 26, child: CircularProgressIndicator(strokeWidth: 3, color: method.color)),
+              const SizedBox(height: 10),
+              Text(qrState.step == QrPaymentStep.loading ? 'Đang tạo mã QR...' : 'Chờ xác nhận SEPay...',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.grey.shade300 : Colors.grey.shade600)),
+            ] else if (_isProcessing) ...[
+              SizedBox(width: 26, height: 26, child: CircularProgressIndicator(strokeWidth: 3, color: method.color)),
+              const SizedBox(height: 10),
+              Text('Đang xử lý...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.grey.shade300 : Colors.grey.shade600)),
+            ] else ...[
+              if (isBankQr && qrState.transferContent != null) ...[
                 Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: method.color.withOpacity(0.3),
-                      width: 3,
-                    ),
-                  ),
-                  child: QrImageView(
-                    data:
-                        '${method.name}|${widget.sessionId}|${widget.amount}|${DateTime.now().millisecondsSinceEpoch}',
-                    version: QrVersions.auto,
-                    size: 200,
-                    backgroundColor: Colors.white,
-                    eyeStyle: QrEyeStyle(
-                      eyeShape: QrEyeShape.square,
-                      color: method.color,
-                    ),
-                    dataModuleStyle: const QrDataModuleStyle(
-                      dataModuleShape: QrDataModuleShape.square,
-                      color: Color(0xFF0F172A),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (_isProcessing) ...[
-                  SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 3,
-                      color: method.color,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Processing payment...',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.grey.shade300 : Colors.grey.shade600,
-                    ),
-                  ),
-                ] else ...[
-                  Text(
-                    'Open your ${method.name} app and scan this QR code',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 20),
-                // Info
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? method.color.withOpacity(0.1)
-                        : method.color.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.timer_rounded,
-                          color: method.color, size: 20),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'QR code expires in 5 minutes. Do not close this screen.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: isDark
-                                ? Colors.grey.shade300
-                                : const Color(0xFF475569),
-                          ),
-                        ),
-                      ),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: method.color.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Icon(Icons.info_outline_rounded, color: method.color, size: 15),
+                      const SizedBox(width: 6),
+                      Text('Nội dung chuyển khoản', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: method.color)),
+                    ]),
+                    const SizedBox(height: 6),
+                    SelectableText(qrState.transferContent!, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF0F172A), letterSpacing: 1)),
+                    if (qrState.bankInfo != null) ...[
+                      const SizedBox(height: 4),
+                      Text(qrState.bankInfo!, style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade500)),
                     ],
-                  ),
+                  ]),
                 ),
+                const SizedBox(height: 10),
               ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // ── Change Method ──
-          TextButton.icon(
-            onPressed: () {
-              setState(() {
-                _showQr = false;
-                _isProcessing = false;
-              });
-            },
-            icon: Icon(Icons.swap_horiz_rounded,
-                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
-            label: Text(
-              'Change payment method',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+              Text(
+                isBankQr ? 'Mở app ngân hàng → quét QR hoặc chuyển khoản với nội dung trên' : 'Open your ${method.name} app and scan this QR code',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: isDark ? Colors.grey.shade400 : Colors.grey.shade500, height: 1.4),
               ),
+            ],
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: isDark ? method.color.withOpacity(0.1) : method.color.withOpacity(0.05), borderRadius: BorderRadius.circular(14)),
+              child: Row(children: [
+                Icon(Icons.timer_rounded, color: method.color, size: 20),
+                const SizedBox(width: 10),
+                Expanded(child: Text('QR hết hạn sau 5 phút. Không đóng màn hình này.', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.grey.shade300 : const Color(0xFF475569)))),
+              ]),
             ),
-          ),
-          const SizedBox(height: 32),
-        ],
-      ),
+          ]),
+        ),
+        const SizedBox(height: 24),
+        TextButton.icon(
+          onPressed: () {
+            if (isBankQr) ref.read(qrPaymentProvider.notifier).reset();
+            setState(() { _showQr = false; _isProcessing = false; });
+          },
+          icon: Icon(Icons.swap_horiz_rounded, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+          label: Text('Change payment method', style: TextStyle(fontWeight: FontWeight.w700, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600)),
+        ),
+        const SizedBox(height: 32),
+      ]),
+    );
+  }
+
+  Widget _buildQrContent(_PaymentMethod method, QrPaymentState qrState) {
+    final isBankQr = method.name == 'Bank QR';
+    if (isBankQr && qrState.step == QrPaymentStep.loading) {
+      return SizedBox(width: 200, height: 200, child: Center(child: CircularProgressIndicator(color: method.color)));
+    }
+    if (isBankQr && qrState.qrData != null) {
+      final url = qrState.qrData!;
+      if (url.startsWith('http')) {
+        return Image.network(url, width: 200, height: 200, fit: BoxFit.contain,
+            loadingBuilder: (_, child, prog) => prog == null ? child : SizedBox(width: 200, height: 200, child: Center(child: CircularProgressIndicator(color: method.color))),
+            errorBuilder: (_, __, ___) => SizedBox(width: 200, height: 200, child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.qr_code_2_rounded, size: 60, color: method.color), const SizedBox(height: 8), const Text('Chuyển khoản với nội dung bên dưới', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey))])));
+      }
+      return QrImageView(data: url, version: QrVersions.auto, size: 200, backgroundColor: Colors.white, eyeStyle: QrEyeStyle(eyeShape: QrEyeShape.square, color: method.color), dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Color(0xFF0F172A)));
+    }
+    return QrImageView(
+      data: '${method.name}|${widget.sessionId}|${widget.amount}|${DateTime.now().millisecondsSinceEpoch}',
+      version: QrVersions.auto, size: 200, backgroundColor: Colors.white,
+      eyeStyle: QrEyeStyle(eyeShape: QrEyeShape.square, color: method.color),
+      dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Color(0xFF0F172A)),
     );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // SUCCESS VIEW
+
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildSuccessView(bool isDark) {

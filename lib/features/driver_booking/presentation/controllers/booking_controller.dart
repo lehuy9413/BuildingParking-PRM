@@ -37,6 +37,7 @@ class BookingState extends Equatable {
   final bool isLoading;
   final bool isBookingConfirming;
   final String? errorMessage;
+  final String paymentMethod; // 'cash' or 'qr'
 
   const BookingState({
     this.currentStep = 0,
@@ -57,6 +58,7 @@ class BookingState extends Equatable {
     this.isLoading = false,
     this.isBookingConfirming = false,
     this.errorMessage,
+    this.paymentMethod = 'cash',
   });
 
   BookingState copyWith({
@@ -78,6 +80,7 @@ class BookingState extends Equatable {
     bool? isLoading,
     bool? isBookingConfirming,
     String? errorMessage,
+    String? paymentMethod,
     bool clearSlot = false,
     bool clearBooking = false,
     bool clearError = false,
@@ -102,6 +105,7 @@ class BookingState extends Equatable {
       isLoading: isLoading ?? this.isLoading,
       isBookingConfirming: isBookingConfirming ?? this.isBookingConfirming,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      paymentMethod: paymentMethod ?? this.paymentMethod,
     );
   }
 
@@ -184,7 +188,7 @@ class BookingState extends Equatable {
         parkingLots, selectedParkingLot, myVehicles, selectedVehicle,
         vehicleTypes, selectedVehicleType,
         licensePlate, selectedSlot, availableSlots, aiSuggestions, confirmedBooking,
-        isLoading, isBookingConfirming, errorMessage,
+        isLoading, isBookingConfirming, errorMessage, paymentMethod,
       ];
 }
 
@@ -406,6 +410,10 @@ class BookingController extends Notifier<BookingState> {
 
   void selectAiSuggestion(AiSuggestion suggestion) {
     state = state.copyWith(selectedSlot: suggestion.recommendedSlot);
+  }
+
+  void setPaymentMethod(String method) {
+    state = state.copyWith(paymentMethod: method);
   }
 
   // ── Booking Confirmation ──

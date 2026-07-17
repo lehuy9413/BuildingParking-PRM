@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../controllers/driver_tracking_controller.dart';
+import '../../../staff_core/data/models/parking_session_api_model.dart';
 import 'live_session_screen.dart';
 import 'parking_history_screen.dart';
 import 'payment_screen.dart';
 
 /// Hub screen for Driver Tracking – links to all tracking/payment/feedback features.
-class DriverTrackingScreen extends StatelessWidget {
+class DriverTrackingScreen extends ConsumerWidget {
   const DriverTrackingScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sessionState = ref.watch(liveSessionProvider);
+    final sessions = sessionState.value?.sessions ?? [];
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -24,9 +29,12 @@ class DriverTrackingScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Active Session Banner
-            _buildActiveSessionBanner(context, isDark),
-            const SizedBox(height: 28),
+            // Active Session Banners (one per parked vehicle)
+            ...sessions.expand((s) => [
+              _buildActiveSessionBanner(context, isDark, s),
+              const SizedBox(height: 12),
+            ]),
+            if (sessions.isNotEmpty) const SizedBox(height: 8),
 
             _sectionTitle('SERVICES', isDark),
             const SizedBox(height: 16),
@@ -49,9 +57,11 @@ class DriverTrackingScreen extends StatelessWidget {
     return Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: isDark ? Colors.grey.shade400 : const Color(0xFF475569), letterSpacing: 1.5));
   }
 
-  Widget _buildActiveSessionBanner(BuildContext ctx, bool isDark) {
+  Widget _buildActiveSessionBanner(BuildContext ctx, bool isDark, ParkingSessionApiModel session) {
     return GestureDetector(
-      onTap: () => Navigator.push(ctx, MaterialPageRoute(builder: (_) => const LiveSessionScreen())),
+      onTap: () => Navigator.push(ctx, MaterialPageRoute(
+        builder: (_) => LiveSessionScreen(sessionId: session.id),
+      )),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(20),
@@ -81,7 +91,7 @@ class DriverTrackingScreen extends StatelessWidget {
                 ),
               ]),
               const SizedBox(height: 8),
-              const Text('51A-123.45 • Floor 2 • C-14', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+              Text('${session.licensePlate} • ${session.floorName} • ${session.slotCode}', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
               Text('Tap to view live session', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, fontWeight: FontWeight.w500)),
             ])),
