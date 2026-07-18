@@ -3,6 +3,10 @@ import 'package:intl/intl.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../domain/models/incident_model.dart';
+import 'package:dio/dio.dart';
+import 'dart:convert';
+import '../../../staff_core/presentation/screens/real_camera_screen.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProcessLostTicketScreen extends StatefulWidget {
   final IncidentModel incident;
@@ -22,6 +26,8 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
 
   bool _isSearching = false;
   Map<String, String>? _foundSystemRecord;
+  String? _capturedImageBase64;
+  String? _evidenceSource;
   String _paymentMethod = 'CASH';
   bool _isSubmitting = false;
 
@@ -133,12 +139,25 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
       final fineAmount = double.tryParse(_fineCtrl.text.trim()) ?? 0;
       
       // 1. Resolve the incident
-      await dio.patch(
-        ApiEndpoints.incidentResolve(widget.incident.id),
-        data: {
+      dynamic requestData;
+      if (_capturedImageBase64 != null) {
+        final base64Str = _capturedImageBase64!.split(',').last;
+        final bytes = base64Decode(base64Str);
+        requestData = FormData.fromMap({
           'description': 'Lost ticket processed and fine paid.',
           'extraCharge': fineAmount,
-        },
+          'image': MultipartFile.fromBytes(bytes, filename: 'evidence.jpg'),
+        });
+      } else {
+        requestData = {
+          'description': 'Lost ticket processed and fine paid.',
+          'extraCharge': fineAmount,
+        };
+      }
+
+      await dio.patch(
+        ApiEndpoints.incidentResolve(widget.incident.id),
+        data: requestData,
       );
 
       // 2. Check-out the session
@@ -370,12 +389,33 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.camera_alt_rounded, size: 18, color: Color(0xFF64748B)),
-                label: const Text('Take Photo', style: TextStyle(color: Color(0xFF475569))),
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const RealCameraScreen()),
+                  );
+                  if (result != null && result is String) {
+                    setState(() {
+                      _capturedImageBase64 = result;
+                      _evidenceSource = 'camera';
+                    });
+                  }
+                },
+                icon: Icon(
+                  _evidenceSource == 'camera' ? Icons.check_circle_rounded : Icons.camera_alt_rounded,
+                  size: 18,
+                  color: _evidenceSource == 'camera' ? Colors.green : const Color(0xFF64748B),
+                ),
+                label: Text(
+                  _evidenceSource == 'camera' ? 'Photo Taken' : 'Take Photo',
+                  style: TextStyle(
+                    color: _evidenceSource == 'camera' ? Colors.green : const Color(0xFF475569),
+                    fontWeight: _evidenceSource == 'camera' ? FontWeight.w700 : FontWeight.normal,
+                  ),
+                ),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  side: const BorderSide(color: Color(0xFFE2E8F0)),
+                  side: BorderSide(color: _evidenceSource == 'camera' ? Colors.green : const Color(0xFFE2E8F0)),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
               ),
@@ -383,12 +423,32 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.upload_file_rounded, size: 18, color: Color(0xFF64748B)),
-                label: const Text('Upload Document', style: TextStyle(color: Color(0xFF475569))),
+                onPressed: () async {
+                  final picker = ImagePicker();
+                  final file = await picker.pickImage(source: ImageSource.gallery);
+                  if (file != null && mounted) {
+                    final bytes = await file.readAsBytes();
+                    setState(() {
+                      _capturedImageBase64 = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+                      _evidenceSource = 'gallery';
+                    });
+                  }
+                },
+                icon: Icon(
+                  _evidenceSource == 'gallery' ? Icons.check_circle_rounded : Icons.upload_file_rounded,
+                  size: 18,
+                  color: _evidenceSource == 'gallery' ? Colors.green : const Color(0xFF64748B),
+                ),
+                label: Text(
+                  _evidenceSource == 'gallery' ? 'Uploaded' : 'Upload Document',
+                  style: TextStyle(
+                    color: _evidenceSource == 'gallery' ? Colors.green : const Color(0xFF475569),
+                    fontWeight: _evidenceSource == 'gallery' ? FontWeight.w700 : FontWeight.normal,
+                  ),
+                ),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  side: const BorderSide(color: Color(0xFFE2E8F0)),
+                  side: BorderSide(color: _evidenceSource == 'gallery' ? Colors.green : const Color(0xFFE2E8F0)),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
               ),

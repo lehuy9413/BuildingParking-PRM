@@ -123,6 +123,7 @@ class _MismatchScreenState extends State<MismatchScreen> {
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   value: _selectedExceptionType,
+                  dropdownColor: Colors.white,
                   isExpanded: true,
                   icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey),
                   items: ['LPR Mismatch', 'Other']

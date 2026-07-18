@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../domain/models/incident_model.dart';
+import 'package:dio/dio.dart';
+import '../../../staff_core/presentation/widgets/web_camera_preview.dart';
 
 class ProcessMismatchScreen extends StatefulWidget {
   final IncidentModel incident;
@@ -19,6 +21,7 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
   String _selectedReason = 'AI misread license plate';
 
   bool _isSearching = false;
+  bool _isResolving = false;
   Map<String, dynamic>? _foundSystemRecord;
 
   final List<String> _reasons = [
@@ -97,6 +100,7 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
         final plateStr = vehicleInfo?['licensePlate'] ?? data['licensePlate'] ?? 'N/A';
 
         _foundSystemRecord = {
+          'id': data['_id'] ?? data['id'],
           'ticketId': data['sessionCode'] ?? 'N/A',
           'plate': plateStr,
           'entryTime': entryTimeStr,
@@ -193,7 +197,10 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
                     icon: _isSearching
                         ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.search_rounded, size: 18),
-                    label: Text(_isSearching ? 'Searching' : 'Search', style: const TextStyle(fontWeight: FontWeight.w800)),
+                    label: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(_isSearching ? 'Searching' : 'Search', style: const TextStyle(fontWeight: FontWeight.w800)),
+                    ),
                   ),
                 ),
               ],
@@ -284,8 +291,11 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
               ),
               child: Stack(
                 children: [
-                  const Center(
-                    child: Text('Live feed placeholder', style: TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w600)),
+                  Positioned.fill(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: const WebCameraPreview(),
+                    ),
                   ),
                   Positioned(
                     top: 8,
@@ -399,17 +409,24 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
               Expanded(
                 flex: 2,
                 child: ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
-                  label: const Text(
-                    'UPDATE & CALCULATE FEE',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 13,
+                  onPressed: _isResolving ? null : _processMismatch,
+                  icon: _isResolving
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Icon(Icons.check_circle_outline_rounded, size: 18),
+                  label: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      _isResolving ? 'Processing...' : 'UPDATE & CALCULATE FEE',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2563EB),
+                    disabledBackgroundColor: const Color(0xFF2563EB).withOpacity(0.6),
+                    disabledForegroundColor: Colors.white,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     elevation: 0,
@@ -434,5 +451,78 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
         letterSpacing: 0.5,
       ),
     );
+  }
+
+  Future<void> _processMismatch() async {
+    if (_foundSystemRecord == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please search for a parking session first.'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    final actualPlate = _actualPlateController.text.trim();
+    if (actualPlate.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter the actual license plate.'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    setState(() => _isResolving = true);
+
+    try {
+      final sessionId = _foundSystemRecord!['id'];
+      final dio = ApiClient.instance.dio;
+      final newPlate = actualPlate.toUpperCase();
+
+      // 1. Cập nhật biển số xe mới
+      await dio.patch(
+        '/parking-sessions/$sessionId/license-plate',
+        data: { 'licensePlate': newPlate },
+      );
+
+      // 2. Thực hiện Check-out
+      await dio.patch(
+        ApiEndpoints.checkOut(sessionId),
+      );
+
+      // 3. Đóng sự cố
+      final description = "LPR Mismatch Resolved.\nActual Plate: $newPlate\nReason: $_selectedReason";
+      final formData = FormData.fromMap({
+        'description': description,
+        'extraCharge': 0,
+      });
+      
+      await dio.patch(
+        ApiEndpoints.incidentResolve(widget.incident.id),
+        data: formData,
+      );
+
+      if (!mounted) return;
+      
+      // Reset form & state
+      _searchController.clear();
+      _actualPlateController.clear();
+      _selectedReason = _reasons[0];
+      
+      setState(() {
+        _foundSystemRecord = null;
+        _isResolving = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vehicle information updated and released.'), backgroundColor: Colors.green),
+      );
+      
+      Navigator.pop(context, true);
+
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isResolving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error processing mismatch: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
 }

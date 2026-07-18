@@ -48,8 +48,10 @@ class _StaffExceptionScreenState extends State<StaffExceptionScreen> {
             const SizedBox(height: 14),
 
             // ─── Feature cards – 2 columns ───────────────────────────────────
-            Row(
-              children: [
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                 Expanded(
                   child: _FeatureCard(
                     icon: Icons.confirmation_number_outlined,
@@ -76,8 +78,6 @@ class _StaffExceptionScreenState extends State<StaffExceptionScreen> {
                     iconBg: const Color(0xFFFEF3C7),
                     title: 'Mismatch',
                     subtitle: 'Overdue & wrong area',
-                    badge: '5',
-                    badgeColor: const Color(0xFFEF4444),
                     onTap: () async {
                       final result = await Navigator.push(
                         context,
@@ -92,45 +92,9 @@ class _StaffExceptionScreenState extends State<StaffExceptionScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: _FeatureCard(
-                    icon: Icons.map_rounded,
-                    iconColor: const Color(0xFF2563EB),
-                    iconBg: const Color(0xFFEFF6FF),
-                    title: 'Parking\nMap',
-                    subtitle: 'Visual slot management',
-                    badge: null,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const ParkingMapScreen()),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: _FeatureCard(
-                    icon: Icons.tune_rounded,
-                    iconColor: const Color(0xFF7C3AED),
-                    iconBg: const Color(0xFFF5F3FF),
-                    title: 'Status\nUpdate',
-                    subtitle: 'Available, maintenance, locked',
-                    badge: null,
-                    onTap: () => _showQuickSlotUpdate(context),
-                  ),
-                ),
-              ],
-            ),
+          ),
 
-            const SizedBox(height: 28),
 
-            // ─── Quick Stats ─────────────────────────────────────────────────
-            _sectionTitle('QUICK STATS'),
-            const SizedBox(height: 14),
-            _buildQuickStats(),
 
             const SizedBox(height: 28),
 
@@ -529,6 +493,7 @@ class _RecentActivityList extends StatefulWidget {
 
 class _RecentActivityListState extends State<_RecentActivityList> {
   late Future<List<IncidentModel>> _incidentsFuture;
+  String _statusFilter = 'All';
 
   @override
   void initState() {
@@ -560,27 +525,69 @@ class _RecentActivityListState extends State<_RecentActivityList> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<IncidentModel>>(
-      future: _incidentsFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(20.0),
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
-        if (snapshot.hasError) {
-          return const Center(child: Text('Failed to load incidents'));
-        }
-        final items = snapshot.data ?? [];
-        if (items.isEmpty) {
-          return const Center(child: Text('No active incidents'));
-        }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: ['All', 'Open', 'In Progress', 'Resolved'].map((status) {
+              final isSelected = _statusFilter == status;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8.0, bottom: 12.0),
+                child: FilterChip(
+                  label: Text(status, style: TextStyle(fontSize: 12, color: isSelected ? Colors.white : const Color(0xFF475569), fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500)),
+                  selected: isSelected,
+                  onSelected: (bool selected) {
+                    setState(() {
+                      _statusFilter = status;
+                    });
+                  },
+                  backgroundColor: const Color(0xFFF1F5F9),
+                  selectedColor: const Color(0xFF2563EB),
+                  checkmarkColor: Colors.white,
+                  showCheckmark: false,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: isSelected ? Colors.transparent : const Color(0xFFE2E8F0))),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        FutureBuilder<List<IncidentModel>>(
+          future: _incidentsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+            if (snapshot.hasError) {
+              return const Center(child: Text('Failed to load incidents'));
+            }
+            
+            final allItems = snapshot.data ?? [];
+            final items = _statusFilter == 'All' 
+                ? allItems 
+                : allItems.where((item) {
+                    final status = item.status?.toLowerCase() ?? 'open';
+                    if (_statusFilter == 'Open') return status == 'open';
+                    if (_statusFilter == 'In Progress') return status == 'in progress' || status == 'in_progress';
+                    if (_statusFilter == 'Resolved') return status == 'resolved' || status == 'closed';
+                    return true;
+                  }).toList();
 
-        return Column(
-          children: items.map((item) {
+            if (items.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.all(24.0),
+                child: Center(child: Text('No incidents found for this status', style: TextStyle(color: Color(0xFF64748B)))),
+              );
+            }
+
+            return Column(
+              children: items.map((item) {
             IconData icon = Icons.warning_amber_rounded;
             Color color = const Color(0xFFEA580C);
             Color bg = const Color(0xFFFFF7ED);
@@ -760,6 +767,8 @@ class _RecentActivityListState extends State<_RecentActivityList> {
           }).toList(),
         );
       },
+    ),
+      ],
     );
   }
 
@@ -927,4 +936,4 @@ class _RecentActivityListState extends State<_RecentActivityList> {
         return type;
     }
   }
-}
+}
