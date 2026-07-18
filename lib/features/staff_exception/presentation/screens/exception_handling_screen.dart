@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/network/api_endpoints.dart';
+import '../../../../core/services/auth_service.dart';
 import '../../domain/models/exception_models.dart';
 
 /// Màn hình xử lý ngoại lệ:
@@ -69,6 +72,7 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
   String _selectedExceptionType2 = 'Lost Ticket';
   final _titleCtrl2 = TextEditingController(text: 'Lost Ticket');
   final _detailsCtrl2 = TextEditingController();
+  bool _isSubmitting = false;
 
   static const _exceptionTypes2 = [
     'Lost Ticket',
@@ -156,6 +160,68 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
     _showSuccessSnack('Wrong info recorded for $plate');
   }
 
+  Future<void> _submitManualOverride() async {
+    final title = _titleCtrl2.text.trim();
+    final details = _detailsCtrl2.text.trim();
+
+    if (title.isEmpty) {
+      _showErrorSnack('Please enter a title');
+      return;
+    }
+    if (details.isEmpty) {
+      _showErrorSnack('Please provide details / plate info');
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      String apiType = 'other';
+      if (_selectedExceptionType2 == 'Lost Ticket') apiType = 'lost_ticket';
+      if (_selectedExceptionType2 == 'LPR Mismatch') apiType = 'lpr_mismatch';
+      if (_selectedExceptionType2 == 'Theft') apiType = 'theft';
+
+      String? pLotId = AuthService.instance.assignedParkingLotId;
+      if (pLotId == null || pLotId.isEmpty || pLotId == 'null') {
+        // Fallback: fetch the first parking lot
+        final lotRes = await ApiClient.instance.dio.get(ApiEndpoints.parkingLots);
+        final dynamic rawData = lotRes.data['data'] ?? lotRes.data ?? [];
+        if (rawData is List && rawData.isNotEmpty) {
+          pLotId = rawData.first['id']?.toString() ?? rawData.first['_id']?.toString();
+        }
+      }
+
+      if (pLotId == null || pLotId.isEmpty) {
+        _showErrorSnack('No parking lot found to report incident.');
+        return;
+      }
+
+      final payload = {
+        "parkingLot": pLotId,
+        "type": apiType,
+        "title": title,
+        "description": details,
+        "severity": "low",
+      };
+
+      await ApiClient.instance.dio.post(ApiEndpoints.incidents, data: payload);
+      
+      _showSuccessSnack('Incident reported successfully');
+
+      setState(() {
+        _selectedExceptionType2 = 'Lost Ticket';
+        _titleCtrl2.text = 'Lost Ticket';
+        _detailsCtrl2.clear();
+      });
+    } catch (e) {
+      _showErrorSnack('Failed to report incident. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
   void _showSuccessSnack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
@@ -229,14 +295,23 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: () {},
+            onPressed: _isSubmitting ? null : _submitManualOverride,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF2563EB),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
             ),
-            child: const Text('SUBMIT MANUAL OVERRIDE',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+            child: _isSubmitting
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Text('SUBMIT MANUAL OVERRIDE',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
           ),
         ),
       ],

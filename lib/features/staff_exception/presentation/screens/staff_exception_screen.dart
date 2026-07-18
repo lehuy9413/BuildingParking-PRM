@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/network/api_endpoints.dart';
+import '../../domain/models/incident_model.dart';
 import '../../../auth_profile/presentation/screens/auth_profile_screen.dart';
 import '../../domain/models/exception_models.dart';
 import 'exception_handling_screen.dart';
@@ -7,8 +11,21 @@ import 'parking_map_screen.dart';
 
 
 /// Màn hình chính của Staff Exception – dashboard điều hướng 4 chức năng.
-class StaffExceptionScreen extends StatelessWidget {
+class StaffExceptionScreen extends StatefulWidget {
   const StaffExceptionScreen({super.key});
+
+  @override
+  State<StaffExceptionScreen> createState() => _StaffExceptionScreenState();
+}
+
+class _StaffExceptionScreenState extends State<StaffExceptionScreen> {
+  Key _activityListKey = UniqueKey();
+
+  void _reloadActivityList() {
+    setState(() {
+      _activityListKey = UniqueKey();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,11 +56,14 @@ class StaffExceptionScreen extends StatelessWidget {
                     title: 'Lost\nTicket',
                     subtitle: 'Lost card & wrong vehicle info',
                     badge: null,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const ExceptionHandlingScreen()),
-                    ),
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const ExceptionHandlingScreen()),
+                      );
+                      _reloadActivityList();
+                    },
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -110,7 +130,7 @@ class StaffExceptionScreen extends StatelessWidget {
             // ─── Recent activity ─────────────────────────────────────────────
             _sectionTitle('ACTIVE EXCEPTION LOG'),
             const SizedBox(height: 14),
-            _buildRecentActivity(),
+            _RecentActivityList(key: _activityListKey),
           ],
         ),
       ),
@@ -271,78 +291,7 @@ class StaffExceptionScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRecentActivity() {
-    final items = [
-      _ActivityItem(
-          icon: Icons.credit_card_off_rounded,
-          color: const Color(0xFFEA580C),
-          bg: const Color(0xFFFFF7ED),
-          title: 'Lost card: 51A-12345',
-          subtitle: 'Granted exit permission',
-          time: '10 mins ago'),
-      _ActivityItem(
-          icon: Icons.timer_off_rounded,
-          color: const Color(0xFFEF4444),
-          bg: const Color(0xFFFFF1F2),
-          title: 'Overdue: 30G-55678',
-          subtitle: '72 hours parked – pending',
-          time: '25 mins ago'),
-      _ActivityItem(
-          icon: Icons.build_rounded,
-          color: const Color(0xFFF59E0B),
-          bg: const Color(0xFFFEF3C7),
-          title: 'Maintenance: Slot M15',
-          subtitle: 'Status updated',
-          time: '1 hour ago'),
-    ];
-
-    return Column(
-      children: items.map((item) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                    color: item.bg,
-                    borderRadius: BorderRadius.circular(12)),
-                child: Icon(item.icon, color: item.color, size: 18),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item.title,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                            color: Color(0xFF0F172A))),
-                    const SizedBox(height: 2),
-                    Text(item.subtitle,
-                        style: const TextStyle(
-                            fontSize: 11, color: Color(0xFF94A3B8))),
-                  ],
-                ),
-              ),
-              Text(item.time,
-                  style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF94A3B8),
-                      fontWeight: FontWeight.w500)),
-            ],
-          ),
-        );
-      }).toList(),
-    );
-  }
+  // _buildRecentActivity has been extracted into _RecentActivityList
 
   Widget _sectionTitle(String title) {
     return Text(
@@ -561,3 +510,205 @@ class _ActivityItem {
     required this.time,
   });
 }
+
+// ─── Recent Activity List (API fetching) ──────────────────────────────────────
+
+class _RecentActivityList extends StatefulWidget {
+  const _RecentActivityList({Key? key}) : super(key: key);
+
+  @override
+  _RecentActivityListState createState() => _RecentActivityListState();
+}
+
+class _RecentActivityListState extends State<_RecentActivityList> {
+  late Future<List<IncidentModel>> _incidentsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _incidentsFuture = _fetchIncidents();
+  }
+
+  Future<List<IncidentModel>> _fetchIncidents() async {
+    try {
+      final res = await ApiClient.instance.dio.get(ApiEndpoints.incidents);
+      debugPrint('GET /incidents RESPONSE: ${res.data}');
+      final dynamic rawData = res.data['data'] ?? res.data ?? [];
+      
+      List items = [];
+      if (rawData is List) {
+        items = rawData;
+      } else if (rawData is Map && rawData['docs'] is List) {
+        items = rawData['docs'];
+      } else if (rawData is Map && rawData['incidents'] is List) {
+        items = rawData['incidents'];
+      }
+      
+      return items.map((e) => IncidentModel.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      debugPrint('Error fetching incidents: $e');
+      return [];
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<IncidentModel>>(
+      future: _incidentsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20.0),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        if (snapshot.hasError) {
+          return const Center(child: Text('Failed to load incidents'));
+        }
+        final items = snapshot.data ?? [];
+        if (items.isEmpty) {
+          return const Center(child: Text('No active incidents'));
+        }
+
+        return Column(
+          children: items.map((item) {
+            IconData icon = Icons.warning_amber_rounded;
+            Color color = const Color(0xFFEA580C);
+            Color bg = const Color(0xFFFFF7ED);
+
+            if (item.type == 'lost_ticket') {
+              icon = Icons.credit_card_off_rounded;
+              color = const Color(0xFFEA580C);
+              bg = const Color(0xFFFFF7ED);
+            } else if (item.type == 'lpr_mismatch') {
+              icon = Icons.camera_alt_rounded;
+              color = const Color(0xFFF59E0B);
+              bg = const Color(0xFFFEF3C7);
+            } else {
+              icon = Icons.info_outline_rounded;
+              color = const Color(0xFF3B82F6);
+              bg = const Color(0xFFEFF6FF);
+            }
+
+            String timeStr = '';
+            if (item.createdAt != null) {
+              timeStr = DateFormat('hh:mm:ss a').format(item.createdAt!.toLocal());
+            }
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.02),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Row 1: Timestamp & Status
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.access_time_rounded, size: 14, color: Color(0xFF94A3B8)),
+                          const SizedBox(width: 6),
+                          Text(timeStr, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: (item.status?.toLowerCase() == 'open' ? const Color(0xFFFEF3C7) : const Color(0xFFECFDF5)),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          (item.status ?? 'OPEN').toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: (item.status?.toLowerCase() == 'open' ? const Color(0xFFD97706) : const Color(0xFF059669)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24, color: Color(0xFFF1F5F9)),
+                  
+                  // Row 2: Reference ID & Exception Type
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('REFERENCE ID', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w700)),
+                            const SizedBox(height: 4),
+                            Text(item.incidentCode ?? 'N/A', style: const TextStyle(fontSize: 12, color: Color(0xFF0F172A), fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('EXCEPTION TYPE', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w700)),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(icon, color: color, size: 14),
+                                const SizedBox(width: 6),
+                                Expanded(child: Text(item.type == 'lost_ticket' ? 'Lost Ticket' : (item.type == 'lpr_mismatch' ? 'LPR Mismatch' : (item.type ?? 'Other')), style: const TextStyle(fontSize: 12, color: Color(0xFF0F172A), fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Row 3: Title / Details
+                  const Text('TITLE / DETAILS', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  Text(item.title, style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A), fontWeight: FontWeight.w800)),
+                  if (item.description != null && item.description!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(item.description!, style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                  ],
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Row 4: Action Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () {},
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF2563EB),
+                        side: const BorderSide(color: Color(0xFF2563EB)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: Text('PROCESS ${item.type == 'lost_ticket' ? 'LOST TICKET' : 'EXCEPTION'}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+}

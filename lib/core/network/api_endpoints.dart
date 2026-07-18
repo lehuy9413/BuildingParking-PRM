@@ -52,4 +52,7 @@ class ApiEndpoints {
 
   // Feedbacks
   static const String feedbacks = '/feedbacks';
+
+  // Incidents
+  static const String incidents = '/incidents';
 }
