@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/network/api_endpoints.dart';
 import '../../domain/models/incident_model.dart';
 
 class ProcessMismatchScreen extends StatefulWidget {
@@ -15,6 +18,9 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
   final _actualPlateController = TextEditingController();
   String _selectedReason = 'AI misread license plate';
 
+  bool _isSearching = false;
+  Map<String, dynamic>? _foundSystemRecord;
+
   final List<String> _reasons = [
     'AI misread license plate',
     'Blurred or unreadable plate',
@@ -29,6 +35,85 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
     super.dispose();
   }
 
+  Widget _buildInfoRow(String label, String value, {bool isBold = false, bool isRed = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 13,
+            color: isRed ? const Color(0xFFEF4444) : const Color(0xFF0F172A),
+            fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _searchRecord() async {
+    final query = _searchController.text.trim();
+    if (query.isEmpty) return;
+    
+    setState(() {
+      _isSearching = true;
+      _foundSystemRecord = null;
+    });
+
+    try {
+      final isSessionCode = query.toUpperCase().startsWith('PS-') || query.length > 10;
+      final queryParams = isSessionCode ? {'sessionCode': query} : {'licensePlate': query};
+
+      final res = await ApiClient.instance.dio.get(
+        ApiEndpoints.findActiveSession,
+        queryParameters: queryParams,
+      );
+      
+      final data = res.data['data'];
+      
+      if (!mounted) return;
+      setState(() {
+        _isSearching = false;
+        
+        String entryTimeStr = 'N/A';
+        if (data['checkInTime'] != null) {
+          final dt = DateTime.tryParse(data['checkInTime'])?.toLocal();
+          if (dt != null) {
+            entryTimeStr = DateFormat('M/d/yyyy, hh:mm:ss a').format(dt);
+          }
+        }
+
+        String? imageUrl;
+        if (data['evidenceImages'] != null && (data['evidenceImages'] as List).isNotEmpty) {
+           imageUrl = data['evidenceImages'][0]['url'];
+        }
+
+        _foundSystemRecord = {
+          'ticketId': data['sessionCode'] ?? 'N/A',
+          'plate': data['licensePlate'] ?? 'N/A',
+          'entryTime': entryTimeStr,
+          'imageUrl': imageUrl,
+        };
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isSearching = false;
+        _foundSystemRecord = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not find record for: $query'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,20 +122,16 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
         backgroundColor: Colors.white,
         elevation: 1,
         shadowColor: Colors.black.withOpacity(0.1),
+        centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.close_rounded, color: Color(0xFF0F172A)),
           onPressed: () => Navigator.pop(context),
         ),
         title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Edit Vehicle Information',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF0F172A),
-              ),
+              'Process Mismatch',
+              style: TextStyle(color: Color(0xFF0F172A), fontSize: 16, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 2),
             Text(
@@ -76,6 +157,7 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
                 Expanded(
                   child: TextField(
                     controller: _searchController,
+                    style: const TextStyle(color: Color(0xFF0F172A)),
                     decoration: InputDecoration(
                       hintText: 'Enter Ticket ID or Plate',
                       hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
@@ -97,15 +179,17 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
                 SizedBox(
                   height: 48,
                   child: ElevatedButton.icon(
-                    onPressed: () {},
+                    onPressed: _isSearching ? null : _searchRecord,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                       elevation: 0,
                     ),
-                    icon: const Icon(Icons.search_rounded, size: 18),
-                    label: const Text('Search', style: TextStyle(fontWeight: FontWeight.w800)),
+                    icon: _isSearching
+                        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.search_rounded, size: 18),
+                    label: Text(_isSearching ? 'Searching' : 'Search', style: const TextStyle(fontWeight: FontWeight.w800)),
                   ),
                 ),
               ],
@@ -114,25 +198,45 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
             const SizedBox(height: 24),
             _buildSectionTitle('2. CURRENT INFO (INCORRECT)'),
             const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: const Center(
-                child: Text(
-                  'Search to load system record',
-                  style: TextStyle(
-                    color: Color(0xFF94A3B8),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
+            if (_foundSystemRecord == null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Center(
+                  child: Text(
+                    'Search to load system record',
+                    style: TextStyle(
+                      color: Color(0xFF94A3B8),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
+              )
+            else
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Column(
+                  children: [
+                    _buildInfoRow('Ticket ID:', _foundSystemRecord!['ticketId'] ?? 'N/A', isBold: true),
+                    const Divider(height: 16, color: Color(0xFFF1F5F9)),
+                    _buildInfoRow('AI Recognized Plate:', _foundSystemRecord!['plate'] ?? 'N/A', isBold: true, isRed: true),
+                    const Divider(height: 16, color: Color(0xFFF1F5F9)),
+                    _buildInfoRow('Entry Time:', _foundSystemRecord!['entryTime'] ?? 'N/A'),
+                  ],
+                ),
               ),
-            ),
 
             const SizedBox(height: 24),
             _buildSectionTitle('VISUAL COMPARISON'),
@@ -146,9 +250,20 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
                 color: const Color(0xFFE2E8F0),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: const Center(
-                child: Text('No Image', style: TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.w700)),
-              ),
+              child: _foundSystemRecord != null && _foundSystemRecord!['imageUrl'] != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: Image.network(
+                        ApiEndpoints.baseUrl.replaceAll('/api/v1', '') + _foundSystemRecord!['imageUrl'],
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => const Center(
+                          child: Icon(Icons.broken_image, color: Color(0xFF94A3B8), size: 32),
+                        ),
+                      ),
+                    )
+                  : const Center(
+                      child: Text('No Image', style: TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.w700)),
+                    ),
             ),
 
             const SizedBox(height: 16),
@@ -196,6 +311,7 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
             const SizedBox(height: 8),
             TextField(
               controller: _actualPlateController,
+              style: const TextStyle(color: Color(0xFF0F172A)),
               decoration: InputDecoration(
                 hintText: 'e.g. 51F-123.45',
                 hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
