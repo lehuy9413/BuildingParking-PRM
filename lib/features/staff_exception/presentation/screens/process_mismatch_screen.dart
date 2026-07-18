@@ -39,18 +39,19 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
   }
 
   Widget _buildInfoRow(String label, String value, {bool isBold = false, bool isRed = false}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+          style: TextStyle(fontSize: 13, color: isDark ? Colors.grey[400] : const Color(0xFF64748B), fontWeight: FontWeight.w500),
         ),
         Text(
           value,
           style: TextStyle(
             fontSize: 13,
-            color: isRed ? const Color(0xFFEF4444) : const Color(0xFF0F172A),
+            color: isRed ? const Color(0xFFEF4444) : (isDark ? Colors.white : const Color(0xFF0F172A)),
             fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
           ),
         ),
@@ -124,29 +125,30 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         elevation: 1,
         shadowColor: Colors.black.withOpacity(0.1),
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.close_rounded, color: Color(0xFF0F172A)),
+          icon: Icon(Icons.close_rounded, color: isDark ? Colors.white : const Color(0xFF0F172A)),
           onPressed: () => Navigator.pop(context),
         ),
         title: Column(
           children: [
-            const Text(
+            Text(
               'Process Mismatch',
-              style: TextStyle(color: Color(0xFF0F172A), fontSize: 16, fontWeight: FontWeight.w800),
+              style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontSize: 16, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 2),
             Text(
               'Ref: ${widget.incident.incidentCode ?? 'N/A'}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: Color(0xFF64748B),
+                color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -165,20 +167,20 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
                 Expanded(
                   child: TextField(
                     controller: _searchController,
-                    style: const TextStyle(color: Color(0xFF0F172A)),
+                    style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
                     decoration: InputDecoration(
                       hintText: 'Enter Ticket ID or Plate',
-                      hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                      hintStyle: TextStyle(color: isDark ? Colors.grey[600] : const Color(0xFF94A3B8)),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(4),
-                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(4),
-                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                       ),
                     ),
                   ),
@@ -214,15 +216,15 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
                     'Search to load system record',
                     style: TextStyle(
-                      color: Color(0xFF94A3B8),
+                      color: isDark ? Colors.grey[500] : const Color(0xFF94A3B8),
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                     ),
@@ -234,16 +236,16 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Column(
                   children: [
                     _buildInfoRow('Ticket ID:', _foundSystemRecord!['ticketId'] ?? 'N/A', isBold: true),
-                    const Divider(height: 16, color: Color(0xFFF1F5F9)),
+                    Divider(height: 16, color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
                     _buildInfoRow('AI Recognized Plate:', _foundSystemRecord!['plate'] ?? 'N/A', isBold: true, isRed: true),
-                    const Divider(height: 16, color: Color(0xFFF1F5F9)),
+                    Divider(height: 16, color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
                     _buildInfoRow('Entry Time:', _foundSystemRecord!['entryTime'] ?? 'N/A', isBold: true),
                   ],
                 ),
@@ -252,13 +254,13 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
             const SizedBox(height: 24),
             _buildSectionTitle('VISUAL COMPARISON'),
             const SizedBox(height: 12),
-            const Text('Entry Camera Image (Overview)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF475569))),
+            Text('Entry Camera Image (Overview)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: isDark ? Colors.grey[400] : const Color(0xFF475569))),
             const SizedBox(height: 8),
             Container(
               width: double.infinity,
               height: 160,
               decoration: BoxDecoration(
-                color: const Color(0xFFE2E8F0),
+                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: _foundSystemRecord != null && _foundSystemRecord!['imageUrl'] != null
@@ -280,7 +282,7 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
             ),
 
             const SizedBox(height: 16),
-            const Text('Current Exit Camera Image', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF475569))),
+            Text('Current Exit Camera Image', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: isDark ? Colors.grey[400] : const Color(0xFF475569))),
             const SizedBox(height: 8),
             Container(
               width: double.infinity,
@@ -323,35 +325,35 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
             const SizedBox(height: 24),
             _buildSectionTitle('3. ADJUSTMENT INFO'),
             const SizedBox(height: 12),
-            const Text('Actual Plate', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF475569))),
+            Text('Actual Plate', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: isDark ? Colors.grey[400] : const Color(0xFF475569))),
             const SizedBox(height: 8),
             TextField(
               controller: _actualPlateController,
-              style: const TextStyle(color: Color(0xFF0F172A)),
+              style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
               decoration: InputDecoration(
                 hintText: 'e.g. 51F-123.45',
-                hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                hintStyle: TextStyle(color: isDark ? Colors.grey[600] : const Color(0xFF94A3B8)),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(4),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                 ),
               ),
             ),
 
             const SizedBox(height: 16),
-            const Text('Reason for edit', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF475569))),
+            Text('Reason for edit', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: isDark ? Colors.grey[400] : const Color(0xFF475569))),
             const SizedBox(height: 8),
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                 borderRadius: BorderRadius.circular(4),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -359,11 +361,11 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
                 child: DropdownButton<String>(
                   value: _selectedReason,
                   isExpanded: true,
-                  dropdownColor: Colors.white,
+                  dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                   icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF94A3B8)),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF0F172A),
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
                     fontWeight: FontWeight.w700,
                   ),
                   items: _reasons.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
@@ -381,8 +383,8 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Colors.grey.shade200)),
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200)),
         ),
         child: SafeArea(
           child: Row(
@@ -392,13 +394,13 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
                   onPressed: () => Navigator.pop(context),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: const BorderSide(color: Color(0xFFE2E8F0)),
+                    side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                   ),
-                  child: const Text(
+                  child: Text(
                     'CANCEL',
                     style: TextStyle(
-                      color: Color(0xFF0F172A),
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
                       fontWeight: FontWeight.w900,
                       fontSize: 13,
                     ),

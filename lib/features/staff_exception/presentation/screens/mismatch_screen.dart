@@ -89,21 +89,22 @@ class _MismatchScreenState extends State<MismatchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF0F172A), size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : const Color(0xFF0F172A), size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
+        title: Text(
           'Mismatch Exception',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w900,
-            color: Color(0xFF0F172A),
+            color: isDark ? Colors.white : const Color(0xFF0F172A),
           ),
         ),
       ),
@@ -116,14 +117,14 @@ class _MismatchScreenState extends State<MismatchScreen> {
             const SizedBox(height: 8),
             Container(
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(color: isDark ? const Color(0xFF334155) : Colors.grey.shade300),
                 borderRadius: BorderRadius.circular(4),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   value: _selectedExceptionType,
-                  dropdownColor: Colors.white,
+                  dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                   isExpanded: true,
                   icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey),
                   items: ['LPR Mismatch', 'Other']
@@ -131,10 +132,10 @@ class _MismatchScreenState extends State<MismatchScreen> {
                             value: e,
                             child: Text(
                               e,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF0F172A),
+                                color: isDark ? Colors.white : const Color(0xFF0F172A),
                               ),
                             ),
                           ))
@@ -150,15 +151,15 @@ class _MismatchScreenState extends State<MismatchScreen> {
             const SizedBox(height: 8),
             TextFormField(
               controller: _titleController,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF0F172A),
+                color: isDark ? Colors.white : const Color(0xFF0F172A),
               ),
               decoration: InputDecoration(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.grey.shade300),
+                  borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : Colors.grey.shade300),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 focusedBorder: OutlineInputBorder(
@@ -173,20 +174,20 @@ class _MismatchScreenState extends State<MismatchScreen> {
             TextFormField(
               controller: _detailsController,
               maxLines: 4,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
-                color: Color(0xFF0F172A),
+                color: isDark ? Colors.white : const Color(0xFF0F172A),
               ),
               decoration: InputDecoration(
                 hintText: 'Provide details...',
-                hintStyle: const TextStyle(
+                hintStyle: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey,
+                  color: isDark ? Colors.grey[600] : Colors.grey,
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.grey.shade300),
+                  borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : Colors.grey.shade300),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 focusedBorder: OutlineInputBorder(
@@ -232,12 +233,13 @@ class _MismatchScreenState extends State<MismatchScreen> {
   }
 
   Widget _buildLabel(String text) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w900,
-        color: Color(0xFF64748B),
+        color: isDark ? Colors.grey[300] : const Color(0xFF64748B),
       ),
     );
   }

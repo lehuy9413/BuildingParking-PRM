@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../../app/app.dart' as import_app;
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../domain/models/incident_model.dart';
@@ -31,8 +32,9 @@ class _StaffExceptionScreenState extends State<StaffExceptionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FB),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF7F9FB),
       appBar: _buildAppBar(context),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -44,7 +46,7 @@ class _StaffExceptionScreenState extends State<StaffExceptionScreen> {
             const SizedBox(height: 24),
 
             // ─── Section title ───────────────────────────────────────────────
-            _sectionTitle('MANAGEMENT FUNCTIONS'),
+            _sectionTitle('MANAGEMENT FUNCTIONS', context),
             const SizedBox(height: 14),
 
             // ─── Feature cards – 2 columns ───────────────────────────────────
@@ -99,7 +101,7 @@ class _StaffExceptionScreenState extends State<StaffExceptionScreen> {
             const SizedBox(height: 28),
 
             // ─── Recent activity ─────────────────────────────────────────────
-            _sectionTitle('ACTIVE EXCEPTION LOG'),
+            _sectionTitle('ACTIVE EXCEPTION LOG', context),
             const SizedBox(height: 14),
             _RecentActivityList(key: _activityListKey),
           ],
@@ -109,6 +111,8 @@ class _StaffExceptionScreenState extends State<StaffExceptionScreen> {
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0,
@@ -145,6 +149,13 @@ class _StaffExceptionScreenState extends State<StaffExceptionScreen> {
         ],
       ),
       actions: [
+        IconButton(
+          icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode, color: isDark ? Colors.amber : const Color(0xFF0F172A)),
+          onPressed: () {
+            import_app.SmartParkingApp.of(context).toggleTheme(isDark);
+          },
+          tooltip: 'Toggle Theme',
+        ),
         IconButton(
           icon: const Icon(Icons.logout_rounded, color: Color(0xFFEF4444)),
           onPressed: () => Navigator.pushReplacement(
@@ -264,14 +275,15 @@ class _StaffExceptionScreenState extends State<StaffExceptionScreen> {
 
   // _buildRecentActivity has been extracted into _RecentActivityList
 
-  Widget _sectionTitle(String title) {
+  Widget _sectionTitle(String title, BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w800,
-          color: Color(0xFF475569),
-          letterSpacing: 1.5),
+          color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
+          letterSpacing: 1.0),
     );
   }
 
@@ -341,17 +353,18 @@ class _FeatureCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
                 blurRadius: 10,
                 offset: const Offset(0, 4)),
           ],
@@ -393,18 +406,18 @@ class _FeatureCard extends StatelessWidget {
             const SizedBox(height: 14),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F172A),
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
                   height: 1.3),
             ),
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 11,
-                  color: Color(0xFF94A3B8),
+                  color: isDark ? Colors.grey[400] : const Color(0xFF94A3B8),
                   height: 1.3),
             ),
           ],
@@ -525,6 +538,7 @@ class _RecentActivityListState extends State<_RecentActivityList> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -536,18 +550,18 @@ class _RecentActivityListState extends State<_RecentActivityList> {
               return Padding(
                 padding: const EdgeInsets.only(right: 8.0, bottom: 12.0),
                 child: FilterChip(
-                  label: Text(status, style: TextStyle(fontSize: 12, color: isSelected ? Colors.white : const Color(0xFF475569), fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500)),
+                  label: Text(status, style: TextStyle(fontSize: 12, color: isSelected ? Colors.white : (isDark ? Colors.grey[400] : const Color(0xFF475569)), fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500)),
                   selected: isSelected,
                   onSelected: (bool selected) {
                     setState(() {
                       _statusFilter = status;
                     });
                   },
-                  backgroundColor: const Color(0xFFF1F5F9),
+                  backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
                   selectedColor: const Color(0xFF2563EB),
                   checkmarkColor: Colors.white,
                   showCheckmark: false,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: isSelected ? Colors.transparent : const Color(0xFFE2E8F0))),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: isSelected ? Colors.transparent : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)))),
                 ),
               );
             }).toList(),
@@ -615,12 +629,12 @@ class _RecentActivityListState extends State<_RecentActivityList> {
               margin: const EdgeInsets.only(bottom: 14),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
+                    color: Colors.black.withOpacity(isDark ? 0.2 : 0.02),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -657,7 +671,7 @@ class _RecentActivityListState extends State<_RecentActivityList> {
                       ),
                     ],
                   ),
-                  const Divider(height: 24, color: Color(0xFFF1F5F9)),
+                  Divider(height: 24, color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
                   
                   // Row 2: Reference ID & Exception Type
                   Row(
@@ -668,7 +682,7 @@ class _RecentActivityListState extends State<_RecentActivityList> {
                           children: [
                             const Text('REFERENCE ID', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w700)),
                             const SizedBox(height: 4),
-                            Text(item.incidentCode ?? 'N/A', style: const TextStyle(fontSize: 12, color: Color(0xFF0F172A), fontWeight: FontWeight.w700)),
+                            Text(item.incidentCode ?? 'N/A', style: TextStyle(fontSize: 12, color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.w700)),
                           ],
                         ),
                       ),
@@ -682,7 +696,7 @@ class _RecentActivityListState extends State<_RecentActivityList> {
                               children: [
                                 Icon(icon, color: color, size: 14),
                                 const SizedBox(width: 6),
-                                Expanded(child: Text(item.type == 'lost_ticket' ? 'Lost Ticket' : (item.type == 'wrong_license_plate' ? 'Wrong License Plate' : (item.type ?? 'Other')), style: const TextStyle(fontSize: 12, color: Color(0xFF0F172A), fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                                Expanded(child: Text(item.type == 'lost_ticket' ? 'Lost Ticket' : (item.type == 'wrong_license_plate' ? 'Wrong License Plate' : (item.type ?? 'Other')), style: TextStyle(fontSize: 12, color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis)),
                               ],
                             ),
                           ],
@@ -695,10 +709,10 @@ class _RecentActivityListState extends State<_RecentActivityList> {
                   // Row 3: Title / Details
                   const Text('TITLE / DETAILS', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w700)),
                   const SizedBox(height: 4),
-                  Text(item.title, style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A), fontWeight: FontWeight.w800)),
+                  Text(item.title, style: TextStyle(fontSize: 13, color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.w800)),
                   if (item.description != null && item.description!.isNotEmpty) ...[
                     const SizedBox(height: 4),
-                    Text(item.description!, style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                    Text(item.description!, style: TextStyle(fontSize: 12, color: isDark ? Colors.grey[400] : const Color(0xFF475569))),
                   ],
                   
                   const SizedBox(height: 16),
@@ -773,11 +787,12 @@ class _RecentActivityListState extends State<_RecentActivityList> {
   }
 
   void _showIncidentDetailsPopup(BuildContext context, IncidentModel incident) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (context) {
         return Dialog(
-          backgroundColor: Colors.white,
+          backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
           surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           child: Container(
@@ -792,7 +807,7 @@ class _RecentActivityListState extends State<_RecentActivityList> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Incident Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                      Text('Incident Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A))),
                       IconButton(
                         icon: const Icon(Icons.close, color: Color(0xFF94A3B8)),
                         onPressed: () => Navigator.pop(context),
@@ -802,7 +817,7 @@ class _RecentActivityListState extends State<_RecentActivityList> {
                     ],
                   ),
                 ),
-                const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                Divider(height: 1, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                 // Body
                 Padding(
                   padding: const EdgeInsets.all(24),
@@ -820,27 +835,27 @@ class _RecentActivityListState extends State<_RecentActivityList> {
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: const Color(0xFFF1F5F9)),
-                                color: Colors.white,
+                                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
+                                color: isDark ? const Color(0xFF1E293B) : Colors.white,
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _buildPopupDetailItem('REFERENCE ID', incident.incidentCode ?? incident.id),
+                                  _buildPopupDetailItem('REFERENCE ID', incident.incidentCode ?? incident.id, isDark),
                                   const SizedBox(height: 16),
-                                  _buildPopupDetailItem('TYPE', _formatIncidentType(incident.type ?? 'Unknown')),
+                                  _buildPopupDetailItem('TYPE', _formatIncidentType(incident.type ?? 'Unknown'), isDark),
                                   const SizedBox(height: 16),
-                                  _buildPopupDetailItem('REPORTED AT', incident.createdAt != null ? DateFormat('M/d/yyyy, hh:mm:ss a').format(incident.createdAt!) : 'N/A'),
+                                  _buildPopupDetailItem('REPORTED AT', incident.createdAt != null ? DateFormat('M/d/yyyy, hh:mm:ss a').format(incident.createdAt!) : 'N/A', isDark),
                                   const SizedBox(height: 16),
-                                  _buildPopupDetailItem('TITLE', incident.title),
+                                  _buildPopupDetailItem('TITLE', incident.title, isDark),
                                   const SizedBox(height: 16),
                                   const Text('DESCRIPTION', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
                                   const SizedBox(height: 4),
                                   Container(
                                     width: double.infinity,
                                     padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(4)),
-                                    child: Text(incident.description ?? 'No description', style: const TextStyle(fontSize: 13, color: Color(0xFF334155))),
+                                    decoration: BoxDecoration(color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(4)),
+                                    child: Text(incident.description ?? 'No description', style: TextStyle(fontSize: 13, color: isDark ? Colors.grey[300] : const Color(0xFF334155))),
                                   ),
                                 ],
                               ),
@@ -860,25 +875,25 @@ class _RecentActivityListState extends State<_RecentActivityList> {
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: const Color(0xFFD1FAE5)),
-                                color: const Color(0xFFECFDF5).withOpacity(0.5),
+                                border: Border.all(color: isDark ? const Color(0xFF065F46) : const Color(0xFFD1FAE5)),
+                                color: isDark ? const Color(0xFF064E3B).withOpacity(0.5) : const Color(0xFFECFDF5).withOpacity(0.5),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text('RESOLVED AT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
                                   const SizedBox(height: 4),
-                                  Text(incident.resolvedAt != null ? DateFormat('M/d/yyyy, hh:mm:ss a').format(incident.resolvedAt!) : 'N/A', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF065F46))),
+                                  Text(incident.resolvedAt != null ? DateFormat('M/d/yyyy, hh:mm:ss a').format(incident.resolvedAt!) : 'N/A', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF34D399) : const Color(0xFF065F46))),
                                   const SizedBox(height: 16),
-                                  const Divider(color: Color(0xFFD1FAE5), height: 1),
+                                  Divider(color: isDark ? const Color(0xFF065F46) : const Color(0xFFD1FAE5), height: 1),
                                   const SizedBox(height: 16),
                                   const Text('RESOLUTION NOTE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
                                   const SizedBox(height: 8),
                                   Container(
                                     width: double.infinity,
                                     padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4), border: Border.all(color: const Color(0xFFD1FAE5))),
-                                    child: Text(incident.resolutionNote ?? 'No resolution note provided.', style: const TextStyle(fontSize: 13, color: Color(0xFF065F46), fontWeight: FontWeight.w500)),
+                                    decoration: BoxDecoration(color: isDark ? const Color(0xFF064E3B) : Colors.white, borderRadius: BorderRadius.circular(4), border: Border.all(color: isDark ? const Color(0xFF065F46) : const Color(0xFFD1FAE5))),
+                                    child: Text(incident.resolutionNote ?? 'No resolution note provided.', style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF34D399) : const Color(0xFF065F46), fontWeight: FontWeight.w500)),
                                   ),
                                 ],
                               ),
@@ -889,7 +904,7 @@ class _RecentActivityListState extends State<_RecentActivityList> {
                     ],
                   ),
                 ),
-                const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                Divider(height: 1, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                 // Footer
                 Padding(
                   padding: const EdgeInsets.all(24),
@@ -898,8 +913,8 @@ class _RecentActivityListState extends State<_RecentActivityList> {
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF334155),
-                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                        foregroundColor: isDark ? Colors.white : const Color(0xFF334155),
+                        side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
@@ -915,13 +930,13 @@ class _RecentActivityListState extends State<_RecentActivityList> {
     );
   }
 
-  Widget _buildPopupDetailItem(String label, String value) {
+  Widget _buildPopupDetailItem(String label, String value, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+        Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A))),
       ],
     );
   }

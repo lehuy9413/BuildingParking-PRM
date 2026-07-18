@@ -181,6 +181,7 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
   }
 
   Widget _sectionTitle(String title, {String? subtitle}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Column(
@@ -188,15 +189,15 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF475569),
+                color: isDark ? Colors.grey[400] : const Color(0xFF475569),
                 letterSpacing: 1.0),
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 4),
-            Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
+            Text(subtitle, style: TextStyle(fontSize: 12, color: isDark ? Colors.grey[500] : const Color(0xFF94A3B8))),
           ]
         ],
       ),
@@ -204,23 +205,24 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
   }
 
   Widget _buildTextField(String hint, TextEditingController controller, {TextInputType? keyboardType}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.black),
+      style: TextStyle(color: isDark ? Colors.white : Colors.black),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+        hintStyle: TextStyle(color: isDark ? Colors.grey[600] : const Color(0xFF94A3B8), fontSize: 14),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
         ),
       ),
     );
@@ -257,6 +259,7 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
   }
 
   Widget _buildMatchSection() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -265,27 +268,27 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
             borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
           ),
           child: _foundSystemRecord == null
-              ? const Center(
+              ? Center(
                   child: Text(
                     'Search a plate to load system record',
-                    style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13, fontWeight: FontWeight.w500),
+                    style: TextStyle(color: isDark ? Colors.grey[500] : const Color(0xFF94A3B8), fontSize: 13, fontWeight: FontWeight.w500),
                   ),
                 )
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildInfoRow('Entry Time:', _foundSystemRecord!['since'] ?? 'N/A', isBold: true),
-                    const Divider(height: 16, color: Color(0xFFF1F5F9)),
+                    Divider(height: 16, color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
                     _buildInfoRow('Old Ticket ID:', _foundSystemRecord!['ticketId'] ?? 'N/A', isBold: true),
-                    const Divider(height: 16, color: Color(0xFFF1F5F9)),
+                    Divider(height: 16, color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
                     _buildInfoRow('Vehicle Type:', _foundSystemRecord!['type'] ?? 'N/A', isBold: true),
                     const SizedBox(height: 16),
-                    const Text('Entry Images:', style: TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+                    Text('Entry Images:', style: TextStyle(fontSize: 13, color: isDark ? Colors.grey[400] : const Color(0xFF64748B), fontWeight: FontWeight.w500)),
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -349,18 +352,19 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
   }
 
   Widget _buildInfoRow(String label, String value, {bool isBold = false, bool isRed = false}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+          style: TextStyle(fontSize: 13, color: isDark ? Colors.grey[400] : const Color(0xFF64748B), fontWeight: FontWeight.w500),
         ),
         Text(
           value,
           style: TextStyle(
             fontSize: 13,
-            color: isRed ? const Color(0xFFEF4444) : const Color(0xFF0F172A),
+            color: isRed ? const Color(0xFFEF4444) : (isDark ? Colors.white : const Color(0xFF0F172A)),
             fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
           ),
         ),
@@ -460,6 +464,7 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
   }
 
   Widget _buildPaymentSection() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -467,23 +472,23 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
             children: [
-              const Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Parking Fee:', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
-                  Text('Automated on checkout', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w700)),
+                  Text('Parking Fee:', style: TextStyle(color: isDark ? Colors.grey[400] : const Color(0xFF64748B), fontWeight: FontWeight.w500)),
+                  Text('Automated on checkout', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.w700)),
                 ],
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  const Expanded(child: Text('Lost Ticket Fine (VND):', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500))),
+                  Expanded(child: Text('Lost Ticket Fine (VND):', style: TextStyle(color: isDark ? Colors.grey[400] : const Color(0xFF64748B), fontWeight: FontWeight.w500))),
                   SizedBox(
                     width: 120,
                     child: _buildTextField('e.g. 50000', _fineCtrl, keyboardType: TextInputType.number),
@@ -491,9 +496,9 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
                 ],
               ),
               const SizedBox(height: 20),
-              const Align(
+              Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Payment Method:', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+                child: Text('Payment Method:', style: TextStyle(color: isDark ? Colors.grey[400] : const Color(0xFF64748B), fontWeight: FontWeight.w500)),
               ),
               const SizedBox(height: 10),
               Row(
@@ -504,14 +509,14 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: _paymentMethod == 'CASH' ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                          color: _paymentMethod == 'CASH' ? (isDark ? const Color(0xFF334155) : const Color(0xFF1E293B)) : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9)),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         alignment: Alignment.center,
                         child: Text(
                           'CASH',
                           style: TextStyle(
-                            color: _paymentMethod == 'CASH' ? Colors.white : const Color(0xFF64748B),
+                            color: _paymentMethod == 'CASH' ? Colors.white : (isDark ? Colors.grey[400] : const Color(0xFF64748B)),
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -525,14 +530,14 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: _paymentMethod == 'QR TRANSFER' ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                          color: _paymentMethod == 'QR TRANSFER' ? (isDark ? const Color(0xFF334155) : const Color(0xFF1E293B)) : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9)),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         alignment: Alignment.center,
                         child: Text(
                           'QR TRANSFER',
                           style: TextStyle(
-                            color: _paymentMethod == 'QR TRANSFER' ? Colors.white : const Color(0xFF64748B),
+                            color: _paymentMethod == 'QR TRANSFER' ? Colors.white : (isDark ? Colors.grey[400] : const Color(0xFF64748B)),
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -550,25 +555,26 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FB),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF7F9FB),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.close_rounded, color: Color(0xFF0F172A)),
+          icon: Icon(Icons.close_rounded, color: isDark ? Colors.white : const Color(0xFF0F172A)),
           onPressed: () => Navigator.pop(context),
         ),
         title: Column(
           children: [
-            const Text(
+            Text(
               'Process Lost Ticket',
-              style: TextStyle(color: Color(0xFF0F172A), fontSize: 16, fontWeight: FontWeight.w800),
+              style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontSize: 16, fontWeight: FontWeight.w800),
             ),
             Text(
               'Ref: ${widget.incident.incidentCode ?? 'N/A'}',
-              style: const TextStyle(color: Color(0xFF64748B), fontSize: 12, fontWeight: FontWeight.w500),
+              style: TextStyle(color: isDark ? Colors.grey[400] : const Color(0xFF64748B), fontSize: 12, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -593,8 +599,8 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200)),
               ),
               child: Row(
                 children: [
@@ -603,10 +609,10 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                        side: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      child: const Text('CANCEL', style: TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w800)),
+                      child: Text('CANCEL', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF475569), fontWeight: FontWeight.w800)),
                     ),
                   ),
                   const SizedBox(width: 12),

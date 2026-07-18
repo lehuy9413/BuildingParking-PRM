@@ -246,8 +246,9 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FB),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF7F9FB),
       appBar: _buildAppBar(),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -259,8 +260,8 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -319,20 +320,21 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
   }
 
   Widget _buildExceptionTypeDropdown2() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedExceptionType2,
           isExpanded: true,
-          dropdownColor: Colors.white,
+          dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
           icon: const Icon(Icons.expand_more_rounded, color: Color(0xFF94A3B8)),
-          style: const TextStyle(
-              color: Color(0xFF0F172A), fontWeight: FontWeight.w600, fontSize: 14),
+          style: TextStyle(
+              color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.w600, fontSize: 14),
           items: _exceptionTypes2
               .map((t) => DropdownMenuItem(value: t, child: Text(t)))
               .toList(),
@@ -348,18 +350,19 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
   }
 
   PreferredSizeWidget _buildAppBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new_rounded,
-            color: Color(0xFF0F172A), size: 20),
+        icon: Icon(Icons.arrow_back_ios_new_rounded,
+            color: isDark ? Colors.white : const Color(0xFF0F172A), size: 20),
         onPressed: () => Navigator.of(context).pop(),
       ),
-      title: const Row(
+      title: Row(
         children: [
-          Icon(Icons.report_problem_rounded, color: Color(0xFFEA580C), size: 24),
-          SizedBox(width: 10),
+          const Icon(Icons.report_problem_rounded, color: Color(0xFFEA580C), size: 24),
+          const SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -368,9 +371,9 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
                 style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w900,
-                    color: Color(0xFF0F172A)),
+                    color: isDark ? Colors.white : const Color(0xFF0F172A)),
               ),
-              Text(
+              const Text(
                 'Exception Handling',
                 style: TextStyle(
                     fontSize: 11,
@@ -1006,11 +1009,12 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
   }
 
   Widget _fieldLabel(String label) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Text(label,
-        style: const TextStyle(
+        style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF334155)));
+            color: isDark ? Colors.grey[300] : const Color(0xFF334155)));
   }
 
   Widget _styledTextField({
@@ -1020,29 +1024,30 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
     int maxLines = 1,
     TextCapitalization textCap = TextCapitalization.none,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return TextField(
       controller: controller,
       maxLines: maxLines,
       textCapitalization: textCap,
-      style: const TextStyle(
+      style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: Color(0xFF0F172A)),
+          color: isDark ? Colors.white : const Color(0xFF0F172A)),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle:
-            const TextStyle(color: Color(0xFFCBD5E1), fontSize: 14),
+            TextStyle(color: isDark ? Colors.grey[600] : const Color(0xFFCBD5E1), fontSize: 14),
         prefixIcon: (maxLines == 1 && icon != null)
             ? Icon(icon, color: const Color(0xFF94A3B8), size: 20)
             : null,
         filled: true,
-        fillColor: const Color(0xFFF7F9FB),
+        fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF7F9FB),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+            borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
         enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+            borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide:
