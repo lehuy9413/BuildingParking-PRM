@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
@@ -91,6 +92,30 @@ class StaffRemoteDatasource {
         },
       );
       return ParkingSessionApiModel.fromJson(res.data['data']);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Upload evidence image
+  Future<void> uploadEvidence({
+    required String sessionId,
+    required String base64Image,
+    String type = 'entry',
+  }) async {
+    try {
+      final List<String> parts = base64Image.split(',');
+      final String base64Str = parts.length > 1 ? parts[1] : parts[0];
+      final List<int> bytes = base64Decode(base64Str);
+
+      final formData = FormData();
+      formData.fields.add(MapEntry('type', type));
+      formData.files.add(MapEntry('images', MultipartFile.fromBytes(bytes, filename: 'evidence.jpg')));
+
+      await _dio.post(
+        '/parking-sessions/$sessionId/evidence',
+        data: formData,
+      );
     } on DioException catch (e) {
       throw _handleError(e);
     }

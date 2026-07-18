@@ -7,6 +7,8 @@ class IncidentModel {
   final String? status;
   final String? severity;
   final DateTime? createdAt;
+  final DateTime? resolvedAt;
+  final String? resolutionNote;
 
   IncidentModel({
     required this.id,
@@ -17,6 +19,8 @@ class IncidentModel {
     this.status,
     this.severity,
     this.createdAt,
+    this.resolvedAt,
+    this.resolutionNote,
   });
 
   factory IncidentModel.fromJson(Map<String, dynamic> json) {
@@ -29,6 +33,10 @@ class IncidentModel {
       status: json['status'],
       severity: json['severity'],
       createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt']) : null,
+      resolvedAt: (json['resolution'] != null && json['resolution']['resolvedAt'] != null)
+          ? DateTime.tryParse(json['resolution']['resolvedAt'].toString())
+          : (json['updatedAt'] != null ? DateTime.tryParse(json['updatedAt'].toString()) : null),
+      resolutionNote: json['resolution']?['description']?.toString(),
     );
   }
 }

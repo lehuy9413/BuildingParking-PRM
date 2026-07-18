@@ -699,39 +699,59 @@ class _RecentActivityListState extends State<_RecentActivityList> {
                   // Row 4: Action Button
                   SizedBox(
                     width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () async {
-                        if (item.type == 'lost_ticket') {
-                          final result = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ProcessLostTicketScreen(incident: item),
-                            ),
-                          );
-                          if (result == true) {
-                            final state = context.findAncestorStateOfType<_StaffExceptionScreenState>();
-                            state?._reloadActivityList();
-                          }
-                        } else if (item.type == 'wrong_license_plate') {
-                          final result = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ProcessMismatchScreen(incident: item),
-                            ),
-                          );
-                          if (result == true) {
-                            final state = context.findAncestorStateOfType<_StaffExceptionScreenState>();
-                            state?._reloadActivityList();
-                          }
-                        }
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF2563EB),
-                        side: const BorderSide(color: Color(0xFF2563EB)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: Text('PROCESS ${item.type == 'lost_ticket' ? 'LOST TICKET' : (item.type == 'wrong_license_plate' ? 'MISMATCH' : 'EXCEPTION')}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                    child: Builder(
+                      builder: (context) {
+                        final isResolved = item.status?.toLowerCase() != 'open';
+                        
+                        return OutlinedButton(
+                          onPressed: () async {
+                            if (isResolved) {
+                              _showIncidentDetailsPopup(context, item);
+                              return;
+                            }
+                            
+                            if (item.type == 'lost_ticket') {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ProcessLostTicketScreen(incident: item),
+                                ),
+                              );
+                              if (result == true) {
+                                final state = context.findAncestorStateOfType<_StaffExceptionScreenState>();
+                                state?._reloadActivityList();
+                              }
+                            } else if (item.type == 'wrong_license_plate') {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ProcessMismatchScreen(incident: item),
+                                ),
+                              );
+                              if (result == true) {
+                                final state = context.findAncestorStateOfType<_StaffExceptionScreenState>();
+                                state?._reloadActivityList();
+                              }
+                            }
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: isResolved ? const Color(0xFF64748B) : const Color(0xFF2563EB),
+                            side: BorderSide(color: isResolved ? const Color(0xFFCBD5E1) : const Color(0xFF2563EB)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: isResolved 
+                            ? const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.visibility, size: 16),
+                                  SizedBox(width: 8),
+                                  Text('VIEW DETAILS', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                                ],
+                              )
+                            : Text('PROCESS ${item.type == 'lost_ticket' ? 'LOST TICKET' : (item.type == 'wrong_license_plate' ? 'MISMATCH' : 'EXCEPTION')}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                        );
+                      }
                     ),
                   ),
                 ],
@@ -741,5 +761,170 @@ class _RecentActivityListState extends State<_RecentActivityList> {
         );
       },
     );
+  }
+
+  void _showIncidentDetailsPopup(BuildContext context, IncidentModel incident) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          child: Container(
+            width: 700,
+            padding: const EdgeInsets.all(0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Incident Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Color(0xFF94A3B8)),
+                        onPressed: () => Navigator.pop(context),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                // Body
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Left Column
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('GENERAL INFO', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8), letterSpacing: 1.0)),
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFFF1F5F9)),
+                                color: Colors.white,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildPopupDetailItem('REFERENCE ID', incident.incidentCode ?? incident.id),
+                                  const SizedBox(height: 16),
+                                  _buildPopupDetailItem('TYPE', _formatIncidentType(incident.type ?? 'Unknown')),
+                                  const SizedBox(height: 16),
+                                  _buildPopupDetailItem('REPORTED AT', incident.createdAt != null ? DateFormat('M/d/yyyy, hh:mm:ss a').format(incident.createdAt!) : 'N/A'),
+                                  const SizedBox(height: 16),
+                                  _buildPopupDetailItem('TITLE', incident.title),
+                                  const SizedBox(height: 16),
+                                  const Text('DESCRIPTION', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(4)),
+                                    child: Text(incident.description ?? 'No description', style: const TextStyle(fontSize: 13, color: Color(0xFF334155))),
+                                  ),
+                                ],
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      // Right Column
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('RESOLUTION DETAILS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF10B981), letterSpacing: 1.0)),
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFFD1FAE5)),
+                                color: const Color(0xFFECFDF5).withOpacity(0.5),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('RESOLVED AT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
+                                  const SizedBox(height: 4),
+                                  Text(incident.resolvedAt != null ? DateFormat('M/d/yyyy, hh:mm:ss a').format(incident.resolvedAt!) : 'N/A', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF065F46))),
+                                  const SizedBox(height: 16),
+                                  const Divider(color: Color(0xFFD1FAE5), height: 1),
+                                  const SizedBox(height: 16),
+                                  const Text('RESOLUTION NOTE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4), border: Border.all(color: const Color(0xFFD1FAE5))),
+                                    child: Text(incident.resolutionNote ?? 'No resolution note provided.', style: const TextStyle(fontSize: 13, color: Color(0xFF065F46), fontWeight: FontWeight.w500)),
+                                  ),
+                                ],
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                // Footer
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF334155),
+                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text('CLOSE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    ),
+                  ),
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPopupDetailItem(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+      ],
+    );
+  }
+
+  String _formatIncidentType(String type) {
+    switch (type) {
+      case 'lost_ticket':
+        return 'Lost Ticket';
+      case 'wrong_license_plate':
+        return 'Wrong License Plate';
+      default:
+        return type;
+    }
   }
 }

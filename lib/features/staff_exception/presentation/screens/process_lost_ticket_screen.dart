@@ -62,19 +62,28 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
         final zoneStr = lotObj is Map ? lotObj['name']?.toString() ?? 'Unknown' : 'Unknown';
         final slotStr = data['slot']?.toString() ?? 'N/A';
         
-        String sinceStr = 'N/A';
-        if (data['checkInTime'] != null) {
-          final dt = DateTime.tryParse(data['checkInTime'])?.toLocal();
+        String entryTimeStr = 'N/A';
+        final timeStr = data['entryTime'] ?? data['checkInTime'];
+        if (timeStr != null) {
+          final dt = DateTime.tryParse(timeStr.toString())?.toLocal();
           if (dt != null) {
-            sinceStr = DateFormat('hh:mm a').format(dt);
+            entryTimeStr = DateFormat('M/d/yyyy, hh:mm:ss a').format(dt);
           }
         }
 
+        String? imageUrl;
+        if (data['evidenceImages'] != null && (data['evidenceImages'] as List).isNotEmpty) {
+           imageUrl = data['evidenceImages'][0]['url'];
+        }
+
         _foundSystemRecord = {
+          'sessionId': data['_id']?.toString() ?? data['id']?.toString() ?? '',
+          'ticketId': data['sessionCode'] ?? 'N/A',
           'type': typeStr,
           'zone': zoneStr,
           'slot': slotStr,
-          'since': sinceStr,
+          'since': entryTimeStr,
+          'imageUrl': imageUrl ?? '',
         };
       });
     } catch (e) {
@@ -92,16 +101,64 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
     }
   }
 
-  void _confirmPaymentAndRelease() {
+  Future<void> _confirmPaymentAndRelease() async {
+    if (_nationalIdCtrl.text.trim().isEmpty || 
+        _fullNameCtrl.text.trim().isEmpty || 
+        _phoneCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all mandatory fields in Exception Verification.'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    if (_foundSystemRecord == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please search for a valid session first!'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    final sessionId = _foundSystemRecord!['sessionId']!;
+    if (sessionId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid session ID'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
-    Future.delayed(const Duration(milliseconds: 1500), () {
+    
+    try {
+      final dio = ApiClient.instance.dio;
+      final fineAmount = double.tryParse(_fineCtrl.text.trim()) ?? 0;
+      
+      // 1. Resolve the incident
+      await dio.patch(
+        ApiEndpoints.incidentResolve(widget.incident.id),
+        data: {
+          'description': 'Lost ticket processed and fine paid.',
+          'extraCharge': fineAmount,
+        },
+      );
+
+      // 2. Check-out the session
+      await dio.patch(
+        ApiEndpoints.checkOut(sessionId),
+      );
+
       if (!mounted) return;
       setState(() => _isSubmitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Ticket processed and released successfully!'), backgroundColor: Colors.green),
       );
       Navigator.pop(context, true); // return true to indicate success
-    });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to process: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
 
   Widget _sectionTitle(String title, {String? subtitle}) {
@@ -187,11 +244,11 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
         _sectionTitle('2. SYSTEM MATCH INFORMATION'),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: _foundSystemRecord != null ? const Color(0xFFF0FDF4) : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _foundSystemRecord != null ? const Color(0xFFBBF7D0) : const Color(0xFFE2E8F0)),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
           child: _foundSystemRecord == null
               ? const Center(
@@ -203,27 +260,66 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 18),
-                        SizedBox(width: 8),
-                        Text('Match Found', style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.w700, fontSize: 14)),
-                      ],
-                    ),
+                    _buildInfoRow('Entry Time:', _foundSystemRecord!['since'] ?? 'N/A', isBold: true),
+                    const Divider(height: 16, color: Color(0xFFF1F5F9)),
+                    _buildInfoRow('Old Ticket ID:', _foundSystemRecord!['ticketId'] ?? 'N/A', isBold: true),
+                    const Divider(height: 16, color: Color(0xFFF1F5F9)),
+                    _buildInfoRow('Vehicle Type:', _foundSystemRecord!['type'] ?? 'N/A', isBold: true),
                     const SizedBox(height: 16),
+                    const Text('Entry Images:', style: TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 8),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildMatchItem('Vehicle Type', _foundSystemRecord!['type']!),
-                        _buildMatchItem('Zone', _foundSystemRecord!['zone']!),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildMatchItem('Slot', _foundSystemRecord!['slot']!),
-                        _buildMatchItem('Parked Since', _foundSystemRecord!['since']!),
+                        if (_foundSystemRecord!['imageUrl'] != null && _foundSystemRecord!['imageUrl']!.isNotEmpty)
+                          Container(
+                            width: 80,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: Image.network(
+                                _foundSystemRecord!['imageUrl']!.toString().startsWith('http')
+                                    ? _foundSystemRecord!['imageUrl']!
+                                    : ApiEndpoints.baseUrl.replaceAll('/api/v1', '') + _foundSystemRecord!['imageUrl']!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => const Center(
+                                  child: Icon(Icons.broken_image, color: Color(0xFF94A3B8), size: 24),
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          Container(
+                            width: 80,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                            ),
+                            child: const Center(
+                              child: Text('No Image', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
+                            ),
+                          ),
+                        const SizedBox(width: 8),
+                        Container(
+                          width: 80,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE2E8F0),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'LPR Close-up',
+                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8)),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -233,18 +329,27 @@ class _ProcessLostTicketScreenState extends State<ProcessLostTicketScreen> {
     );
   }
 
-  Widget _buildMatchItem(String label, String value) {
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-          const SizedBox(height: 2),
-          Text(value, style: const TextStyle(fontSize: 14, color: Color(0xFF0F172A), fontWeight: FontWeight.w600)),
-        ],
-      ),
+  Widget _buildInfoRow(String label, String value, {bool isBold = false, bool isRed = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 13,
+            color: isRed ? const Color(0xFFEF4444) : const Color(0xFF0F172A),
+            fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
+
+
 
   Widget _buildVerificationSection() {
     return Column(

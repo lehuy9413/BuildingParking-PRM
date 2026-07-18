@@ -80,8 +80,9 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
         _isSearching = false;
         
         String entryTimeStr = 'N/A';
-        if (data['checkInTime'] != null) {
-          final dt = DateTime.tryParse(data['checkInTime'])?.toLocal();
+        final timeStr = data['entryTime'] ?? data['checkInTime'];
+        if (timeStr != null) {
+          final dt = DateTime.tryParse(timeStr.toString())?.toLocal();
           if (dt != null) {
             entryTimeStr = DateFormat('M/d/yyyy, hh:mm:ss a').format(dt);
           }
@@ -92,9 +93,12 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
            imageUrl = data['evidenceImages'][0]['url'];
         }
 
+        final vehicleInfo = data['vehicleInfo'] as Map<String, dynamic>?;
+        final plateStr = vehicleInfo?['licensePlate'] ?? data['licensePlate'] ?? 'N/A';
+
         _foundSystemRecord = {
           'ticketId': data['sessionCode'] ?? 'N/A',
-          'plate': data['licensePlate'] ?? 'N/A',
+          'plate': plateStr,
           'entryTime': entryTimeStr,
           'imageUrl': imageUrl,
         };
@@ -223,7 +227,7 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: Colors.white,
                   border: Border.all(color: const Color(0xFFE2E8F0)),
                   borderRadius: BorderRadius.circular(4),
                 ),
@@ -233,7 +237,7 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
                     const Divider(height: 16, color: Color(0xFFF1F5F9)),
                     _buildInfoRow('AI Recognized Plate:', _foundSystemRecord!['plate'] ?? 'N/A', isBold: true, isRed: true),
                     const Divider(height: 16, color: Color(0xFFF1F5F9)),
-                    _buildInfoRow('Entry Time:', _foundSystemRecord!['entryTime'] ?? 'N/A'),
+                    _buildInfoRow('Entry Time:', _foundSystemRecord!['entryTime'] ?? 'N/A', isBold: true),
                   ],
                 ),
               ),
@@ -254,7 +258,9 @@ class _ProcessMismatchScreenState extends State<ProcessMismatchScreen> {
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(4),
                       child: Image.network(
-                        ApiEndpoints.baseUrl.replaceAll('/api/v1', '') + _foundSystemRecord!['imageUrl'],
+                        _foundSystemRecord!['imageUrl'].toString().startsWith('http')
+                            ? _foundSystemRecord!['imageUrl']
+                            : ApiEndpoints.baseUrl.replaceAll('/api/v1', '') + _foundSystemRecord!['imageUrl'],
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => const Center(
                           child: Icon(Icons.broken_image, color: Color(0xFF94A3B8), size: 32),

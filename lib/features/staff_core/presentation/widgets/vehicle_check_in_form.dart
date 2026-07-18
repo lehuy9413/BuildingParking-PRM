@@ -25,6 +25,7 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
   String _selectedGate = 'Gate A';
   String _selectedVehicleType = 'Motorbike';
   bool _isSubmitting = false;
+  String? _scannedImageBase64;
 
   static const List<String> _gates = ['Gate A', 'Gate B', 'Gate C'];
   static const List<String> _vehicleTypes = ['Motorbike', 'Car', 'EV'];
@@ -59,6 +60,7 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
     );
     
     if (base64Image != null && mounted) {
+      _scannedImageBase64 = base64Image;
       // Hiện loading khi đang gọi LPR API
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Recognizing license plate...')),
@@ -134,6 +136,11 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
         vehicleTypeName: vehicleTypeName,
       );
       if (mounted) {
+        if (_scannedImageBase64 != null) {
+          await ctrl.uploadEvidence(session.id, _scannedImageBase64!);
+          _scannedImageBase64 = null;
+        }
+
         _plateController.clear();
         widget.onSessionCreated(session);
       }

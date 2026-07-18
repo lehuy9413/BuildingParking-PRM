@@ -140,6 +140,20 @@ class StaffCoreController extends ChangeNotifier {
     }
   }
 
+  Future<void> uploadEvidence(String sessionId, String base64Image) async {
+    try {
+      await _datasource.uploadEvidence(
+        sessionId: sessionId,
+        base64Image: base64Image,
+        type: 'entry',
+      );
+    } catch (e) {
+      errorMessage = e.toString();
+      notifyListeners();
+      // Silently fail or handle, it's just evidence
+    }
+  }
+
   // ─── Check-out ─────────────────────────────────────────────────────────────
 
   /// Tìm session đang active theo biển số hoặc session ID qua API.
