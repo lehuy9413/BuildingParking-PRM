@@ -5,8 +5,9 @@ import '../../../../core/network/api_endpoints.dart';
 import '../../domain/models/incident_model.dart';
 import '../../../auth_profile/presentation/screens/auth_profile_screen.dart';
 import '../../domain/models/exception_models.dart';
+import 'process_mismatch_screen.dart';
 import 'exception_handling_screen.dart';
-import 'alert_vehicles_screen.dart';
+import 'mismatch_screen.dart';
 import 'parking_map_screen.dart';
 import 'process_lost_ticket_screen.dart';
 
@@ -73,15 +74,20 @@ class _StaffExceptionScreenState extends State<StaffExceptionScreen> {
                     icon: Icons.warning_amber_rounded,
                     iconColor: const Color(0xFFF59E0B),
                     iconBg: const Color(0xFFFEF3C7),
-                    title: 'Vehicle\nAlerts',
+                    title: 'Mismatch',
                     subtitle: 'Overdue & wrong area',
                     badge: '5',
                     badgeColor: const Color(0xFFEF4444),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const AlertVehiclesScreen()),
-                    ),
+                    onTap: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const MismatchScreen()),
+                      );
+                      if (result == true) {
+                        _reloadActivityList();
+                      }
+                    },
                   ),
                 ),
               ],
@@ -583,7 +589,7 @@ class _RecentActivityListState extends State<_RecentActivityList> {
               icon = Icons.credit_card_off_rounded;
               color = const Color(0xFFEA580C);
               bg = const Color(0xFFFFF7ED);
-            } else if (item.type == 'lpr_mismatch') {
+            } else if (item.type == 'wrong_license_plate') {
               icon = Icons.camera_alt_rounded;
               color = const Color(0xFFF59E0B);
               bg = const Color(0xFFFEF3C7);
@@ -669,7 +675,7 @@ class _RecentActivityListState extends State<_RecentActivityList> {
                               children: [
                                 Icon(icon, color: color, size: 14),
                                 const SizedBox(width: 6),
-                                Expanded(child: Text(item.type == 'lost_ticket' ? 'Lost Ticket' : (item.type == 'lpr_mismatch' ? 'LPR Mismatch' : (item.type ?? 'Other')), style: const TextStyle(fontSize: 12, color: Color(0xFF0F172A), fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                                Expanded(child: Text(item.type == 'lost_ticket' ? 'Lost Ticket' : (item.type == 'wrong_license_plate' ? 'Wrong License Plate' : (item.type ?? 'Other')), style: const TextStyle(fontSize: 12, color: Color(0xFF0F172A), fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis)),
                               ],
                             ),
                           ],
@@ -706,6 +712,17 @@ class _RecentActivityListState extends State<_RecentActivityList> {
                             final state = context.findAncestorStateOfType<_StaffExceptionScreenState>();
                             state?._reloadActivityList();
                           }
+                        } else if (item.type == 'wrong_license_plate') {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ProcessMismatchScreen(incident: item),
+                            ),
+                          );
+                          if (result == true) {
+                            final state = context.findAncestorStateOfType<_StaffExceptionScreenState>();
+                            state?._reloadActivityList();
+                          }
                         }
                       },
                       style: OutlinedButton.styleFrom(
@@ -714,7 +731,7 @@ class _RecentActivityListState extends State<_RecentActivityList> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: Text('PROCESS ${item.type == 'lost_ticket' ? 'LOST TICKET' : 'EXCEPTION'}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                      child: Text('PROCESS ${item.type == 'lost_ticket' ? 'LOST TICKET' : (item.type == 'wrong_license_plate' ? 'MISMATCH' : 'EXCEPTION')}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
                     ),
                   ),
                 ],
