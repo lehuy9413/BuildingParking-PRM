@@ -8,6 +8,7 @@ import '../../domain/models/exception_models.dart';
 import 'exception_handling_screen.dart';
 import 'alert_vehicles_screen.dart';
 import 'parking_map_screen.dart';
+import 'process_lost_ticket_screen.dart';
 
 
 /// Màn hình chính của Staff Exception – dashboard điều hướng 4 chức năng.
@@ -693,7 +694,20 @@ class _RecentActivityListState extends State<_RecentActivityList> {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton(
-                      onPressed: () {},
+                      onPressed: () async {
+                        if (item.type == 'lost_ticket') {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ProcessLostTicketScreen(incident: item),
+                            ),
+                          );
+                          if (result == true) {
+                            final state = context.findAncestorStateOfType<_StaffExceptionScreenState>();
+                            state?._reloadActivityList();
+                          }
+                        }
+                      },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFF2563EB),
                         side: const BorderSide(color: Color(0xFF2563EB)),
