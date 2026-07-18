@@ -63,6 +63,19 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
     },
   };
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // New UI state
+  // ─────────────────────────────────────────────────────────────────────────
+  String _selectedExceptionType2 = 'Lost Ticket';
+  final _titleCtrl2 = TextEditingController(text: 'Lost Ticket');
+  final _detailsCtrl2 = TextEditingController();
+
+  static const _exceptionTypes2 = [
+    'Lost Ticket',
+    'LPR Mismatch',
+    'Theft',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -73,9 +86,9 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
   void dispose() {
     _tabController.dispose();
     _plateSearchCtrl.dispose();
-    _wrongPlateCtrl.dispose();
-    _correctInfoCtrl.dispose();
     _notesCtrl.dispose();
+    _titleCtrl2.dispose();
+    _detailsCtrl2.dispose();
     super.dispose();
   }
 
@@ -170,38 +183,91 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FB),
       appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          // Tab bar
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-            child: TabBar(
-              controller: _tabController,
-              labelColor: const Color(0xFF2563EB),
-              unselectedLabelColor: const Color(0xFF94A3B8),
-              labelStyle: const TextStyle(
-                  fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 0.5),
-              unselectedLabelStyle: const TextStyle(
-                  fontWeight: FontWeight.w600, fontSize: 13),
-              indicatorColor: const Color(0xFF2563EB),
-              indicatorWeight: 3,
-              tabs: const [
-                Tab(text: 'LOST CARD'),
-                Tab(text: 'WRONG INFO'),
-              ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _sectionTitle('REPORT NEW EXCEPTION'),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildLostTicketForm(),
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildLostCardTab(),
-                _buildWrongInfoTab(),
-              ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLostTicketForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _fieldLabel('Exception Type'),
+        const SizedBox(height: 8),
+        _buildExceptionTypeDropdown2(),
+        const SizedBox(height: 16),
+        _fieldLabel('Title'),
+        const SizedBox(height: 8),
+        _styledTextField(controller: _titleCtrl2, hint: 'Lost Ticket', icon: null),
+        const SizedBox(height: 16),
+        _fieldLabel('Details / Plate Info'),
+        const SizedBox(height: 8),
+        _styledTextField(
+            controller: _detailsCtrl2, hint: 'Provide details...', icon: null, maxLines: 4),
+        const SizedBox(height: 24),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () {},
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2563EB),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
             ),
+            child: const Text('SUBMIT MANUAL OVERRIDE',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
           ),
-        ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExceptionTypeDropdown2() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedExceptionType2,
+          isExpanded: true,
+          dropdownColor: Colors.white,
+          icon: const Icon(Icons.expand_more_rounded, color: Color(0xFF94A3B8)),
+          style: const TextStyle(
+              color: Color(0xFF0F172A), fontWeight: FontWeight.w600, fontSize: 14),
+          items: _exceptionTypes2
+              .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+              .toList(),
+          onChanged: (v) {
+            setState(() {
+              _selectedExceptionType2 = v!;
+              _titleCtrl2.text = v;
+            });
+          },
+        ),
       ),
     );
   }
@@ -875,7 +941,7 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
   Widget _styledTextField({
     required TextEditingController controller,
     required String hint,
-    required IconData icon,
+    IconData? icon,
     int maxLines = 1,
     TextCapitalization textCap = TextCapitalization.none,
   }) {
@@ -891,7 +957,7 @@ class _ExceptionHandlingScreenState extends State<ExceptionHandlingScreen>
         hintText: hint,
         hintStyle:
             const TextStyle(color: Color(0xFFCBD5E1), fontSize: 14),
-        prefixIcon: maxLines == 1
+        prefixIcon: (maxLines == 1 && icon != null)
             ? Icon(icon, color: const Color(0xFF94A3B8), size: 20)
             : null,
         filled: true,

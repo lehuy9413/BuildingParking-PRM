@@ -33,10 +33,10 @@ class StaffExceptionScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: _FeatureCard(
-                    icon: Icons.report_problem_rounded,
+                    icon: Icons.confirmation_number_outlined,
                     iconColor: const Color(0xFFEA580C),
                     iconBg: const Color(0xFFFFF7ED),
-                    title: 'Exception\nHandling',
+                    title: 'Lost\nTicket',
                     subtitle: 'Lost card & wrong vehicle info',
                     badge: null,
                     onTap: () => Navigator.push(
@@ -108,7 +108,7 @@ class StaffExceptionScreen extends StatelessWidget {
             const SizedBox(height: 28),
 
             // ─── Recent activity ─────────────────────────────────────────────
-            _sectionTitle('RECENT ACTIVITY'),
+            _sectionTitle('ACTIVE EXCEPTION LOG'),
             const SizedBox(height: 14),
             _buildRecentActivity(),
           ],
