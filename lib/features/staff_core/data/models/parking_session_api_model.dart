@@ -19,6 +19,7 @@ class ParkingSessionApiModel {
   final String status; // 'active' | 'completed' | 'cancelled'
   final String paymentStatus; // 'unpaid' | 'paid'
   final String? paymentId;
+  final bool hasBooking;
 
   const ParkingSessionApiModel({
     required this.id,
@@ -40,6 +41,7 @@ class ParkingSessionApiModel {
     this.status = 'active',
     this.paymentStatus = 'unpaid',
     this.paymentId,
+    this.hasBooking = false,
   });
 
   factory ParkingSessionApiModel.fromJson(Map<String, dynamic> json) {
@@ -74,13 +76,14 @@ class ParkingSessionApiModel {
           : json['booking']?.toString(),
       entryTime: _parseDate(json['entryTime']),
       exitTime: json['exitTime'] != null ? _parseDate(json['exitTime']) : null,
-      totalFee: (json['totalFee'] ?? 0).toDouble(),
+      totalFee: (json['currentFee'] ?? json['estimatedFee'] ?? json['fee'] ?? json['totalFee'] ?? 0).toDouble(),
       baseFee: (json['baseFee'] ?? 0).toDouble(),
       overtimeFee: (json['overtimeFee'] ?? 0).toDouble(),
       isOvertime: json['isOvertime'] ?? false,
       status: json['status']?.toString() ?? 'active',
       paymentStatus: json['paymentStatus']?.toString() ?? 'unpaid',
       paymentId: json['payment']?.toString(),
+      hasBooking: json['booking'] != null,
     );
   }
 

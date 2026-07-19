@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../controllers/staff_core_controller.dart';
 import '../screens/real_camera_screen.dart';
+import '../screens/qr_scanner_screen.dart';
 import '../../domain/models/parking_session.dart';
 
 /// Form check-in xe: nhập biển số, chọn gate, chọn loại xe.
@@ -85,6 +87,43 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
     }
   }
 
+  Future<void> _scanBookingQR() async {
+    final result = await Navigator.push<String?>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const QRScannerScreen(
+          title: 'Scan Booking QR',
+        ),
+      ),
+    );
+    if (result != null && result.isNotEmpty && mounted) {
+      final ctrl = widget.controller;
+      try {
+        final session = await ctrl.createSessionApi(
+          bookingId: result,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Check-in via Booking successful!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          widget.onSessionCreated(session);
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   Future<void> _createSession() async {
     final plate = _plateController.text.trim();
     if (plate.isEmpty) {
@@ -161,6 +200,7 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final ctrl = widget.controller;
     final vehicleTypes = ctrl.vehicleTypes;
     // Nếu API chưa trả về thì dùng list mặc định
@@ -177,11 +217,11 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF171C24) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: isDark ? Colors.transparent : Colors.black.withOpacity(0.05),
             blurRadius: 20,
             offset: const Offset(0, 6),
           ),
@@ -209,12 +249,12 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
           const SizedBox(height: 20),
 
           // ─── Ô nhập biển số ───────────────────────────────────────────
-          const Text(
+          Text(
             'License Plate',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF374151),
+              color: isDark ? Colors.white70 : const Color(0xFF374151),
             ),
           ),
           const SizedBox(height: 8),
@@ -224,11 +264,11 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
                 child: TextField(
                   controller: _plateController,
                   textCapitalization: TextCapitalization.characters,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 2,
-                    color: Color(0xFF0F172A),
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
                   ),
                   decoration: InputDecoration(
                     hintText: 'Ex: 51A-12345',
@@ -243,21 +283,21 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
                       color: Color(0xFF2563EB),
                     ),
                     filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
+                    fillColor: isDark ? const Color(0xFF0E1116) : const Color(0xFFF8FAFC),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide:
-                          BorderSide(color: Colors.grey.shade200),
+                      borderSide: BorderSide(color: isDark ? Colors.transparent : Colors.grey.shade200),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide:
-                          BorderSide(color: Colors.grey.shade200),
+                      borderSide: BorderSide(color: isDark ? Colors.transparent : Colors.grey.shade200),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: const BorderSide(
-                          color: Color(0xFF2563EB), width: 1.5),
+                        color: Color(0xFF2563EB),
+                        width: 2,
+                      ),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                         vertical: 16, horizontal: 16),
@@ -271,19 +311,48 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
                 child: Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
+                    color: isDark ? const Color(0xFF1E3A8A).withOpacity(0.4) : const Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                    border: Border.all(color: isDark ? const Color(0xFF2563EB).withOpacity(0.5) : const Color(0xFFBFDBFE)),
                   ),
-                  child: const Column(
+                  child: Column(
                     children: [
                       Icon(Icons.document_scanner_rounded,
-                          color: Color(0xFF2563EB), size: 24),
-                      SizedBox(height: 4),
+                          color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB), size: 24),
+                      const SizedBox(height: 4),
                       Text(
                         'SCAN',
                         style: TextStyle(
-                          color: Color(0xFF2563EB),
+                          color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Nút QR Booking
+              GestureDetector(
+                onTap: _scanBookingQR,
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF064E3B).withOpacity(0.5) : const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: isDark ? const Color(0xFF059669) : const Color(0xFFA7F3D0)),
+                  ),
+                  child: const Column(
+                    children: [
+                      Icon(Icons.qr_code_scanner_rounded,
+                          color: Color(0xFF10B981), size: 24),
+                      SizedBox(height: 4),
+                      Text(
+                        'QR BOOK',
+                        style: TextStyle(
+                          color: Color(0xFF10B981),
                           fontSize: 9,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.5,
@@ -307,16 +376,17 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
           const SizedBox(height: 20),
 
           // ─── Dropdown Gate ────────────────────────────────────────────
-          const Text(
+          Text(
             'Entry Gate',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF374151),
+              color: isDark ? Colors.white70 : const Color(0xFF374151),
             ),
           ),
           const SizedBox(height: 8),
           _buildDropdown<String>(
+            isDark: isDark,
             value: _selectedGate,
             items: _gates,
             icon: Icons.door_sliding_rounded,
@@ -326,12 +396,12 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
           const SizedBox(height: 20),
 
           // ─── Loại xe ─────────────────────────────────────────────────
-          const Text(
+          Text(
             'Vehicle Type',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF374151),
+              color: isDark ? Colors.white70 : const Color(0xFF374151),
             ),
           ),
           const SizedBox(height: 8),
@@ -353,12 +423,12 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
                           decoration: BoxDecoration(
                             color: selected
                                 ? _vehicleColor(type).withOpacity(0.1)
-                                : const Color(0xFFF8FAFC),
+                                : (isDark ? const Color(0xFF0E1116) : const Color(0xFFF8FAFC)),
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                               color: selected
                                   ? _vehicleColor(type)
-                                  : Colors.grey.shade200,
+                                  : (isDark ? Colors.grey.shade800 : Colors.grey.shade200),
                               width: selected ? 1.5 : 1,
                             ),
                           ),
@@ -368,16 +438,17 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
                                 _vehicleIcon(type),
                                 color: selected
                                     ? _vehicleColor(type)
-                                    : Colors.grey.shade500,
-                                size: 24,
+                                    : (isDark ? Colors.grey.shade400 : const Color(0xFF475569)),
+                                size: 32,
                               ),
                               const SizedBox(height: 6),
                               Text(
                                 type,
-                                textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
+                                  fontSize: 11,
+                                  fontWeight: selected
+                                      ? FontWeight.w800
+                                      : FontWeight.w600,
                                   color: selected
                                       ? _vehicleColor(type)
                                       : Colors.grey.shade600,
@@ -431,6 +502,7 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
   }
 
   Widget _buildDropdown<T>({
+    required bool isDark,
     required T value,
     required List<T> items,
     required IconData icon,
@@ -440,13 +512,14 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: isDark ? const Color(0xFF0E1116) : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: isDark ? Colors.transparent : Colors.grey.shade200),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
           value: value,
+          dropdownColor: isDark ? const Color(0xFF171C24) : Colors.white,
           isExpanded: true,
           icon: const Icon(Icons.keyboard_arrow_down_rounded,
               color: Color(0xFF2563EB)),
@@ -460,10 +533,10 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
                         const SizedBox(width: 10),
                         Text(
                           labelBuilder(item),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF0F172A),
+                            color: isDark ? Colors.white : const Color(0xFF0F172A),
                           ),
                         ),
                       ],

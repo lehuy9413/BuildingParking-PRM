@@ -37,7 +37,12 @@ class AuthService {
     _refreshToken = refreshToken;
     _userId = user['id']?.toString();
     _userRole = user['role']?.toString();
-    _assignedParkingLotId = user['assignedParkingLot']?.toString();
+    final lot = user['assignedParkingLot'];
+    if (lot is Map) {
+      _assignedParkingLotId = lot['_id']?.toString() ?? lot['id']?.toString();
+    } else {
+      _assignedParkingLotId = lot?.toString();
+    }
     _userFullName = user['fullName']?.toString();
 
     final prefs = await SharedPreferences.getInstance();

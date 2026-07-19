@@ -5,14 +5,21 @@ import 'dart:convert';
 /// Mobile stub for RealCameraScreen.
 /// Uses ImagePicker instead of web camera APIs.
 class RealCameraScreen extends StatelessWidget {
-  const RealCameraScreen({super.key});
+  final bool isScanningQR;
+  final String title;
+
+  const RealCameraScreen({
+    super.key,
+    this.isScanningQR = false,
+    this.title = 'Scan License Plate',
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Capture Image'),
+        title: Text(title),
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,

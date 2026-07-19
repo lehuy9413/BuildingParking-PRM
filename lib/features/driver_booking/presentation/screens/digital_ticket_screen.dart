@@ -256,7 +256,7 @@ class _TicketCard extends StatelessWidget {
                     ],
                   ),
                   child: QrImageView(
-                    data: booking.bookingCode,
+                    data: booking.id,
                     version: QrVersions.auto,
                     size: 180,
                     backgroundColor: Colors.white,
@@ -269,6 +269,16 @@ class _TicketCard extends StatelessWidget {
                       color: Color(0xFF0F172A),
                     ),
                   ),
+                ),
+                const SizedBox(height: 16),
+                SelectableText(
+                  'ID: ${booking.id}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.black54,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 14),
                 Text(

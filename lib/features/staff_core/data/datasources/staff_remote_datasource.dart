@@ -78,17 +78,19 @@ class StaffRemoteDatasource {
   /// [vehicleTypeId] MongoDB ObjectId của vehicle type
   /// [parkingLotId] MongoDB ObjectId của bãi xe
   Future<ParkingSessionApiModel> checkIn({
-    required String licensePlate,
-    required String vehicleTypeId,
+    String? licensePlate,
+    String? vehicleTypeId,
     required String parkingLotId,
+    String? bookingId,
   }) async {
     try {
       final res = await _dio.post(
         ApiEndpoints.checkIn,
         data: {
-          'licensePlate': licensePlate,
-          'vehicleTypeId': vehicleTypeId,
+          if (licensePlate != null) 'licensePlate': licensePlate,
+          if (vehicleTypeId != null) 'vehicleTypeId': vehicleTypeId,
           'parkingLotId': parkingLotId,
+          if (bookingId != null) 'bookingId': bookingId,
         },
       );
       return ParkingSessionApiModel.fromJson(res.data['data']);

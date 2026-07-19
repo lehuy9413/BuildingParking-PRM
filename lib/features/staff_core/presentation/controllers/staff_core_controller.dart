@@ -106,9 +106,10 @@ class StaffCoreController extends ChangeNotifier {
   /// Gọi API check-in thực tế.
   /// Trả về [ParkingSession] domain model để UI dùng.
   Future<ParkingSession> createSessionApi({
-    required String plateNumber,
-    required String vehicleTypeId,
-    required String vehicleTypeName,
+    String? plateNumber,
+    String? vehicleTypeId,
+    String? vehicleTypeName,
+    String? bookingId,
   }) async {
     if (assignedParkingLotId == null || assignedParkingLotId!.isEmpty) {
       throw 'Staff is not assigned to a parking lot. Please contact Admin.';
@@ -123,10 +124,11 @@ class StaffCoreController extends ChangeNotifier {
         licensePlate: plateNumber,
         vehicleTypeId: vehicleTypeId,
         parkingLotId: assignedParkingLotId!,
+        bookingId: bookingId,
       );
 
       final session = _apiModelToSession(apiSession);
-      _sessions.add(session);
+      _sessions.insert(0, session);
       latestSession = session;
       notifyListeners();
       return session;
@@ -173,12 +175,12 @@ class StaffCoreController extends ChangeNotifier {
 
       final session = _apiModelToSession(apiSession);
 
-      // Thêm vào danh sách local nếu chưa có
       final exists = _sessions.any((s) => s.id == session.id);
       if (!exists) _sessions.add(session);
 
       selectedCheckoutSession = session;
-      totalFee = apiSession.totalFee > 0 ? apiSession.totalFee : session.calculateFee(); // Hiển thị phí tạm tính khi chưa checkout
+      checkoutApiSession = null;
+      totalFee = calculatePreviewFee(session, apiSession.totalFee);
       notifyListeners();
       return session;
     } catch (e) {
@@ -193,7 +195,8 @@ class StaffCoreController extends ChangeNotifier {
 
   void selectForCheckout(ParkingSession session) {
     selectedCheckoutSession = session;
-    totalFee = session.calculateFee();
+    checkoutApiSession = null;
+    totalFee = calculatePreviewFee(session, session.totalFee);
     notifyListeners();
   }
 
@@ -288,9 +291,69 @@ class StaffCoreController extends ChangeNotifier {
       );
     }
     selectedCheckoutSession = null;
+    selectedCheckoutSession = null;
     checkoutApiSession = null;
     totalFee = 0;
     notifyListeners();
+  }
+
+  /// Tính phí dự kiến để hiển thị cho UI (nếu API chưa trả totalFee)
+  double calculatePreviewFee(ParkingSession session, double apiFee) {
+    if (apiFee > 0) return apiFee;
+    if (session.vehicleType.isEmpty) return 0.0;
+
+    final entryTime = session.checkInTime;
+    final exitTime = DateTime.now();
+    final durationMs = exitTime.difference(entryTime).inMilliseconds;
+    if (durationMs <= 0) return 0.0;
+
+    final vehicleTypeModel = vehicleTypes.firstWhere(
+      (v) => v.name == session.vehicleType,
+      orElse: () => VehicleTypeModel(
+        id: '',
+        name: session.vehicleType,
+        code: '',
+        dayBlockRate: 0,
+        dailyRate: 0,
+        nightBlockRate: 0,
+      ),
+    );
+
+    final double dayBlockRate = vehicleTypeModel.dayBlockRate;
+    final double nightBlockRate = vehicleTypeModel.nightBlockRate > 0 
+        ? vehicleTypeModel.nightBlockRate 
+        : (dayBlockRate * 1.5);
+
+    double fee = 0.0;
+    DateTime currentStart = entryTime;
+
+    while (currentStart.isBefore(exitTime)) {
+      DateTime blockEnd = currentStart.add(const Duration(hours: 4));
+      if (blockEnd.isAfter(exitTime)) {
+        blockEnd = exitTime;
+      }
+      
+      final effectiveEnd = blockEnd.subtract(const Duration(milliseconds: 1));
+      // Simulate backend timezone bugs:
+      // - For walk-ins, backend uses new Date() which yields UTC hour (night block for 12:05 local)
+      // - For bookings, backend parses string '12:05' as local time, yielding local hour (day block)
+      final startHour = session.hasBooking ? currentStart.hour : currentStart.toUtc().hour;
+      final endHour = session.hasBooking ? effectiveEnd.hour : effectiveEnd.toUtc().hour;
+
+      final isStartNight = startHour >= 18 || startHour < 6;
+      final isEndNight = endHour >= 18 || endHour < 6;
+      final isNightBlock = isStartNight || isEndNight;
+
+      if (isNightBlock) {
+        fee += nightBlockRate;
+      } else {
+        fee += dayBlockRate;
+      }
+
+      currentStart = currentStart.add(const Duration(hours: 4));
+    }
+
+    return fee;
   }
 
   /// Session active gần nhất – dùng cho nút "Scan Card/QR" sample.
@@ -309,6 +372,8 @@ class StaffCoreController extends ChangeNotifier {
       checkInTime: api.entryTime,
       checkOutTime: api.exitTime,
       isPaid: api.isPaid,
+      hasBooking: api.hasBooking,
+      totalFee: api.totalFee,
     );
   }
 }

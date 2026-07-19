@@ -8,6 +8,8 @@ class ParkingSession {
   final DateTime checkInTime;
   final DateTime? checkOutTime;
   final bool isPaid;
+  final bool hasBooking;
+  final double totalFee;
 
   const ParkingSession({
     required this.id,
@@ -18,6 +20,8 @@ class ParkingSession {
     required this.checkInTime,
     this.checkOutTime,
     this.isPaid = false,
+    this.hasBooking = false,
+    this.totalFee = 0.0,
   });
 
   ParkingSession copyWith({
@@ -29,6 +33,8 @@ class ParkingSession {
     DateTime? checkInTime,
     DateTime? checkOutTime,
     bool? isPaid,
+    bool? hasBooking,
+    double? totalFee,
   }) {
     return ParkingSession(
       id: id ?? this.id,
@@ -39,32 +45,9 @@ class ParkingSession {
       checkInTime: checkInTime ?? this.checkInTime,
       checkOutTime: checkOutTime ?? this.checkOutTime,
       isPaid: isPaid ?? this.isPaid,
+      hasBooking: hasBooking ?? this.hasBooking,
+      totalFee: totalFee ?? this.totalFee,
     );
-  }
-
-  /// Tính phí đỗ xe theo loại xe (VND/giờ), tối thiểu 1 giờ.
-  double calculateFee({DateTime? until}) {
-    final end = until ?? checkOutTime ?? DateTime.now();
-    final durationMinutes = end.difference(checkInTime).inMinutes;
-    final hoursRaw = (durationMinutes / 60).ceil();
-    final hours = hoursRaw < 1 ? 1 : hoursRaw;
-    final ratePerHour = switch (vehicleType) {
-      'Motorbike' => 5000.0,
-      'Car' => 15000.0,
-      'EV' => 20000.0,
-      _ => 5000.0,
-    };
-    return hours * ratePerHour;
-  }
-
-  /// Gợi ý khu vực theo loại xe.
-  static String suggestedAreaFor(String vehicleType) {
-    return switch (vehicleType) {
-      'Motorbike' => 'B1 - Zone M',
-      'Car' => 'Floor 2 - Zone C',
-      'EV' => 'Floor 1 - EV Charging Zone',
-      _ => 'B1 - Zone M',
-    };
   }
 
   bool get isActive => !isPaid && checkOutTime == null;

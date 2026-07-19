@@ -76,13 +76,13 @@ class _StaffCoreScreenState extends State<StaffCoreScreen>
   Widget build(BuildContext context) {
     bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF7F9FB),
+      backgroundColor: isDark ? const Color(0xFF0E1116) : const Color(0xFFF7F9FB),
       appBar: _buildAppBar(),
       body: Column(
         children: [
           // ─── Tab bar ────────────────────────────────────────────────
           Container(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            color: isDark ? const Color(0xFF171C24) : Colors.white,
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
             child: TabBar(
               controller: _tabController,
@@ -124,7 +124,7 @@ class _StaffCoreScreenState extends State<StaffCoreScreen>
   PreferredSizeWidget _buildAppBar() {
     bool isDark = Theme.of(context).brightness == Brightness.dark;
     return AppBar(
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF171C24) : Colors.white,
       elevation: 0,
       leading: null,
       automaticallyImplyLeading: true,

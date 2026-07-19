@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../controllers/staff_core_controller.dart';
 import '../../domain/models/parking_session.dart';
 import 'payment_confirmation_dialog.dart';
+import '../screens/qr_scanner_screen.dart';
 import '../screens/real_camera_screen.dart';
 
 /// Màn hình / component Check-out + Invoice.
@@ -52,25 +53,24 @@ class _VehicleCheckOutInvoiceScreenState
     setState(() {});
   }
 
-  Future<void> _scanQRCard() async {
+  Future<void> _scanPlate() async {
     final base64Image = await Navigator.push<String?>(
       context,
       MaterialPageRoute(
         builder: (_) => const RealCameraScreen(),
       ),
     );
-
+    
     if (base64Image != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Recognizing license plate...')),
       );
-
+      
       final plate = await widget.controller.recognizeLicensePlate(base64Image);
-
+      
       if (mounted) {
         if (plate.isNotEmpty) {
           _searchController.text = plate;
-          // Gọi API để lấy session mới nhất
           await widget.controller.findActiveSessionApi(plate);
           setState(() {});
           ScaffoldMessenger.of(context).showSnackBar(
@@ -90,18 +90,14 @@ class _VehicleCheckOutInvoiceScreenState
     if (session == null) return;
 
     try {
-      // Bước 1: Gọi API check-out để tính phí
-      final apiSession = await ctrl.checkOutApi(session.id);
-      if (!mounted) return;
-
-      // Bước 2: Hiện dialog thanh toán với fee từ server
+      // Bước 2: Hiện dialog thanh toán với fee từ server (tính lúc này hoặc defer)
       final result = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
         builder: (_) => PaymentConfirmationDialog(
-          session: ctrl.selectedCheckoutSession!,
-          totalFee: apiSession.totalFee,
-          sessionId: apiSession.id,
+          session: session,
+          totalFee: ctrl.totalFee,
+          sessionId: session.id,
           controller: ctrl,
         ),
       );
@@ -131,14 +127,15 @@ class _VehicleCheckOutInvoiceScreenState
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF171C24) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: isDark ? Colors.transparent : Colors.black.withOpacity(0.05),
             blurRadius: 20,
             offset: const Offset(0, 6),
           ),
@@ -166,12 +163,12 @@ class _VehicleCheckOutInvoiceScreenState
           const SizedBox(height: 20),
 
           // ─── Tìm kiếm session ─────────────────────────────────────────
-          const Text(
+          Text(
             'Search session (License Plate / Session ID)',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF374151),
+              color: isDark ? Colors.white70 : const Color(0xFF374151),
             ),
           ),
           const SizedBox(height: 8),
@@ -181,10 +178,10 @@ class _VehicleCheckOutInvoiceScreenState
                 child: TextField(
                   controller: _searchController,
                   textCapitalization: TextCapitalization.characters,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
                   ),
                   onSubmitted: (_) => _findSession(),
                   decoration: InputDecoration(
@@ -196,21 +193,21 @@ class _VehicleCheckOutInvoiceScreenState
                     prefixIcon: const Icon(Icons.search_rounded,
                         color: Color(0xFF059669)),
                     filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
+                    fillColor: isDark ? const Color(0xFF0E1116) : const Color(0xFFF8FAFC),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide:
-                          BorderSide(color: Colors.grey.shade200),
+                      borderSide: BorderSide(color: isDark ? Colors.transparent : Colors.grey.shade200),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide:
-                          BorderSide(color: Colors.grey.shade200),
+                      borderSide: BorderSide(color: isDark ? Colors.transparent : Colors.grey.shade200),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: const BorderSide(
-                          color: Color(0xFF059669), width: 1.5),
+                        color: Color(0xFF059669),
+                        width: 2,
+                      ),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                         vertical: 16, horizontal: 16),
@@ -247,11 +244,11 @@ class _VehicleCheckOutInvoiceScreenState
               const SizedBox(width: 10),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: _scanQRCard,
-                  icon: const Icon(Icons.qr_code_scanner_rounded,
+                  onPressed: _scanPlate,
+                  icon: const Icon(Icons.camera_alt_rounded,
                       size: 18, color: Color(0xFF059669)),
                   label: const Text(
-                    'SCAN QR',
+                    'SCAN CAMERA',
                     style: TextStyle(
                       color: Color(0xFF059669),
                       fontWeight: FontWeight.w800,
@@ -270,7 +267,7 @@ class _VehicleCheckOutInvoiceScreenState
           ),
           const SizedBox(height: 6),
           const Text(
-            '* Tap SCAN QR to scan parking session code',
+            '* Tap SCAN CAMERA to recognize license plate',
             style: TextStyle(
               fontSize: 11,
               color: Color(0xFF94A3B8),
@@ -351,17 +348,12 @@ class _InvoiceCard extends StatelessWidget {
     final durationMin = now.difference(session.checkInTime).inMinutes;
     final hoursRaw = (durationMin / 60).ceil();
     final hours = hoursRaw < 1 ? 1 : hoursRaw;
-    final rate = switch (session.vehicleType) {
-      'Car' => '15.000 VND/giờ',
-      'EV' => '20.000 VND/giờ',
-      _ => '5.000 VND/giờ',
-    };
     final fmtFee =
         '${_formatMoney(fee)} VND';
 
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : const Color(0xFFE2E8F0)),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -369,9 +361,9 @@ class _InvoiceCard extends StatelessWidget {
           // Header invoice
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            decoration: const BoxDecoration(
-              color: Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.only(
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0E1116) : const Color(0xFFF8FAFC),
+              borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),
               ),
@@ -440,8 +432,6 @@ class _InvoiceCard extends StatelessWidget {
                   label: 'Duration',
                   value: '$durationMin mins (~$hours hours)',
                 ),
-                const SizedBox(height: 10),
-                _InvoiceRow(label: 'Unit Price', value: rate),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12),
                   child: Divider(color: Color(0xFFE2E8F0)),
@@ -483,11 +473,11 @@ class _InvoiceCard extends StatelessWidget {
                 icon: const Icon(Icons.payments_rounded,
                     color: Colors.white),
                 label: const Text(
-                  'CONFIRM PAYMENT',
+                  'LOCK SESSION & CALCULATE BILL',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
-                    fontSize: 15,
+                    fontSize: 14,
                     letterSpacing: 0.5,
                   ),
                 ),

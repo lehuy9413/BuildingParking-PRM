@@ -51,9 +51,12 @@ class _PaymentConfirmationDialogState
   Future<void> _handleCashConfirm() async {
     setState(() => _processing = true);
     try {
+      if (widget.controller.checkoutApiSession?.id != widget.sessionId) {
+        await widget.controller.checkOutApi(widget.sessionId);
+      }
       await widget.controller.confirmCashPaymentApi(
         sessionId: widget.sessionId,
-        cashReceived: widget.totalFee, // exact amount
+        cashReceived: widget.controller.totalFee, // exact amount
       );
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
@@ -72,6 +75,9 @@ class _PaymentConfirmationDialogState
   Future<void> _generateQr() async {
     setState(() => _qrLoading = true);
     try {
+      if (widget.controller.checkoutApiSession?.id != widget.sessionId) {
+        await widget.controller.checkOutApi(widget.sessionId);
+      }
       final data = await widget.controller.initiateQrPaymentApi(widget.sessionId);
       setState(() {
         _qrUrl = data['qrUrl']?.toString();
@@ -105,6 +111,7 @@ class _PaymentConfirmationDialogState
       final status = await widget.controller.checkQrStatus(_qrPaymentId!);
       if (status == 'completed') {
         setState(() => _qrStatus = 'completed');
+        await widget.controller.checkOutApi(widget.sessionId);
         await Future.delayed(const Duration(seconds: 1));
         if (mounted) Navigator.of(context).pop(true);
         return;
@@ -114,7 +121,9 @@ class _PaymentConfirmationDialogState
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
+    return PopScope(
+      canPop: true,
+      child: Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
       child: Column(
@@ -135,7 +144,10 @@ class _PaymentConfirmationDialogState
                 topRight: Radius.circular(24),
               ),
             ),
-            child: Column(
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Column(
               children: [
                 const Icon(Icons.payments_rounded,
                     color: Colors.white, size: 36),
@@ -161,7 +173,17 @@ class _PaymentConfirmationDialogState
                 ),
               ],
             ),
-          ),
+            Positioned(
+              top: -10,
+              right: -10,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => Navigator.of(context).pop(false),
+              ),
+            ),
+          ],
+        ),
+      ),
 
           Flexible(
             child: SingleChildScrollView(
@@ -190,7 +212,7 @@ class _PaymentConfirmationDialogState
                           ),
                         ),
                         Text(
-                          _formatMoney(widget.totalFee),
+                          _formatMoney(widget.controller.totalFee),
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w900,
@@ -431,23 +453,14 @@ class _PaymentConfirmationDialogState
                       ),
                     ),
 
-                  const SizedBox(height: 10),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: const Text(
-                      'Cancel',
-                      style: TextStyle(
-                        color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+
                 ],
               ),
             ),
           ),
         ],
       ),
+    ),
     );
   }
 }

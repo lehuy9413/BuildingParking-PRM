@@ -8,7 +8,13 @@ import 'package:image_picker/image_picker.dart';
 /// Web-only implementation of RealCameraScreen.
 /// Uses dart:html VideoElement + getUserMedia.
 class RealCameraScreen extends StatefulWidget {
-  const RealCameraScreen({super.key});
+  final bool isScanningQR;
+  final String title;
+  const RealCameraScreen({
+    super.key,
+    this.isScanningQR = false,
+    this.title = 'Scan License Plate',
+  });
 
   @override
   State<RealCameraScreen> createState() => _RealCameraScreenState();
@@ -19,12 +25,20 @@ class _RealCameraScreenState extends State<RealCameraScreen> {
   bool _isInitialized = false;
   String? _errorMessage;
   late final String _viewType;
+  final TextEditingController _qrController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _viewType = 'web-camera-view-${DateTime.now().millisecondsSinceEpoch}';
     _initPureWebCamera();
+  }
+
+  void _submitQR() {
+    final value = _qrController.text.trim();
+    if (value.isNotEmpty && mounted) {
+      Navigator.pop(context, value);
+    }
   }
 
   Future<void> _initPureWebCamera() async {
@@ -60,6 +74,7 @@ class _RealCameraScreenState extends State<RealCameraScreen> {
     final stream = _videoElement.srcObject as html.MediaStream?;
     stream?.getTracks().forEach((track) => track.stop());
     _videoElement.srcObject = null;
+    _qrController.dispose();
     super.dispose();
   }
 
@@ -94,7 +109,7 @@ class _RealCameraScreenState extends State<RealCameraScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Scan License Plate'),
+        title: Text(widget.title),
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -114,39 +129,98 @@ class _RealCameraScreenState extends State<RealCameraScreen> {
                 ? const Center(child: CircularProgressIndicator())
                 : Column(children: [
                     Expanded(
-                      child: Center(
-                        child: AspectRatio(
-                          aspectRatio: 4 / 3,
-                          child: HtmlElementView(viewType: _viewType),
-                        ),
+                      child: Stack(
+                        children: [
+                          Center(
+                            child: AspectRatio(
+                              aspectRatio: 4 / 3,
+                              child: HtmlElementView(viewType: _viewType),
+                            ),
+                          ),
+                          if (widget.isScanningQR)
+                            Positioned(
+                              bottom: 20,
+                              left: 20,
+                              right: 20,
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.black87,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.green),
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.qr_code_scanner, color: Colors.green, size: 40),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'Use physical scanner or type booking ID',
+                                      style: TextStyle(color: Colors.white, fontSize: 13),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    TextField(
+                                      controller: _qrController,
+                                      autofocus: true,
+                                      style: const TextStyle(color: Colors.white),
+                                      decoration: InputDecoration(
+                                        hintText: 'Type or scan QR code here...',
+                                        hintStyle: const TextStyle(color: Colors.white54),
+                                        filled: true,
+                                        fillColor: Colors.grey.shade900,
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                      ),
+                                      onSubmitted: (_) => _submitQR(),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: ElevatedButton(
+                                        onPressed: _submitQR,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.green,
+                                          foregroundColor: Colors.white,
+                                        ),
+                                        child: const Text('Confirm'),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      color: Colors.black87,
-                      child: Column(children: [
-                        ElevatedButton.icon(
-                          onPressed: _captureImage,
-                          icon: const Icon(Icons.camera_alt, size: 28),
-                          label: const Text('Capture',
-                              style: TextStyle(fontSize: 18)),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 32, vertical: 14),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30)),
+                    if (!widget.isScanningQR)
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        color: Colors.black87,
+                        child: Column(children: [
+                          ElevatedButton.icon(
+                            onPressed: _captureImage,
+                            icon: const Icon(Icons.camera_alt, size: 28),
+                            label: const Text('Capture',
+                                style: TextStyle(fontSize: 18)),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 32, vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30)),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextButton.icon(
-                          onPressed: _pickImage,
-                          icon: const Icon(Icons.photo_library,
-                              color: Colors.white70),
-                          label: const Text('Tải ảnh từ máy để test',
-                              style: TextStyle(color: Colors.white70)),
-                        ),
-                      ]),
-                    ),
+                          const SizedBox(height: 12),
+                          TextButton.icon(
+                            onPressed: _pickImage,
+                            icon: const Icon(Icons.photo_library,
+                                color: Colors.white70),
+                            label: const Text('Tải ảnh từ máy để test',
+                                style: TextStyle(color: Colors.white70)),
+                          ),
+                        ]),
+                      ),
                   ]),
       ),
     );

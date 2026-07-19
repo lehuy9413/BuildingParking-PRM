@@ -8,6 +8,7 @@ class StaffDashboardSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -100,8 +101,8 @@ class StaffDashboardSummary extends StatelessWidget {
                 label: 'Vehicles In',
                 value: controller.vehiclesIn.toString(),
                 icon: Icons.login_rounded,
-                iconColor: const Color(0xFF2563EB),
-                iconBg: const Color(0xFFEFF6FF),
+                iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+                iconBg: isDark ? const Color(0xFF1E3A8A).withOpacity(0.4) : const Color(0xFFEFF6FF),
               ),
             ),
             const SizedBox(width: 12),
@@ -110,8 +111,8 @@ class StaffDashboardSummary extends StatelessWidget {
                 label: 'Vehicles Out',
                 value: controller.vehiclesOut.toString(),
                 icon: Icons.logout_rounded,
-                iconColor: const Color(0xFF059669),
-                iconBg: const Color(0xFFECFDF5),
+                iconColor: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                iconBg: isDark ? const Color(0xFF064E3B).withOpacity(0.4) : const Color(0xFFECFDF5),
               ),
             ),
             const SizedBox(width: 12),
@@ -120,8 +121,8 @@ class StaffDashboardSummary extends StatelessWidget {
                 label: 'Currently Parked',
                 value: controller.activeVehicleCount.toString(),
                 icon: Icons.local_parking_rounded,
-                iconColor: const Color(0xFFEA580C),
-                iconBg: const Color(0xFFFFF7ED),
+                iconColor: isDark ? const Color(0xFFFB923C) : const Color(0xFFEA580C),
+                iconBg: isDark ? const Color(0xFF7C2D12).withOpacity(0.4) : const Color(0xFFFFF7ED),
               ),
             ),
           ],
@@ -165,14 +166,15 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF222B36) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: isDark ? Colors.transparent : Colors.black.withOpacity(0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -192,19 +194,19 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w900,
-              color: Color(0xFF0F172A),
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
               height: 1,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: Color(0xFF64748B),
+              color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
               fontWeight: FontWeight.w600,
             ),
           ),
