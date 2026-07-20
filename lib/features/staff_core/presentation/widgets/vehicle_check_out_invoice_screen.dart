@@ -89,6 +89,18 @@ class _VehicleCheckOutInvoiceScreenState
     final session = ctrl.selectedCheckoutSession;
     if (session == null) return;
 
+    if (ctrl.checkoutApiSession?.status == 'completed') {
+      widget.onPaymentCompleted();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✅ This session was fully pre-paid or already paid. Check-out successful!'),
+          backgroundColor: Color(0xFF16A34A),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     try {
       // Bước 2: Hiện dialog thanh toán với fee từ server (tính lúc này hoặc defer)
       final result = await showDialog<bool>(
