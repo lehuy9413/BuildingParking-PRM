@@ -324,52 +324,25 @@ class _BookingCard extends StatelessWidget {
   final Booking booking;
   final bool isDark;
 
-  // A booking is "done" if: completed, or approved past its end time
-  bool get _isUsed {
-    if (booking.status == BookingStatus.completed) return true;
-    if (booking.status == BookingStatus.approved) {
-      try {
-        final sParts = booking.startTime.split(':');
-        final eParts = booking.endTime.split(':');
-        final startMin = int.parse(sParts[0]) * 60 + int.parse(sParts[1]);
-        final endMin   = int.parse(eParts[0]) * 60 + int.parse(eParts[1]);
-        var endDt = DateTime(
-          booking.scheduledDate.year,
-          booking.scheduledDate.month,
-          booking.scheduledDate.day,
-          int.parse(eParts[0]),
-          int.parse(eParts[1]),
-        );
-        if (endMin < startMin) endDt = endDt.add(const Duration(days: 1));
-        return DateTime.now().isAfter(endDt);
-      } catch (_) {
-        return booking.scheduledDate.isBefore(DateTime.now());
-      }
-    }
-    return false;
-  }
-
   Color get _statusColor {
-    if (_isUsed) return const Color(0xFF10B981); // green = used
     switch (booking.status) {
-      case BookingStatus.completed: return const Color(0xFF10B981);
-      case BookingStatus.approved: return const Color(0xFF3B82F6);
-      case BookingStatus.pending: return const Color(0xFFF59E0B);
+      case BookingStatus.completed: return const Color(0xFF10B981); // green
+      case BookingStatus.approved:  return const Color(0xFF3B82F6); // blue
+      case BookingStatus.pending:   return const Color(0xFFF59E0B); // amber
       case BookingStatus.cancelled: return Colors.grey;
-      case BookingStatus.rejected: return const Color(0xFFEF4444);
-      case BookingStatus.noShow: return const Color(0xFFEF4444);
+      case BookingStatus.rejected:  return const Color(0xFFEF4444); // red
+      case BookingStatus.noShow:    return const Color(0xFFEF4444); // red
     }
   }
 
   String get _statusLabel {
-    if (_isUsed) return 'Used';
     switch (booking.status) {
-      case BookingStatus.completed: return 'Completed';
-      case BookingStatus.approved: return 'Approved';
-      case BookingStatus.pending: return 'Pending';
+      case BookingStatus.completed: return 'Used';
+      case BookingStatus.approved:  return 'Approved';
+      case BookingStatus.pending:   return 'Pending';
       case BookingStatus.cancelled: return 'Cancelled';
-      case BookingStatus.rejected: return 'Rejected';
-      case BookingStatus.noShow: return 'No Show';
+      case BookingStatus.rejected:  return 'Rejected';
+      case BookingStatus.noShow:    return 'Expired';
     }
   }
 
@@ -648,7 +621,11 @@ class _BookingDetailSheet extends StatelessWidget {
   }
 
   Widget _buildQrSection(BuildContext context) {
-    final qrData = booking.bookingCode;
+    // Ưu tiên dùng qrCode (backend generate, giống lúc booking xong),
+    // fallback về bookingCode, rồi về id để tránh QR rỗng/không khớp.
+    final qrData = (booking.qrCode?.isNotEmpty == true)
+        ? booking.qrCode!
+        : (booking.bookingCode.isNotEmpty ? booking.bookingCode : booking.id);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -663,7 +640,7 @@ class _BookingDetailSheet extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text('# ${booking.bookingCode}',
+          Text('# ${booking.bookingCode.isNotEmpty ? booking.bookingCode : booking.id}',
               style: TextStyle(
                 fontSize: 13, fontWeight: FontWeight.w700, letterSpacing: 1.5,
                 color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
