@@ -70,6 +70,17 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
         .format(amount);
   }
 
+  /// Tính phí ước tính theo block: block 1 = ngay khi vào,
+  /// mỗi 4 tiếng tiếp theo = thêm 1 block. Mỗi block = 5.000đ.
+  double _estimateFee(Duration elapsed) {
+    const double blockFee = 5000;
+    const int hoursPerBlock = 4;
+    // Block đầu tính ngay khi vào (>= 0 phút)
+    final int extraBlocks = elapsed.inHours ~/ hoursPerBlock;
+    final int totalBlocks = 1 + extraBlocks;
+    return totalBlocks * blockFee;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -452,7 +463,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
                 Text(
                   session.totalFee > 0
                       ? _formatCurrency(session.totalFee)
-                      : _formatCurrency(_elapsed.inHours * 5000.0),
+                      : _formatCurrency(_estimateFee(_elapsed)),
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w900,

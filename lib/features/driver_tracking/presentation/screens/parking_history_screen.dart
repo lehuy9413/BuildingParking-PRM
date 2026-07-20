@@ -621,11 +621,8 @@ class _BookingDetailSheet extends StatelessWidget {
   }
 
   Widget _buildQrSection(BuildContext context) {
-    // Ưu tiên dùng qrCode (backend generate, giống lúc booking xong),
-    // fallback về bookingCode, rồi về id để tránh QR rỗng/không khớp.
-    final qrData = (booking.qrCode?.isNotEmpty == true)
-        ? booking.qrCode!
-        : (booking.bookingCode.isNotEmpty ? booking.bookingCode : booking.id);
+    // Dùng bookingCode (giống digital_ticket_screen.dart), fallback về id nếu rỗng
+    final qrData = booking.bookingCode.isNotEmpty ? booking.bookingCode : booking.id;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
