@@ -91,6 +91,7 @@ class _VehicleCheckOutInvoiceScreenState
 
     if (ctrl.checkoutApiSession?.status == 'completed') {
       widget.onPaymentCompleted();
+      ctrl.clearCheckoutSelection();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('✅ This session was fully pre-paid or already paid. Check-out successful!'),
@@ -116,6 +117,7 @@ class _VehicleCheckOutInvoiceScreenState
 
       if (result == true && mounted) {
         widget.onPaymentCompleted();
+        ctrl.clearCheckoutSelection();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('✅ Payment successful! Session closed.'),
