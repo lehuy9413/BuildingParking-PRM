@@ -179,8 +179,9 @@ class StaffCoreController extends ChangeNotifier {
       if (!exists) _sessions.add(session);
 
       selectedCheckoutSession = session;
-      checkoutApiSession = null;
-      totalFee = calculatePreviewFee(session, apiSession.totalFee);
+      
+      // Call checkout API directly to let BE calculate final fee and lock the session
+      await checkOutApi(session.id);
       notifyListeners();
       return session;
     } catch (e) {
@@ -191,13 +192,6 @@ class StaffCoreController extends ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
-  }
-
-  void selectForCheckout(ParkingSession session) {
-    selectedCheckoutSession = session;
-    checkoutApiSession = null;
-    totalFee = calculatePreviewFee(session, session.totalFee);
-    notifyListeners();
   }
 
   void clearCheckoutSelection() {
@@ -297,64 +291,6 @@ class StaffCoreController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Tính phí dự kiến để hiển thị cho UI (nếu API chưa trả totalFee)
-  double calculatePreviewFee(ParkingSession session, double apiFee) {
-    if (apiFee > 0) return apiFee;
-    if (session.vehicleType.isEmpty) return 0.0;
-
-    final entryTime = session.checkInTime;
-    final exitTime = DateTime.now();
-    final durationMs = exitTime.difference(entryTime).inMilliseconds;
-    if (durationMs <= 0) return 0.0;
-
-    final vehicleTypeModel = vehicleTypes.firstWhere(
-      (v) => v.name == session.vehicleType,
-      orElse: () => VehicleTypeModel(
-        id: '',
-        name: session.vehicleType,
-        code: '',
-        dayBlockRate: 0,
-        dailyRate: 0,
-        nightBlockRate: 0,
-      ),
-    );
-
-    final double dayBlockRate = vehicleTypeModel.dayBlockRate;
-    final double nightBlockRate = vehicleTypeModel.nightBlockRate > 0 
-        ? vehicleTypeModel.nightBlockRate 
-        : (dayBlockRate * 1.5);
-
-    double fee = 0.0;
-    DateTime currentStart = entryTime;
-
-    while (currentStart.isBefore(exitTime)) {
-      DateTime blockEnd = currentStart.add(const Duration(hours: 4));
-      if (blockEnd.isAfter(exitTime)) {
-        blockEnd = exitTime;
-      }
-      
-      final effectiveEnd = blockEnd.subtract(const Duration(milliseconds: 1));
-      // Simulate backend timezone bugs:
-      // - For walk-ins, backend uses new Date() which yields UTC hour (night block for 12:05 local)
-      // - For bookings, backend parses string '12:05' as local time, yielding local hour (day block)
-      final startHour = session.hasBooking ? currentStart.hour : currentStart.toUtc().hour;
-      final endHour = session.hasBooking ? effectiveEnd.hour : effectiveEnd.toUtc().hour;
-
-      final isStartNight = startHour >= 18 || startHour < 6;
-      final isEndNight = endHour >= 18 || endHour < 6;
-      final isNightBlock = isStartNight || isEndNight;
-
-      if (isNightBlock) {
-        fee += nightBlockRate;
-      } else {
-        fee += dayBlockRate;
-      }
-
-      currentStart = currentStart.add(const Duration(hours: 4));
-    }
-
-    return fee;
-  }
 
   /// Session active gần nhất – dùng cho nút "Scan Card/QR" sample.
   ParkingSession? get latestActiveSession =>
