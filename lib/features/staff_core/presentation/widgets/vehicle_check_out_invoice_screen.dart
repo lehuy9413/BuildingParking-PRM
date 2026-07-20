@@ -473,7 +473,7 @@ class _InvoiceCard extends StatelessWidget {
                 icon: const Icon(Icons.payments_rounded,
                     color: Colors.white),
                 label: const Text(
-                  'LOCK SESSION & CALCULATE BILL',
+                  'PAYMENT',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,

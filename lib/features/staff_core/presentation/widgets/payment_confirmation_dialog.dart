@@ -191,38 +191,7 @@ class _PaymentConfirmationDialogState
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // ─── Tổng tiền ──────────────────────────────────────────
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 14, horizontal: 20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEFF6FF),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFBFDBFE)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Total Amount',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF1D4ED8),
-                          ),
-                        ),
-                        Text(
-                          _formatMoney(widget.controller.totalFee),
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFF1D4ED8),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+                  // ─── Tổng tiền (Đã ẩn theo yêu cầu) ─────────────────────
                   const Text(
                     'Select Payment Method',
                     style: TextStyle(
@@ -279,10 +248,10 @@ class _PaymentConfirmationDialogState
                           const Icon(Icons.info_outline_rounded,
                               color: Color(0xFF16A34A), size: 20),
                           const SizedBox(width: 10),
-                          Expanded(
+                          const Expanded(
                             child: Text(
-                              'Collect ${_formatMoney(widget.totalFee)} from customer then click Confirm.',
-                              style: const TextStyle(
+                              'Collect cash from customer then click Confirm.',
+                              style: TextStyle(
                                 fontSize: 13,
                                 color: Color(0xFF166534),
                               ),
