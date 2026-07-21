@@ -140,6 +140,7 @@ class _InputField extends StatefulWidget {
     this.trailingIcon,
     this.obscureText = false,
     this.controller,
+    this.validator,
   });
 
   final String hintText;
@@ -147,6 +148,7 @@ class _InputField extends StatefulWidget {
   final IconData? trailingIcon;
   final bool obscureText;
   final TextEditingController? controller;
+  final String? Function(String?)? validator;
 
   @override
   State<_InputField> createState() => _InputFieldState();
@@ -168,6 +170,7 @@ class _InputFieldState extends State<_InputField> {
     return TextFormField(
       controller: widget.controller,
       obscureText: _obscureText,
+      validator: widget.validator,
       style: TextStyle(
         color: isDark ? Colors.white : const Color(0xFF0F172A),
       ),
@@ -300,6 +303,7 @@ class _LoginCard extends StatefulWidget {
 }
 
 class _LoginCardState extends State<_LoginCard> {
+  final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authRepo = AuthRepository();
@@ -313,17 +317,10 @@ class _LoginCardState extends State<_LoginCard> {
   }
 
   Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+
     final email = _usernameController.text.trim().toLowerCase();
     final password = _passwordController.text.trim();
-
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter email and password'),
-        ),
-      );
-      return;
-    }
 
     setState(() => _isLoading = true);
 
@@ -336,13 +333,14 @@ class _LoginCardState extends State<_LoginCard> {
       final role = user.role ?? '';
       final isStaff = role == 'parking_staff' || role == 'parking_manager';
 
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
           builder: (_) => isStaff
               ? const StaffCoreScreen()
               : const HomeScreen(),
         ),
+        (route) => false,
       );
     } catch (e) {
       if (!mounted) return;
@@ -364,7 +362,9 @@ class _LoginCardState extends State<_LoginCard> {
     
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: Column(
+      child: Form(
+        key: _formKey,
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 10),
@@ -404,6 +404,12 @@ class _LoginCardState extends State<_LoginCard> {
             hintText: 'Email or Phone', 
             icon: Icons.alternate_email,
             controller: _usernameController,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter email or phone';
+              }
+              return null;
+            },
           ),
           const SizedBox(height: 16),
           _InputField(
@@ -412,6 +418,12 @@ class _LoginCardState extends State<_LoginCard> {
             trailingIcon: Icons.visibility_outlined,
             obscureText: true,
             controller: _passwordController,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter password';
+              }
+              return null;
+            },
           ),
           const SizedBox(height: 12),
           Align(
@@ -441,6 +453,7 @@ class _LoginCardState extends State<_LoginCard> {
           const SizedBox(height: 24),
         ],
       ),
+      ),
     );
   }
 }
@@ -455,6 +468,7 @@ class _RegisterCard extends StatefulWidget {
 }
 
 class _RegisterCardState extends State<_RegisterCard> {
+  final _formKey = GlobalKey<FormState>();
   bool isCarSelected = true;
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -474,19 +488,12 @@ class _RegisterCardState extends State<_RegisterCard> {
   }
 
   Future<void> _handleRegister() async {
+    if (!_formKey.currentState!.validate()) return;
+
     final fullName = _fullNameController.text.trim();
     final email = _emailController.text.trim().toLowerCase();
     final phone = _phoneController.text.trim();
     final password = _passwordController.text.trim();
-
-    if (fullName.isEmpty || email.isEmpty || phone.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill all fields'),
-        ),
-      );
-      return;
-    }
 
     setState(() => _isLoading = true);
 
@@ -527,7 +534,9 @@ class _RegisterCardState extends State<_RegisterCard> {
     
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: Column(
+      child: Form(
+        key: _formKey,
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
@@ -566,13 +575,42 @@ class _RegisterCardState extends State<_RegisterCard> {
             ],
           ),
           const SizedBox(height: 24),
-          _InputField(hintText: 'Full Name', icon: Icons.person_outline, controller: _fullNameController),
+          _InputField(
+            hintText: 'Full Name', 
+            icon: Icons.person_outline, 
+            controller: _fullNameController,
+            validator: (value) => value == null || value.trim().isEmpty ? 'Please enter your full name' : null,
+          ),
           const SizedBox(height: 16),
-          _InputField(hintText: 'Email Address', icon: Icons.mail_outline, controller: _emailController),
+          _InputField(
+            hintText: 'Email Address', 
+            icon: Icons.mail_outline, 
+            controller: _emailController,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) return 'Please enter your email';
+              if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) return 'Please enter a valid email';
+              return null;
+            },
+          ),
           const SizedBox(height: 16),
-          _InputField(hintText: 'Phone Number', icon: Icons.phone_outlined, controller: _phoneController),
+          _InputField(
+            hintText: 'Phone Number', 
+            icon: Icons.phone_outlined, 
+            controller: _phoneController,
+            validator: (value) => value == null || value.trim().isEmpty ? 'Please enter your phone number' : null,
+          ),
           const SizedBox(height: 16),
-          _InputField(hintText: 'Password', icon: Icons.lock_outline, obscureText: true, controller: _passwordController),
+          _InputField(
+            hintText: 'Password', 
+            icon: Icons.lock_outline, 
+            obscureText: true, 
+            controller: _passwordController,
+            validator: (value) {
+              if (value == null || value.isEmpty) return 'Please enter password';
+              if (value.length < 6) return 'Password must be at least 6 characters';
+              return null;
+            },
+          ),
           const SizedBox(height: 32),
           _PrimaryButton(
             label: _isLoading ? 'SIGNING UP...' : 'SIGN UP',
@@ -580,6 +618,7 @@ class _RegisterCardState extends State<_RegisterCard> {
           ),
           const SizedBox(height: 24),
         ],
+      ),
       ),
     );
   }
