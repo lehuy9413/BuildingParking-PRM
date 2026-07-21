@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/booking_controller.dart';
+import '../../../../core/utils/vehicle_icon_helper.dart';
 
 class BookingStepVehicle extends ConsumerWidget {
   const BookingStepVehicle({super.key});
@@ -61,13 +62,11 @@ class BookingStepVehicle extends ConsumerWidget {
             ...state.myVehicles.map((vehicle) {
               final isSelected = state.selectedVehicle?.id == vehicle.id;
               final typeLower = vehicle.vehicleTypeName.toLowerCase();
-              IconData icon = Icons.directions_car_rounded;
+              IconData icon = VehicleIconHelper.getIconForVehicleType(vehicle.vehicleTypeName);
               Color color = const Color(0xFF2563eb);
-              if (typeLower.contains('motor')) {
-                icon = Icons.two_wheeler_rounded;
+              if (typeLower.contains('motor') || typeLower.contains('xe máy')) {
                 color = const Color(0xFFA855F7);
-              } else if (typeLower.contains('ev') || typeLower.contains('electric')) {
-                icon = Icons.electric_car_rounded;
+              } else if (typeLower.contains('ev') || typeLower.contains('điện') || typeLower.contains('electric')) {
                 color = const Color(0xFF059669);
               }
 

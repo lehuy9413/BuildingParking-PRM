@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../controllers/driver_tracking_controller.dart';
 import 'payment_screen.dart';
+import '../../../../core/utils/vehicle_icon_helper.dart';
 
 /// Màn hình theo dõi lượt gửi xe hiện tại (Live Session Tracking).
 /// Hiển thị giờ vào, vị trí đỗ, phí tạm tính nhảy realtime – lấy từ API.
@@ -603,7 +604,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.directions_car_filled_rounded,
+                    Icon(VehicleIconHelper.getIconForVehicleType(session.vehicleTypeName),
                         color: Colors.white, size: 20),
                     const SizedBox(width: 8),
                     Text(
@@ -661,9 +662,6 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
   }
 
   Widget _buildVehicleInfoCard(bool isDark, session) {
-    final isMotorbike = session.vehicleTypeName
-        .toLowerCase()
-        .contains('motor');
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -687,10 +685,9 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
-              isMotorbike
-                  ? Icons.two_wheeler_rounded
-                  : Icons.directions_car_filled_rounded,
+              VehicleIconHelper.getIconForVehicleType(session.vehicleTypeName),
               color: isDark
+
                   ? const Color(0xFF34D399)
                   : const Color(0xFF059669),
               size: 30,

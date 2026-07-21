@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../domain/entities/booking.dart';
+import '../../../../core/utils/vehicle_icon_helper.dart';
 
 class DigitalTicketScreen extends StatefulWidget {
   const DigitalTicketScreen({super.key, required this.booking});
@@ -328,7 +329,7 @@ class _TicketCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 _DetailRow(
-                  icon: Icons.directions_car_rounded,
+                  icon: VehicleIconHelper.getIconForVehicleType(booking.vehicleTypeName),
                   iconColor: const Color(0xFFA855F7),
                   label: 'Vehicle',
                   value: booking.vehicleTypeName,

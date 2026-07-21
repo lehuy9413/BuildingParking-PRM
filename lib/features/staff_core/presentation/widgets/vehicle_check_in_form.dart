@@ -4,6 +4,7 @@ import '../controllers/staff_core_controller.dart';
 import '../screens/real_camera_screen.dart';
 import '../screens/qr_scanner_screen.dart';
 import '../../domain/models/parking_session.dart';
+import '../../../../core/utils/vehicle_icon_helper.dart';
 
 /// Form check-in xe: nhập biển số, chọn gate, chọn loại xe.
 class VehicleCheckInForm extends StatefulWidget {
@@ -34,10 +35,7 @@ class _VehicleCheckInFormState extends State<VehicleCheckInForm> {
 
   // Icon + màu theo loại xe
   IconData _vehicleIcon(String name) {
-    final n = name.toLowerCase();
-    if (n.contains('car') || n.contains('ô tô')) return Icons.directions_car_rounded;
-    if (n.contains('ev') || n.contains('electric')) return Icons.electric_car_rounded;
-    return Icons.two_wheeler_rounded;
+    return VehicleIconHelper.getIconForVehicleType(name);
   }
 
   Color _vehicleColor(String name) {

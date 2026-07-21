@@ -10,6 +10,7 @@ import '../../domain/repositories/vehicle_repository.dart';
 import '../../../driver_booking/data/datasources/driver_remote_datasource.dart';
 import '../../../staff_core/data/models/vehicle_type_model.dart';
 import '../../../driver_tracking/presentation/screens/parking_history_screen.dart';
+import '../../../../core/utils/vehicle_icon_helper.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -130,10 +131,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF0B7A59)),
-          onPressed: () {},
-        ),
+        automaticallyImplyLeading: false,
         title: Text(
           'Profile',
           style: TextStyle(
@@ -258,7 +256,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               child: const CircleAvatar(
                 radius: 50,
-                backgroundImage: NetworkImage('https://randomuser.me/api/portraits/men/32.jpg'),
+                backgroundColor: Color(0xFFF1F5F9),
+                child: Icon(Icons.person_rounded, size: 50, color: Color(0xFF94A3B8)),
               ),
             ),
             if (!_isEditing)
@@ -432,7 +431,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(
-                  typeName.toLowerCase().contains('motorbike') ? Icons.two_wheeler_rounded : Icons.directions_car_outlined, 
+                  VehicleIconHelper.getIconForVehicleType(typeName), 
                   color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59), size: 30
                 ),
               ),
@@ -609,7 +608,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            Icon(Icons.directions_car, color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59)),
+            Icon(VehicleIconHelper.getIconForVehicleType(typeName), color: isDark ? const Color(0xFF34D399) : const Color(0xFF0B7A59)),
             const SizedBox(width: 8),
             Text('Vehicle Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: isDark ? Colors.white : Colors.black)),
           ],

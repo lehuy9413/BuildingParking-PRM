@@ -7,6 +7,7 @@ import 'digital_ticket_screen.dart';
 import 'quick_check_in_screen.dart';
 import '../controllers/driver_home_controller.dart';
 import '../../../staff_core/data/models/vehicle_type_model.dart';
+import '../../../../core/utils/vehicle_icon_helper.dart';
 
 class DriverHomeScreen extends ConsumerWidget {
   const DriverHomeScreen({super.key});
@@ -605,13 +606,11 @@ class DriverHomeScreen extends ConsumerWidget {
           if (vehicleTypes.isEmpty)
             const Text('No rates available', style: TextStyle(color: Colors.white))
           else
-            ...vehicleTypes.expand((type) {
-              IconData icon = Icons.directions_car_rounded;
-              if (type.name.toLowerCase().contains('motorbike') || type.name.toLowerCase().contains('xe máy')) {
-                icon = Icons.two_wheeler_rounded;
-              } else if (type.name.toLowerCase().contains('ev') || type.name.toLowerCase().contains('điện')) {
-                icon = Icons.electric_car_rounded;
-              }
+            ...vehicleTypes.where((t) {
+              final n = t.name.toLowerCase();
+              return n.contains('xe máy') || n.contains('xe ô tô') || n.contains('car') || n.contains('motor');
+            }).expand((type) {
+              IconData icon = VehicleIconHelper.getIconForVehicleType(type.name);
               return [
                 _buildRateRow(icon, type.name, '${type.dayBlockRate}₫', '/block'),
                 const SizedBox(height: 16),

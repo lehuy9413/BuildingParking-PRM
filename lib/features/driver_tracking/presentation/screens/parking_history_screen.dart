@@ -8,6 +8,7 @@ import '../../../staff_core/data/models/parking_session_api_model.dart';
 import '../../../driver_booking/data/datasources/api_booking_datasource.dart';
 import '../../../driver_booking/domain/entities/booking.dart';
 import '../../data/driver_tracking_datasource.dart';
+import '../../../../core/utils/vehicle_icon_helper.dart';
 
 /// Màn hình Lịch sử gửi xe & Giao dịch thanh toán – lấy từ API.
 class ParkingHistoryScreen extends ConsumerWidget {
@@ -554,7 +555,7 @@ class _BookingDetailSheet extends StatelessWidget {
                             ? [booking.floorName, booking.zoneName].where((e) => e != null).join(' / ')
                             : 'Auto-assigned'),
                     _divider(),
-                    _row(Icons.directions_car_rounded, const Color(0xFFF59E0B), 'Vehicle', '${booking.vehicleTypeName} · ${booking.licensePlate}'),
+                    _row(VehicleIconHelper.getIconForVehicleType(booking.vehicleTypeName), const Color(0xFFF59E0B), 'Vehicle', '${booking.vehicleTypeName} · ${booking.licensePlate}'),
                     _divider(),
                     _row(Icons.login_rounded, const Color(0xFF10B981), 'Check-in', '${booking.startTime} — $dateStr'),
                     _divider(),
@@ -816,8 +817,8 @@ class _WalkinSessionCard extends StatelessWidget {
                     color: const Color(0xFF10B981).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(Icons.directions_car_filled_rounded,
-                      color: Color(0xFF10B981), size: 26),
+                  child: Icon(VehicleIconHelper.getIconForVehicleType(session.vehicleTypeName),
+                      color: const Color(0xFF10B981), size: 26),
                 ),
                 const SizedBox(width: 14),
                 // Info
@@ -968,7 +969,7 @@ class _WalkinSessionDetailSheet extends StatelessWidget {
                             color: const Color(0xFF10B981).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: const Icon(Icons.directions_car_filled_rounded, color: Color(0xFF10B981), size: 28),
+                          child: Icon(VehicleIconHelper.getIconForVehicleType(session.vehicleTypeName), color: const Color(0xFF10B981), size: 28),
                         ),
                         const SizedBox(width: 16),
                         Column(
@@ -1005,7 +1006,7 @@ class _WalkinSessionDetailSheet extends StatelessWidget {
                       Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, height: 1),
                       _sRow(Icons.timer_rounded, const Color(0xFFF59E0B), 'Duration', durStr, isDark),
                       Divider(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, height: 1),
-                      _sRow(Icons.directions_car_rounded, const Color(0xFF8B5CF6), 'Vehicle Type', session.vehicleTypeName, isDark),
+                      _sRow(VehicleIconHelper.getIconForVehicleType(session.vehicleTypeName), const Color(0xFF8B5CF6), 'Vehicle Type', session.vehicleTypeName, isDark),
                     ]),
                   ),
                   const SizedBox(height: 16),

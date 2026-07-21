@@ -10,7 +10,7 @@ import '../../../staff_exception/presentation/screens/staff_exception_screen.dar
 
 import '../../../staff_exception/presentation/screens/staff_exception_screen.dart';
 import '../../../../app/app.dart' as import_app;
-
+import '../../../../core/utils/vehicle_icon_helper.dart';
 
 /// Màn hình chính của Staff Core – quản lý luồng xe vào/ra tiêu chuẩn.
 class StaffCoreScreen extends StatefulWidget {
@@ -369,11 +369,7 @@ class _SessionTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              session.vehicleType == 'Car'
-                  ? Icons.directions_car_rounded
-                  : session.vehicleType == 'EV'
-                      ? Icons.electric_car_rounded
-                      : Icons.two_wheeler_rounded,
+              VehicleIconHelper.getIconForVehicleType(session.vehicleType),
               color: isActive
                   ? const Color(0xFF16A34A)
                   : const Color(0xFF64748B),

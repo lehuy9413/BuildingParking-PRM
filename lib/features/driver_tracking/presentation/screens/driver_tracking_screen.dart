@@ -6,6 +6,7 @@ import '../../../staff_core/data/models/parking_session_api_model.dart';
 import 'live_session_screen.dart';
 import 'parking_history_screen.dart';
 import 'payment_screen.dart';
+import '../../../../core/utils/vehicle_icon_helper.dart';
 
 /// Hub screen for Driver Tracking – links to all tracking/payment/feedback features.
 class DriverTrackingScreen extends ConsumerWidget {
@@ -83,7 +84,7 @@ class DriverTrackingScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(16)),
-              child: const Icon(Icons.directions_car_filled_rounded, color: Colors.white, size: 30),
+              child: Icon(VehicleIconHelper.getIconForVehicleType(session.vehicleTypeName), color: Colors.white, size: 30),
             ),
             const SizedBox(width: 16),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

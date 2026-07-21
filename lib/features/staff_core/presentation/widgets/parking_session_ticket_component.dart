@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../domain/models/parking_session.dart';
+import '../../../../core/utils/vehicle_icon_helper.dart';
 
 /// Hiển thị ticket/session card sau khi check-in thành công.
 class ParkingSessionTicketComponent extends StatelessWidget {
@@ -127,7 +128,7 @@ class ParkingSessionTicketComponent extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        _vehicleIcon(session.vehicleType),
+                        VehicleIconHelper.getIconForVehicleType(session.vehicleType),
                         color: const Color(0xFF16A34A),
                         size: 30,
                       ),
@@ -208,13 +209,6 @@ class ParkingSessionTicketComponent extends StatelessWidget {
     );
   }
 
-  IconData _vehicleIcon(String type) {
-    return switch (type) {
-      'Car' => Icons.directions_car_rounded,
-      'EV' => Icons.electric_car_rounded,
-      _ => Icons.two_wheeler_rounded,
-    };
-  }
 }
 
 // ─── Helper widgets ──────────────────────────────────────────────────────────
